@@ -4,7 +4,7 @@ title: "Native Decimal operations match the owner's metered path"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-403
+  - target: ix://agent-ix/filament-exact/FR-403
     type: verifies
 ---
 # TC-951: Native Decimal operations match the owner's metered path

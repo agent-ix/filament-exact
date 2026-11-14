@@ -4,7 +4,7 @@ title: "Fallible integer copy and bounded canonical decimal output"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-390
+  - target: ix://agent-ix/filament-exact/FR-390
     type: verifies
 ---
 # TC-939: Fallible integer copy and bounded canonical decimal output

@@ -4,7 +4,7 @@ title: "Map value type with a key type"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-386
+  - target: ix://agent-ix/filament-exact/FR-386
     type: verifies
 ---
 # TC-935: Map value type with a key type

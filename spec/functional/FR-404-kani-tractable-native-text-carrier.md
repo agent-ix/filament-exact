@@ -4,19 +4,19 @@ title: "A Kani-tractable native Text carrier with fixed capacity and a host-call
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-399
+  - target: ix://agent-ix/filament-exact/FR-399
     type: references
-  - target: ix://agent-ix/quire-exact/FR-400
+  - target: ix://agent-ix/filament-exact/FR-400
     type: references
-  - target: ix://agent-ix/quire-exact/FR-401
+  - target: ix://agent-ix/filament-exact/FR-401
     type: references
-  - target: ix://agent-ix/quire-exact/FR-367
+  - target: ix://agent-ix/filament-exact/FR-367
     type: references
-  - target: ix://agent-ix/quire-exact/FR-402
+  - target: ix://agent-ix/filament-exact/FR-402
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-052
+  - target: ix://agent-ix/filament-contract-codegen/FR-052
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-404: A Kani-tractable native Text carrier with fixed capacity and a host-callable compare_text replacement

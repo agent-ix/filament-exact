@@ -4,7 +4,7 @@ title: "The native Text carrier holds C bytes, refuses C + 1 and verifies within
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-404
+  - target: ix://agent-ix/filament-exact/FR-404
     type: verifies
 ---
 # TC-952: The native Text carrier holds C bytes, refuses C + 1 and verifies within the memory budget

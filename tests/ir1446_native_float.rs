@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The native float carrier against the shipped `evaluate_ieee` and
 //! `compare_ieee` and independent literals (FR-405, TC-953).
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     compare_ieee, compare_native_float, evaluate_ieee, evaluate_native_float, IeeeComparison,
     IeeeFlag, IeeeFlags, IeeeOperation, IeeeValue, IeeeWidth, IllTyped, IllTypedCause, LimitKind,
     Meter, NativeFloat, NativeFloatOperation, NativeFloatRefusal, NativeFloatResult, Outcome,
     Refusal, RoundingMode, ScalarLimits,
 };
+use ix_trace_rs::trace;
 
 // ---- helpers -------------------------------------------------------------------
 

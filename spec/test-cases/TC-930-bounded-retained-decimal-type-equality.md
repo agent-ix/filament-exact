@@ -4,7 +4,7 @@ title: "Bounded retained Decimal type equality checks both sides"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-382
+  - target: ix://agent-ix/filament-exact/FR-382
     type: verifies
 ---
 # TC-930: Bounded retained Decimal type equality checks both sides

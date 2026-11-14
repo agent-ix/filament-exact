@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel SHALL treat a collection type with no bound as unbounded: its construction never refuses for cardinality, still charges `collection.bound`, and stops only when the caller's meter runs out. The kernel SHALL expose the pure count check as `pub fn violation(self, count: u64) -> Option<BoundViolation>` as an inherent method of `CardinalityBound` for callers that form their own collection values. The checker's typing of `map`, `flatMap`, `filter` and `flatten` over an unbounded source keeps the id `FR-097` in the repository that owns it.
+The `filament-exact` kernel SHALL treat a collection type with no bound as unbounded: its construction never refuses for cardinality, still charges `collection.bound`, and stops only when the caller's meter runs out. The kernel SHALL expose the pure count check as `pub fn violation(self, count: u64) -> Option<BoundViolation>` as an inherent method of `CardinalityBound` for callers that form their own collection values. The checker's typing of `map`, `flatMap`, `filter` and `flatten` over an unbounded source keeps the id `FR-097` in the repository that owns it.
 
 ## Use case
 
@@ -33,4 +33,4 @@ PR #9 adds executable Trace bindings for AC-8. Run `quire matrix` for the curren
 
 ## Dependencies
 
-- None. The caller's behaviour under the same id lives in `agent-ix/quire-spec-language`.
+- None. The caller's behaviour under the same id lives in `agent-ix/filament-spec-language`.

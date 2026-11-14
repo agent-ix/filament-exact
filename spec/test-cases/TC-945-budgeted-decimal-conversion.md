@@ -4,7 +4,7 @@ title: "Admit decimal conversion work and storage before growth"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-390
+  - target: ix://agent-ix/filament-exact/FR-390
     type: verifies
 ---
 # TC-945: Admit decimal conversion work and storage before growth

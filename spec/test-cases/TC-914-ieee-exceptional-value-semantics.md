@@ -3,7 +3,7 @@ id: TC-914
 title: "IEEE NaNs signed zeros and total-order keys"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-366
+  - target: ix://agent-ix/filament-exact/FR-366
     type: verifies
 ---
 # TC-914: IEEE NaNs signed zeros and total-order keys

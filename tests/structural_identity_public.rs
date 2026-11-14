@@ -2,11 +2,11 @@
 //! Public structural identity constructors and borrowed read paths (TC-938).
 //! Selected components follow QSpec TC-233 SI-02..SI-06; no vector copy lives here.
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     EffectiveId, Integer, MemberId, MemberOwner, NodeKey, OriginalDeclarationKey, PathSegment,
     PopulationId, UnitId, UniverseId, VariantId,
 };
+use ix_trace_rs::trace;
 
 #[trace("TC-938", "FR-389-AC-7")]
 #[test]

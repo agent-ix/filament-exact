@@ -3,7 +3,7 @@ id: TC-735
 title: "Deep values and value types clone, compare, hash, format and drop"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-262
+  - target: ix://agent-ix/filament-exact/FR-262
     type: verifies
 ---
 # TC-735: Deep values and value types clone, compare, hash, format and drop

@@ -4,9 +4,9 @@ title: "Charge every limb block of integer parse, sum, product, exact quotient a
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-390
+  - target: ix://agent-ix/filament-exact/FR-390
     type: references
-  - target: ix://agent-ix/quire-contract-ir/FR-038
+  - target: ix://agent-ix/filament-contract-ir/FR-038
     type: references
 ---
 # FR-396: Charge every limb block of integer parse, sum, product, exact quotient and gcd to a caller reservation

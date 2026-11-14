@@ -3,7 +3,7 @@ id: TC-407
 title: "The kernel Undefined has no PreconditionFalse variant"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-090
+  - target: ix://agent-ix/filament-exact/FR-090
     type: verifies
 ---
 # TC-407: The kernel Undefined has no PreconditionFalse variant

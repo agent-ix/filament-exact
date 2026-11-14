@@ -26,4 +26,4 @@ PR #9 adds executable Trace bindings for AC-1. Run `quire matrix` for the curren
 
 ## Dependencies
 
-- [TC-912](../test-cases/TC-912-ieee-flag-iteration.md) is the verification home. Verification uses only the public `quire_exact` API; no downstream evaluator or copied tests are required.
+- [TC-912](../test-cases/TC-912-ieee-flag-iteration.md) is the verification home. Verification uses only the public `filament_exact` API; no downstream evaluator or copied tests are required.

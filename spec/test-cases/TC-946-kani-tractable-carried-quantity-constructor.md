@@ -4,7 +4,7 @@ title: "The carried-quantity constructor matches the owner route and verifies wi
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-398
+  - target: ix://agent-ix/filament-exact/FR-398
     type: verifies
 ---
 # TC-946: The carried-quantity constructor matches the owner route and verifies without allocation

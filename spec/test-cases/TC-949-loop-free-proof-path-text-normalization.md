@@ -4,7 +4,7 @@ title: "Proof-path text normalization against the shipped normalization"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-401
+  - target: ix://agent-ix/filament-exact/FR-401
     type: verifies
 ---
 # TC-949: Proof-path text normalization against the shipped normalization

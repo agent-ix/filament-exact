@@ -4,7 +4,7 @@ title: "Check the kernel union carrier"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-379
+  - target: ix://agent-ix/filament-exact/FR-379
     type: verifies
 ---
 # TC-927: Check the kernel union carrier

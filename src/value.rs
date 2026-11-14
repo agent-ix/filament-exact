@@ -569,7 +569,7 @@ pub enum Value {
 }
 
 impl Value {
-    /// `occ(v)` of `quire.value.accounting/v1`: one for the value itself plus
+    /// `occ(v)` of `filament.value.accounting/v1`: one for the value itself plus
     /// every nested occurrence, with `absent` and `null` slots counting zero
     /// and a bag occurrence counted once per multiplicity.
     pub fn occ(&self) -> Integer {

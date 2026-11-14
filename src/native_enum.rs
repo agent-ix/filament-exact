@@ -29,7 +29,7 @@ pub enum NativeEnumRefusal {
 /// The fields are private, so a struct literal does not compile:
 ///
 /// ```compile_fail,E0451
-/// let _ = quire_exact::NativeEnum { rank: 9, count: 1, ordered: true, declaration: 0 };
+/// let _ = filament_exact::NativeEnum { rank: 9, count: 1, ordered: true, declaration: 0 };
 /// ```
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativeEnum {

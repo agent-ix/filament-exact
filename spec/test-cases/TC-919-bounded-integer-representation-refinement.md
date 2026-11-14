@@ -3,9 +3,9 @@ id: TC-919
 title: "Bounded integer execution preserves the mathematical kernel contract"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-371
+  - target: ix://agent-ix/filament-exact/FR-371
     type: verifies
-  - target: ix://agent-ix/quire-exact/FR-384
+  - target: ix://agent-ix/filament-exact/FR-384
     type: verifies
 ---
 # TC-919: Bounded integer execution preserves the mathematical kernel contract

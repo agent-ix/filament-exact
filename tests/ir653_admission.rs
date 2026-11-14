@@ -7,7 +7,7 @@
 
 use core::num::NonZeroU64;
 
-use quire_exact::{
+use filament_exact::{
     divide, evaluate_decimal, evaluate_integer_arithmetic, evaluate_rational_arithmetic, modulo,
     ChargePoint, Decimal, DecimalOperation, DecimalType, DivisionMember, DivisionProfile,
     InjectedDenial, Integer, IntegerArithmetic, IntegerDomain, LimitKind, Meter, Outcome, Rational,

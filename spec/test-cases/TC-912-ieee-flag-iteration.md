@@ -3,7 +3,7 @@ id: TC-912
 title: "Deterministic IEEE flag iteration"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-364
+  - target: ix://agent-ix/filament-exact/FR-364
     type: verifies
 ---
 # TC-912: Deterministic IEEE flag iteration

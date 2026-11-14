@@ -62,7 +62,7 @@ fn fresh_consumer_resolves_and_runs_unicode17_normalization() {
         format!(
             "[package]\nname = \"fresh-unicode-consumer\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\
              [workspace]\n\
-             [dependencies]\nquire-exact = {{ path = {owner:?} }}\n"
+             [dependencies]\nfilament-exact = {{ path = {owner:?} }}\n"
         ),
     )
     .unwrap();

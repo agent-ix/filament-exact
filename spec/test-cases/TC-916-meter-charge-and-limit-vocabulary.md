@@ -3,7 +3,7 @@ id: TC-916
 title: "Public meter charge and limit vocabularies"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-368
+  - target: ix://agent-ix/filament-exact/FR-368
     type: verifies
 ---
 # TC-916: Public meter charge and limit vocabularies

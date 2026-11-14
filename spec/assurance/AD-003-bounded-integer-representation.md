@@ -3,19 +3,19 @@ id: AD-003
 title: "Bounded integer representation and borrowed BigInt refinement"
 type: ArchitectureDescription
 status: proposed
-owner: quire-exact-maintainer
-system: quire-exact Integer representation and its mathematical observations
+owner: filament-exact-maintainer
+system: filament-exact Integer representation and its mathematical observations
 relationships:
-  - target: "ix://agent-ix/quire-exact/FR-371"
+  - target: "ix://agent-ix/filament-exact/FR-371"
     type: realizes
-  - target: "ix://agent-ix/quire-exact/FR-384"
+  - target: "ix://agent-ix/filament-exact/FR-384"
     type: realizes
 ---
 # AD-003: Bounded integer representation and borrowed BigInt refinement
 
 ## System Boundary
 
-This decision covers the private storage representation of `quire-exact::Integer`, its exact refinement to mathematical integers, and the stable borrowed `as_big` interface. It preserves the public `Integer` API, metered arithmetic schedule in FR-362, allocation admission and refusal contracts, no_std plus alloc support, and the crate's local unsafe prohibition. It does not alter Decimal semantics or the separate CG consumer proof harnesses.
+This decision covers the private storage representation of `filament-exact::Integer`, its exact refinement to mathematical integers, and the stable borrowed `as_big` interface. It preserves the public `Integer` API, metered arithmetic schedule in FR-362, allocation admission and refusal contracts, no_std plus alloc support, and the crate's local unsafe prohibition. It does not alter Decimal semantics or the separate CG consumer proof harnesses.
 
 The additive admitted native API decision below supersedes the earlier prohibition on a public narrowed API only for the explicitly selected new facility. The general Integer representation, arbitrary-precision continuation and borrowed as_big obligations above remain in force. Existing retrospective experiment descriptions do not establish current proof qualification.
 

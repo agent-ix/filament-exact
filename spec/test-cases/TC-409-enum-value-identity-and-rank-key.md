@@ -3,7 +3,7 @@ id: TC-409
 title: "An enum value's VariantId and rank order sets and bags"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-088
+  - target: ix://agent-ix/filament-exact/FR-088
     type: verifies
 ---
 # TC-409: An enum value's VariantId and rank order sets and bags

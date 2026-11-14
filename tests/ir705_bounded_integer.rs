@@ -7,8 +7,8 @@ use num_bigint::BigInt;
 use std::{str::FromStr, string::ToString};
 
 #[cfg(not(feature = "test-support"))]
-use quire_exact::Charge;
-use quire_exact::{
+use filament_exact::Charge;
+use filament_exact::{
     evaluate_integer_arithmetic, order_numbers, ChargePoint, InjectedDenial, Integer,
     IntegerArithmetic, IntegerInterval, LimitKind, Meter, OrderedOperands, OrderingOperator,
     Outcome, ScalarLimits,
@@ -75,7 +75,7 @@ fn inline_signed_bounds_refine_the_explicit_128_bit_domain() {
     assert_eq!(domain.admit(upper.clone()).unwrap().value(), &upper);
 
     let above = Integer::from_big(upper.as_big() + 1_u8);
-    assert_eq!(domain.admit(above), Err(quire_exact::OutOfDomain));
+    assert_eq!(domain.admit(above), Err(filament_exact::OutOfDomain));
 }
 
 /// Trace: FR-371-AC-1
@@ -543,7 +543,7 @@ fn canonical_parsing_preserves_native_boundaries_and_arbitrary_precision() {
     ] {
         assert_eq!(
             Integer::from_str(spelling),
-            Err(quire_exact::NonCanonicalInteger),
+            Err(filament_exact::NonCanonicalInteger),
             "{spelling:?}"
         );
     }
@@ -660,15 +660,15 @@ fn metered_native_and_overflow_operations_keep_the_existing_charge_schedule() {
             Some(expected)
         );
         assert_eq!(
-            meter.consumed(quire_exact::LimitKind::IntegerBits),
+            meter.consumed(filament_exact::LimitKind::IntegerBits),
             arithmetic_bits
         );
         assert_eq!(
-            meter.consumed(quire_exact::LimitKind::ValueOccurrences),
+            meter.consumed(filament_exact::LimitKind::ValueOccurrences),
             occurrences
         );
-        assert_eq!(meter.consumed(quire_exact::LimitKind::WorkUnits), 3);
-        assert_eq!(meter.consumed(quire_exact::LimitKind::ResultUnits), 1);
+        assert_eq!(meter.consumed(filament_exact::LimitKind::WorkUnits), 3);
+        assert_eq!(meter.consumed(filament_exact::LimitKind::ResultUnits), 1);
     }
 
     let excluded = IntegerInterval::new(Integer::zero(), Integer::from(i128::MAX)).unwrap();
@@ -681,8 +681,8 @@ fn metered_native_and_overflow_operations_keep_the_existing_charge_schedule() {
         ),
         Outcome::Refused(_)
     ));
-    assert_eq!(meter.consumed(quire_exact::LimitKind::ResultUnits), 0);
-    assert_eq!(meter.consumed(quire_exact::LimitKind::WorkUnits), 2);
+    assert_eq!(meter.consumed(filament_exact::LimitKind::ResultUnits), 0);
+    assert_eq!(meter.consumed(filament_exact::LimitKind::WorkUnits), 2);
 
     let mut one_less = limits();
     one_less.integer_bits = 4;
@@ -697,13 +697,13 @@ fn metered_native_and_overflow_operations_keep_the_existing_charge_schedule() {
     };
     assert_eq!(
         incomplete.charge_point,
-        quire_exact::ChargePoint::IntegerArithmeticArithmetic
+        filament_exact::ChargePoint::IntegerArithmeticArithmetic
     );
     assert_eq!(incomplete.limit, 4);
     assert_eq!(incomplete.consumed, 4);
     assert_eq!(incomplete.next_charge, Integer::from(5_u64));
-    assert_eq!(meter.consumed(quire_exact::LimitKind::WorkUnits), 1);
-    assert_eq!(meter.consumed(quire_exact::LimitKind::ResultUnits), 0);
+    assert_eq!(meter.consumed(filament_exact::LimitKind::WorkUnits), 1);
+    assert_eq!(meter.consumed(filament_exact::LimitKind::ResultUnits), 0);
 }
 
 /// Trace: FR-371-AC-3

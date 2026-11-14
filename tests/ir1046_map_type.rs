@@ -4,12 +4,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     admit_text, from_admitted, CardinalityBound, CollectionKind, CollectionType, EffectiveId,
     EnumShape, MapType, Meter, NestedMapKey, NodeKey, OptionValue, OriginalDeclarationKey,
     PathSegment, ScalarLimits, TextPayload, TextProfile, TextType, Value, ValueType,
 };
+use ix_trace_rs::trace;
 
 /// Levels of nesting in the deep types.
 const DEEP: usize = 100_000;

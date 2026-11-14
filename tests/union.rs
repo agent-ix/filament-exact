@@ -6,14 +6,14 @@ use std::cmp::Ordering;
 use std::fmt::{self, Write};
 use std::sync::Arc;
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     compare_keys, evaluate_union, form_collection, form_grouped, from_admitted_slots,
     plan_equality, planned_equality, union, ChargePoint, CheckedInvariantCause, CollectionKind,
     CollectionType, Component, ConstructionCause, ConstructionRefusal, Deferred, EnumMember,
     FieldValue, IeeeValue, Integer, LimitKind, Meter, NodeKey, OptionValue, Outcome, PathSegment,
     Refusal, ScalarLimits, Undefined, UnionMember, UnionValue, Value, ValueType, VariantId,
 };
+use ix_trace_rs::trace;
 
 fn circle() -> UnionMember {
     UnionMember::from_admitted(declaration(), "Circle").unwrap()
@@ -327,7 +327,7 @@ fn member_declaration_order_does_not_reach_union_key_order() {
 }
 
 /// Trusted kernel keylessness and sequence storage only; S3 type-reference
-/// eligibility in QSL FR-323-AC-3 requires a checker witness outside this test.
+/// eligibility in FSL FR-323-AC-3 requires a checker witness outside this test.
 #[trace("FR-379-AC-7")]
 #[test]
 fn ieee_union_payload_has_no_key_and_sequence_keeps_occurrences() {
@@ -580,7 +580,7 @@ fn mixed_union_composite_collection_paths_walk_and_drop_on_small_stack() {
                     None,
                 );
                 for _ in 0..10_000 {
-                    let collection = quire_exact::from_admitted(sequence.clone(), vec![value]);
+                    let collection = filament_exact::from_admitted(sequence.clone(), vec![value]);
                     let record = from_admitted_slots(
                         declaration(),
                         vec![FieldValue::Present(collection)].into_boxed_slice(),

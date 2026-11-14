@@ -3,7 +3,7 @@ id: TC-915
 title: "Distinct text profiles refuse before any charge"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-367
+  - target: ix://agent-ix/filament-exact/FR-367
     type: verifies
 ---
 # TC-915: Distinct text profiles refuse before any charge

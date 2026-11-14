@@ -3,7 +3,7 @@ id: TC-907
 title: "Cumulative meter charges at and beyond the u64 boundary"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-359
+  - target: ix://agent-ix/filament-exact/FR-359
     type: verifies
 ---
 # TC-907: Cumulative meter charges at and beyond the u64 boundary

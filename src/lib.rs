@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! `quire-exact`: the exact-value kernel, a `no_std` + `alloc` leaf that
+//! `filament-exact`: the exact-value kernel, a `no_std` + `alloc` leaf that
 //! depends on no other crate in the quire ecosystem.
 //!
 //! The crate holds checked structural identity ([`NodeKey`] and value
@@ -41,7 +41,7 @@
 //!
 //! Value-semantics requirements (decimals, text and enumerations, quantities
 //! and units, integer division, IEEE profiles) are owned by
-//! `agent-ix/quire-specification`. A test carries a `QSpec-` tagged AC only
+//! `agent-ix/filament-specification`. A test carries a `QSpec-` tagged AC only
 //! where its own assertions, not merely its module doc's citation, tell the
 //! AC's claim from a wrong implementation. The requirements this repository
 //! owns are in `spec/`.

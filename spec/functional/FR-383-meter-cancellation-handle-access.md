@@ -4,14 +4,14 @@ title: "Expose the meter's cancellation handle"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: references
 ---
 # FR-383: Expose the meter's cancellation handle
 
 ## Description
 
-`quire-exact` SHALL expose a meter's installed cancellation handle without
+`filament-exact` SHALL expose a meter's installed cancellation handle without
 creating cancellation or accounting state.
 
 ## Inputs
@@ -63,15 +63,15 @@ availability.
 
 - [FR-358](./FR-358-meter-denial-and-bounded-diagnostic-log.md) defines the
   meter's cancellation-before-injection behavior and accounting invariants.
-- QSL's proposed FR-175 tuple evaluator in PR #1021 builds an uncapped
+- FSL's proposed FR-175 tuple evaluator in PR #1021 builds an uncapped
   position-search meter from the original meter's limits and a separately
-  supplied `Option<&Cancel>` (`qsl-eval/src/temporal/tuple.rs:237-255,307-312`).
+  supplied `Option<&Cancel>` (`fsl-eval/src/temporal/tuple.rs:237-255,307-312`).
   The separate argument can disagree with the original meter. This requirement
   lets that consumer derive the search handle from the original meter.
 
 ## Decision
 
-Choose **A, the borrowed accessor**. QSL needs the original handle to attach
+Choose **A, the borrowed accessor**. FSL needs the original handle to attach
 to its own position-search meter, whose work cap differs from the original.
 The accessor is smaller and more general: consumers choose the new meter's
 limits and clone the borrowed handle when `with_cancel` needs ownership. That

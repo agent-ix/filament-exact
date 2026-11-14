@@ -4,21 +4,21 @@ title: "A Kani-tractable carried-quantity constructor from physical bindings"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-088
+  - target: ix://agent-ix/filament-exact/FR-088
     type: references
-  - target: ix://agent-ix/quire-exact/FR-372
+  - target: ix://agent-ix/filament-exact/FR-372
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-384
+  - target: ix://agent-ix/filament-exact/FR-384
     type: references
-  - target: ix://agent-ix/quire-exact/FR-387
+  - target: ix://agent-ix/filament-exact/FR-387
     type: references
-  - target: ix://agent-ix/quire-specification/FR-140
+  - target: ix://agent-ix/filament-specification/FR-140
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-050
+  - target: ix://agent-ix/filament-contract-codegen/FR-050
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-025
+  - target: ix://agent-ix/filament-contract-codegen/FR-025
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-398: A Kani-tractable carried-quantity constructor from physical bindings
@@ -31,11 +31,11 @@ The constructor SHALL use only fixed-width native arithmetic and no allocation, 
 
 The constructor SHALL be available in ordinary host builds, in the manner of [FR-384](./FR-384-admitted-native-integer-refinement.md), with one source for a host build and a `cfg(kani)` build (Behavior 1), so that a host test of it is a test of what Kani proves. It is not a verification-only replacement. The existing `CarriedQuantityType` (FR-088 `UnitId`, `QuantityCarrier`) is unchanged. Membership follows the owner's rules: [FR-372](./FR-372-fallible-bounded-decimal-membership.md) and QSpec FR-140 for Decimal, and the `IntegerInterval` and `RationalDomain` membership already shipped.
 
-Three things are out of scope. Unit conversion, quantity arithmetic and comparison remain the owner's in `quire-semantic-value`. Decoding retained counterexample playback into bindings remains CG's (FR-025-AC-18, FR-050-AC-9). Choosing a smaller carrier domain so a proof fits is not done here: if the composed proof does not fit, the fallback is a QSpec finite-grid bound filed as its own ticket by the owner of IR-1443. The sibling carriers are IR-1445 (text), IR-1446 (float) and IR-1444 (decimal); this constructor does not introduce a second native decimal encoding for general Decimal values. It only maps a Decimal binding to the native fraction of Behavior 2. The IR-1444 carrier (FR-402) retains the Decimal pair and never forms that fraction; the two share only the owner membership rule.
+Three things are out of scope. Unit conversion, quantity arithmetic and comparison remain the owner's in `filament-semantic-value`. Decoding retained counterexample playback into bindings remains CG's (FR-025-AC-18, FR-050-AC-9). Choosing a smaller carrier domain so a proof fits is not done here: if the composed proof does not fit, the fallback is a QSpec finite-grid bound filed as its own ticket by the owner of IR-1443. The sibling carriers are IR-1445 (text), IR-1446 (float) and IR-1444 (decimal); this constructor does not introduce a second native decimal encoding for general Decimal values. It only maps a Decimal binding to the native fraction of Behavior 2. The IR-1444 carrier (FR-402) retains the Decimal pair and never forms that fraction; the two share only the owner membership rule.
 
 ## Use case
 
-A generated harness for `a + b`, each operand a `quire.op.quantity.convert` of an `Int[0, 100]` leaf in `cm`, calls `kani::any::<i64>()` once per leaf and constructs the carried quantity from that binding and the declared type. For `Decimal[0,100; 0,2]` the harness draws a coefficient then a scale, so `50` is the pair `(5000, 2)`, whose raw coefficient is outside `[0, 100]`. The constructor yields the exact magnitude `50`, and the owner's conversion takes it from there.
+A generated harness for `a + b`, each operand a `filament.op.quantity.convert` of an `Int[0, 100]` leaf in `cm`, calls `kani::any::<i64>()` once per leaf and constructs the carried quantity from that binding and the declared type. For `Decimal[0,100; 0,2]` the harness draws a coefficient then a scale, so `50` is the pair `(5000, 2)`, whose raw coefficient is outside `[0, 100]`. The constructor yields the exact magnitude `50`, and the owner's conversion takes it from there.
 
 ## Behavior
 
@@ -83,4 +83,4 @@ Implemented (IR-1443) for the constructor, the read-out and the host tests of AC
 - FR-088 owns `UnitId`; FR-387 owns the bounded quantity type this constructor refuses; FR-384 is the native-width and host-availability precedent; FR-372 and QSpec FR-140 own Decimal membership, on which this constructor depends.
 - CG FR-050 (merged, IR-1497) is the consumer and names this constructor as prerequisite P1; CG FR-025-AC-18 defines the binding order, CG FR-028 the 16 GiB ceiling. CG's consumption of the constructor is CG's ticket IR-263 and CG's credit.
 - IR-1445 (text), IR-1446 (float) and IR-1444 (decimal) are sibling carriers following the same host-differential pattern and are not prerequisites. IR-1444 (FR-402) retains the Decimal pair rather than the fraction; it and this constructor share the owner Decimal membership rule and must not diverge in it.
-- The conversion and operation owners (`convert_quantity`, `evaluate_quantity_unit`) are in `quire-semantic-value`, which depends on this crate; the composed proof of item 10 therefore runs in CG's harness, not in this repository.
+- The conversion and operation owners (`convert_quantity`, `evaluate_quantity_unit`) are in `filament-semantic-value`, which depends on this crate; the composed proof of item 10 therefore runs in CG's harness, not in this repository.

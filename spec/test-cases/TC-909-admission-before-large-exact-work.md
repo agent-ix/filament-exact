@@ -3,7 +3,7 @@ id: TC-909
 title: "Denied kernel size charges precede large allocations"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-361
+  - target: ix://agent-ix/filament-exact/FR-361
     type: verifies
 ---
 # TC-909: Denied kernel size charges precede large allocations

@@ -4,15 +4,15 @@ title: "A Kani-tractable native enum carrier and a compare_enum replacement"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-088
+  - target: ix://agent-ix/filament-exact/FR-088
     type: references
-  - target: ix://agent-ix/quire-exact/FR-402
+  - target: ix://agent-ix/filament-exact/FR-402
     type: references
-  - target: ix://agent-ix/quire-exact/FR-404
+  - target: ix://agent-ix/filament-exact/FR-404
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-049
+  - target: ix://agent-ix/filament-contract-codegen/FR-049
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-407: A Kani-tractable native enum carrier and a compare_enum replacement
@@ -21,7 +21,7 @@ relationships:
 
 The kernel SHALL provide a native enum carrier, a small `Copy` value holding a member's rank, its declaration's member count and ordered flag, and an opaque declaration tag, with no `NodeKey`, `Arc`, `String`, `Box` or other heap type, and a replacement of the owner's `compare_enum` over two such carriers (Behavior 1 to 10).
 
-The owner's `EnumValue` (quire-semantic-value) holds a declaration `NodeKey` (an `Arc`), a member `NodeKey`, a member list `Arc<[String]>`, the ordered flag, the position and a `Box<str>` case name. Comparing two of them walks heap structure, which is the shape that made the general `Integer` route time out or exhaust memory under Kani. A comparison of two enum members needs only the member rank, whether the declaration is ordered, and whether the two operands share a declaration: [FR-088](./FR-088-enum-and-unit-identity-in-the-kernel.md) already fixes the rank as the member's zero-based index in the canonical member list, and the owner orders by that position and equates by member identity, which within one declaration is the same relation as rank equality.
+The owner's `EnumValue` (filament-semantic-value) holds a declaration `NodeKey` (an `Arc`), a member `NodeKey`, a member list `Arc<[String]>`, the ordered flag, the position and a `Box<str>` case name. Comparing two of them walks heap structure, which is the shape that made the general `Integer` route time out or exhaust memory under Kani. A comparison of two enum members needs only the member rank, whether the declaration is ordered, and whether the two operands share a declaration: [FR-088](./FR-088-enum-and-unit-identity-in-the-kernel.md) already fixes the rank as the member's zero-based index in the canonical member list, and the owner orders by that position and equates by member identity, which within one declaration is the same relation as rank equality.
 
 The consumer is the enum row of Contract CodeGen (CG FR-049, IR-262). CG's harness, its measurements and its credit are CG's and are not this requirement's acceptance (as for FR-402 and FR-404). Kani execution here is limited to the proofs of Behavior 9, whose verdict the code lead records. The Integer, Decimal, Text, quantity and float carriers are FR-384, FR-402, FR-404, FR-398 and FR-405.
 
@@ -53,7 +53,7 @@ A generated harness for `a < b` over an `ordered enum` of three members draws `a
 9. A Kani harness SHALL prove `compare_native_enum` over symbolic `u32` ranks and counts constrained by Behavior 1, a symbolic ordered flag and either one shared declaration tag or two symbolic tags, for all six operators and for a `Meter` with symbolic sufficient and insufficient limits, against an expected side written separately (the native Rust operators over the ranks, the cause per Behavior 6, the charge sequence of Behavior 7). Each harness SHALL carry a cover that the Completed path and each refusal path are reached, SHALL fail on a mutant of the comparison and SHALL run under the 10-minute wall clock and 16 GiB ceiling of CG FR-028 and return a terminal verdict. No Kani verdict is recorded by this requirement until the code lead records one.
 ### Differential
 
-10. A host differential SHALL run `compare_native_enum` beside the owner's `compare_enum` for an ordered and an unordered declaration of one, two, three and sixteen members, every operand pair, every operator, operands of two distinct declarations, two owner values with one declaration key and different same-length member lists (given different tags), and a `Meter` at a sufficient, an exact and a one-less limit for each limit kind the charges use. It SHALL compare the typed outcome, the refusal cause, every charge point with its limit kinds and amounts, the denied charge and the counters. The differential SHALL fail on buildable mutants of Behavior 6, 7 and 8. Because quire-semantic-value depends on quire-exact, the differential lives in quire-semantic-value's `tests/` beside `compare_enum`, under its own QSV ticket, and runs once the carrier is on quire-exact main; quire-exact takes no dependency on quire-semantic-value.
+10. A host differential SHALL run `compare_native_enum` beside the owner's `compare_enum` for an ordered and an unordered declaration of one, two, three and sixteen members, every operand pair, every operator, operands of two distinct declarations, two owner values with one declaration key and different same-length member lists (given different tags), and a `Meter` at a sufficient, an exact and a one-less limit for each limit kind the charges use. It SHALL compare the typed outcome, the refusal cause, every charge point with its limit kinds and amounts, the denied charge and the counters. The differential SHALL fail on buildable mutants of Behavior 6, 7 and 8. Because filament-semantic-value depends on filament-exact, the differential lives in filament-semantic-value's `tests/` beside `compare_enum`, under its own QSV ticket, and runs once the carrier is on filament-exact main; filament-exact takes no dependency on filament-semantic-value.
 
 ## Acceptance Criteria
 
@@ -64,8 +64,8 @@ A generated harness for `a < b` over an `ordered enum` of three members draws `a
 | FR-407-AC-3 | `from_member` agrees with `from_index` for every member of an ordered and an unordered `EnumShape`, refuses a member whose rank differs from the shape's rank for its variant and a foreign variant with `MemberNotInShape`, and takes the count and ordered flag from the shape. | Test (TC-955) |
 | FR-407-AC-4 | For the six operators over every ordered pair of an `ordered enum` of three members, the Boolean equals the native operator over the indices; for an unordered enum `Equal` and `NotEqual` equal the same and the four orderings are refused. | Test (TC-955) |
 | FR-407-AC-5 | Operands with different tags, or the same tag but a different count or ordered flag, are refused with `DistinctEnumDeclarations`, which takes precedence over `UnorderedEnumOrdering`; an ordering over an unordered declaration is refused with `UnorderedEnumOrdering`; a refused call leaves the `Meter` unchanged. | Test (TC-955) |
-| FR-407-AC-6 | Inside quire-exact, against a literal expected charge sequence on a recording `Meter` (not the owner), the charge points, order, limit kinds and amounts of Behavior 7, the denied charge and the incomplete record are as stated at a sufficient, an exact and a one-less limit, and equality and ordered comparison are charged identically on one `Meter`. | Test (TC-955) |
-| FR-407-AC-7 | The differential of Behavior 10, in quire-semantic-value's `tests/` under its own QSV ticket, passes beside the owner's `compare_enum` (including the same-key, different-member-list case), and each Behavior 6 to 8 mutant of TC-955 fails it at step 5. | Test (TC-955) |
+| FR-407-AC-6 | Inside filament-exact, against a literal expected charge sequence on a recording `Meter` (not the owner), the charge points, order, limit kinds and amounts of Behavior 7, the denied charge and the incomplete record are as stated at a sufficient, an exact and a one-less limit, and equality and ordered comparison are charged identically on one `Meter`. | Test (TC-955) |
+| FR-407-AC-7 | The differential of Behavior 10, in filament-semantic-value's `tests/` under its own QSV ticket, passes beside the owner's `compare_enum` (including the same-key, different-member-list case), and each Behavior 6 to 8 mutant of TC-955 fails it at step 5. | Test (TC-955) |
 | FR-407-AC-8 | The comparison source contains no `cfg(kani)`, loop, iterator adapter, allocation, `num_bigint` item, owner `Integer`, `NodeKey` or `EnumValue`. | Inspection (code review) |
 | FR-407-AC-9 | PLANNED: the Kani harness of Behavior 9 returns an executed terminal VERIFIED verdict, its cover paths are reached and its mutant fails, with time, peak memory, tool version and harness id recorded in TC-955's evidence record. A FAILED verdict fails the criterion; a timeout, memory exhaustion or unreliable outcome is recorded as the measured row and claims no proof. | Test (TC-955) |
 
@@ -75,9 +75,9 @@ CG FR-049 draws each operand as a symbolic `i64` index in `0..member_count` and 
 
 ## Status
 
-Implemented (IR-262) for FR-407-AC-1 through AC-6, backed by host tests in `tests/ir262_native_enum.rs` and a `compile_fail,E0451` doctest on `NativeEnum`; AC-8 is an inspection by code review. FR-407-AC-7 is Planned: the differential lives in quire-semantic-value under its own QSV ticket. FR-407-AC-9 is Planned. The first harness (one proof over symbolic meter limits) was measured: it did not finish at 1800 s. It is replaced by `native_enum_compare_completes`, `native_enum_compare_denies_second_read`, `native_enum_compare_denies_retain`, `native_enum_refuses_distinct_declarations` and `native_enum_refuses_unordered_ordering` in `src/native_enum/kani_proofs.rs`, each with concrete meter limits and each holding its outcome in `ManuallyDrop` so the proof avoids the `Outcome` drop glue (which reaches `NodeKey` drop glue through the owner's `Refusal` and `Undefined` variants). Measured under Kani on the `--kani` lane: all five harnesses returned VERIFIED, in about 21 to 27 s each, and the six covers (both witnesses of `native_enum_compare_completes` and one in each other harness) were SATISFIED. Peak memory, tool version and a mutant check were not recorded, so FR-407-AC-9 stays Planned.
+Implemented (IR-262) for FR-407-AC-1 through AC-6, backed by host tests in `tests/ir262_native_enum.rs` and a `compile_fail,E0451` doctest on `NativeEnum`; AC-8 is an inspection by code review. FR-407-AC-7 is Planned: the differential lives in filament-semantic-value under its own QSV ticket. FR-407-AC-9 is Planned. The first harness (one proof over symbolic meter limits) was measured: it did not finish at 1800 s. It is replaced by `native_enum_compare_completes`, `native_enum_compare_denies_second_read`, `native_enum_compare_denies_retain`, `native_enum_refuses_distinct_declarations` and `native_enum_refuses_unordered_ordering` in `src/native_enum/kani_proofs.rs`, each with concrete meter limits and each holding its outcome in `ManuallyDrop` so the proof avoids the `Outcome` drop glue (which reaches `NodeKey` drop glue through the owner's `Refusal` and `Undefined` variants). Measured under Kani on the `--kani` lane: all five harnesses returned VERIFIED, in about 21 to 27 s each, and the six covers (both witnesses of `native_enum_compare_completes` and one in each other harness) were SATISFIED. Peak memory, tool version and a mutant check were not recorded, so FR-407-AC-9 stays Planned.
 
 ## Dependencies
 
-- quire-semantic-value `compare_enum` and `EnumValue` own enum comparison and charges and are the oracle of the differential; FR-088 owns rank, `EnumShape` and `EnumMember`.
+- filament-semantic-value `compare_enum` and `EnumValue` own enum comparison and charges and are the oracle of the differential; FR-088 owns rank, `EnumShape` and `EnumMember`.
 - FR-402 and FR-404 are the precedent for the carrier and evidence structure. CG FR-049 is the consumer and CG FR-028 owns the 16 GiB ceiling.

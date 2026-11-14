@@ -3,7 +3,7 @@ id: TC-933
 title: "Meter exposes the handle it polls"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-383
+  - target: ix://agent-ix/filament-exact/FR-383
     type: verifies
 ---
 # TC-933: Meter exposes the handle it polls

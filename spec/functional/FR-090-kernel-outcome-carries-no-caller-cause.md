@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel `Refusal` and `Undefined` enums SHALL name only causes the kernel itself raises, except for the closed `CheckedInvariantCause` transport shared with `quire-contract-runtime`'s extracted exact checking residue, `quire-semantic-value`'s shared value operations and CG's generated checked oracles under [FR-369](./FR-369-typed-checked-invariant-causes.md). A cause whose meaning depends on a QSL checker, model or evaluator remains that caller's and stays out of the kernel's closed sets. QSL's existing direct construction of the unit `CheckedInvariant` SHALL migrate under QSL-owned requirements before it pins the new kernel API. The caller's handling of those causes keeps the id `FR-090` in `agent-ix/quire-spec-language`.
+The `filament-exact` kernel `Refusal` and `Undefined` enums SHALL name only causes the kernel itself raises, except for the closed `CheckedInvariantCause` transport shared with `filament-contract-runtime`'s extracted exact checking residue, `filament-semantic-value`'s shared value operations and CG's generated checked oracles under [FR-369](./FR-369-typed-checked-invariant-causes.md). A cause whose meaning depends on a FSL checker, model or evaluator remains that caller's and stays out of the kernel's closed sets. FSL's existing direct construction of the unit `CheckedInvariant` SHALL migrate under FSL-owned requirements before it pins the new kernel API. The caller's handling of those causes keeps the id `FR-090` in `agent-ix/filament-spec-language`.
 
 ## Use case
 
@@ -25,12 +25,12 @@ A caller refuses an evaluation for a wrong snapshot anchor, an absent lookup key
 | FR-090-AC-7 | `Refusal` has no variant whose payload is a wrong-snapshot cause. | Inspection (TC-388) |
 | FR-090-AC-11 | `Undefined` has no `PreconditionFalse` variant. | Inspection (TC-407) |
 | FR-090-AC-12 | `Undefined` has no `AbsentKey` variant. | Inspection (TC-408) |
-| FR-090-AC-13 | `Refusal::CheckedInvariant` carries only FR-369's closed typed cause; it has no arbitrary caller message, QSL model/checker type, catalog code or generic caller-cause escape hatch. | Inspection |
+| FR-090-AC-13 | `Refusal::CheckedInvariant` carries only FR-369's closed typed cause; it has no arbitrary caller message, FSL model/checker type, catalog code or generic caller-cause escape hatch. | Inspection |
 
 ## Status
 
-The original exclusions are implemented. The typed carrier in AC-13 is planned for IR-707; QSL's direct constructors need their own migration before its lock pins IR-707.
+The original exclusions are implemented. The typed carrier in AC-13 is planned for IR-707; FSL's direct constructors need their own migration before its lock pins IR-707.
 
 ## Dependencies
 
-- [FR-369](./FR-369-typed-checked-invariant-causes.md) defines the narrow shared carrier. The caller's behaviour under the older ids lives in `agent-ix/quire-spec-language`.
+- [FR-369](./FR-369-typed-checked-invariant-causes.md) defines the narrow shared carrier. The caller's behaviour under the older ids lives in `agent-ix/filament-spec-language`.

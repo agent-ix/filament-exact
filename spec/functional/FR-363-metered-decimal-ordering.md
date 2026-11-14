@@ -3,16 +3,16 @@ id: FR-363
 title: "Decimal ordering compares values and charges retained representations"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: references
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: depends_on
 ---
 # FR-363: Decimal ordering compares values and charges retained representations
 
 ## Description
 
-When `order_numbers` receives two decimal operands, the `quire-exact` kernel SHALL compare their exact mathematical values and charge the retained operand representations before exposing the Boolean result.
+When `order_numbers` receives two decimal operands, the `filament-exact` kernel SHALL compare their exact mathematical values and charge the retained operand representations before exposing the Boolean result.
 
 ## Behavior
 

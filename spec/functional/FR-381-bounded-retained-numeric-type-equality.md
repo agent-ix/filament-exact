@@ -4,9 +4,9 @@ title: "Bounded cancellable equality of retained numeric types"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-semantic-value/FR-117
+  - target: ix://agent-ix/filament-semantic-value/FR-117
     type: references
-  - target: ix://agent-ix/quire-exact/FR-380
+  - target: ix://agent-ix/filament-exact/FR-380
     type: references
 ---
 # FR-381: Bounded cancellable equality of retained numeric types
@@ -14,7 +14,7 @@ relationships:
 ## Description
 
 When a supplied-admission caller compares two retained Integer intervals or
-two retained Rational domains as type links, `quire-exact` SHALL offer a
+two retained Rational domains as type links, `filament-exact` SHALL offer a
 fallible equality operation under that caller's authenticated finite magnitude
 ceiling `B`. This is type equality over both retained domains, separate from
 [FR-380](./FR-380-bounded-cancellable-numeric-membership.md)'s value membership.
@@ -90,7 +90,7 @@ ceiling `B`. This is type equality over both retained domains, separate from
 - [FR-380](./FR-380-bounded-cancellable-numeric-membership.md) supplies the
   existing borrowed-limb numeric value membership precedent, but its three/six
   operand checks do not establish this four/eight endpoint contract.
-- [QSV FR-117](ix://agent-ix/quire-semantic-value/FR-117) owns caller `B`,
+- [QSV FR-117](ix://agent-ix/filament-semantic-value/FR-117) owns caller `B`,
   type-link event order, rooted locus and supplied-phase failure projection.
 
 ## Status

@@ -4,18 +4,18 @@ title: "Typed collection state construction and poststate inspection"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-specification/FR-144
+  - target: ix://agent-ix/filament-specification/FR-144
     type: derives_from
-  - target: ix://agent-ix/quire-exact/FR-097
+  - target: ix://agent-ix/filament-exact/FR-097
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-378
+  - target: ix://agent-ix/filament-exact/FR-378
     type: depends_on
 ---
 # FR-392: Typed collection state construction and poststate inspection
 
 ## Description
 
-When a caller supplies a collection-valued subject state, `quire-exact` SHALL construct and inspect it through the single `Value::Collection` representation carrying `CollectionType`. This boundary does not define a generated subject function signature or claim that a code generator uses it.
+When a caller supplies a collection-valued subject state, `filament-exact` SHALL construct and inspect it through the single `Value::Collection` representation carrying `CollectionType`. This boundary does not define a generated subject function signature or claim that a code generator uses it.
 
 ## Inputs
 
@@ -54,6 +54,6 @@ Planned. Existing `form_collection` and `CollectionValue` support the outer pres
 
 ## Dependencies
 
-- QSpec [FR-144](ix://agent-ix/quire-specification/FR-144) defines the collection algebra, exact type identity and inclusive bounds.
+- QSpec [FR-144](ix://agent-ix/filament-specification/FR-144) defines the collection algebra, exact type identity and inclusive bounds.
 - [FR-097](./FR-097-unbounded-collection-in-the-kernel.md) defines absent-bound behavior; [FR-378](./FR-378-caller-admitted-values-in-collections-options-and-composites.md) keeps trusted caller admission separate.
 - CG's generated subject invocation, state frame and clause assertion are downstream contracts; this requirement supplies their value form only.

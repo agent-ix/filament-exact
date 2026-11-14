@@ -4,7 +4,7 @@ title: "Native division, i64 multiply, equality and charge schedule against the 
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-397
+  - target: ix://agent-ix/filament-exact/FR-397
     type: verifies
 ---
 # TC-944: Native division, i64 multiply, equality and charge schedule against the Integer path

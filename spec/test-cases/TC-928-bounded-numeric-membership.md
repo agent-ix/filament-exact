@@ -4,7 +4,7 @@ title: "Bounded Integer and Rational membership preserves size and cancellation"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-380
+  - target: ix://agent-ix/filament-exact/FR-380
     type: verifies
 ---
 # TC-928: Bounded Integer and Rational membership preserves size and cancellation
@@ -42,7 +42,7 @@ already reduced rationals and domains before observing the membership helper.
    replacement handle. Check nonmembership remains Boolean false, distinct
    from all typed stops.
 5. In QSV's supplied caller, use the authenticated bound for value and all
-   endpoints, including B = 4096 supplied by QSL after caller API omission;
+   endpoints, including B = 4096 supplied by FSL after caller API omission;
    assert its independently enumerated logical event count, with the
    initiating event charged before the B check, rooted locus, no extra limb
    event, no evaluator debit, and typed cancellation
@@ -66,6 +66,6 @@ for every compared operand.
 
 ## Status
 
-PLANNED/UNRUN. QSpec FR-323 defines the QSL-owned magnitude carrier; the QSL
+PLANNED/UNRUN. QSpec FR-323 defines the FSL-owned magnitude carrier; the FSL
 producer and QSV caller are pending, so this case cannot yet serve as runtime
 qualification.

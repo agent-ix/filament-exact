@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public admitted native operations against independent BigInt and real meters.
-use ix_trace_rs::trace;
-use num_bigint::BigInt;
-use num_traits::ToPrimitive;
-use quire_exact::{
+use filament_exact::{
     evaluate_integer_arithmetic, evaluate_native_integer_arithmetic as native,
     evaluate_native_integer_ordering, order_numbers, retain_boolean,
     AdmittedNativeIntegerOperation, Cancel, CancelCause, Charge, ChargePoint, InjectedDenial,
@@ -13,6 +10,9 @@ use quire_exact::{
     NativeIntegerOperationKind as Kind, NativeIntegerPlan as Plan, OrderedOperands,
     OrderingOperator, Outcome, Refusal, ScalarLimits,
 };
+use ix_trace_rs::trace;
+use num_bigint::BigInt;
+use num_traits::ToPrimitive;
 
 const KINDS: [LimitKind; 10] = [
     LimitKind::IntegerBits,
@@ -762,7 +762,7 @@ fn operation_derived_exact_and_one_less_limits_preserve_fresh_and_cumulative_pre
                     };
                     assert_eq!(
                         *record,
-                        quire_exact::Incomplete {
+                        filament_exact::Incomplete {
                             limit_kind: LimitKind::WorkUnits,
                             limit: 5,
                             consumed: 5,
@@ -777,7 +777,7 @@ fn operation_derived_exact_and_one_less_limits_preserve_fresh_and_cumulative_pre
                     };
                     assert_eq!(
                         *record,
-                        quire_exact::Incomplete {
+                        filament_exact::Incomplete {
                             limit_kind: LimitKind::ResultUnits,
                             limit: 1,
                             consumed: 1,
@@ -825,7 +825,7 @@ fn ordering_cancellation_precedes_pending_injection_on_fresh_and_charged_meters(
             actual = actual.with_injected_denial(denial);
             general_meter = general_meter.with_injected_denial(denial);
             cancel.cancel(CancelCause::Deadline);
-            let expected = Outcome::Incomplete(quire_exact::Incomplete {
+            let expected = Outcome::Incomplete(filament_exact::Incomplete {
                 limit_kind: LimitKind::WorkUnits,
                 limit: work,
                 consumed: work,

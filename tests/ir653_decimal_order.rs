@@ -3,7 +3,7 @@
 
 use core::num::NonZeroU64;
 
-use quire_exact::{
+use filament_exact::{
     order_numbers, ChargePoint, Decimal, InjectedDenial, Integer, LimitKind, Meter,
     OrderedOperands, OrderingOperator, Outcome, ScalarLimits,
 };

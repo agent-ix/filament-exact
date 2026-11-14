@@ -16,7 +16,7 @@
 //! The fields are private, so a value can only be built canonical:
 //!
 //! ```compile_fail,E0451
-//! let _ = quire_exact::NativeRational { numerator: 1, denominator: 1 };
+//! let _ = filament_exact::NativeRational { numerator: 1, denominator: 1 };
 //! ```
 
 use crate::accounting::{ChargePoint, Incomplete, LimitKind, Meter, UnitsCharge};

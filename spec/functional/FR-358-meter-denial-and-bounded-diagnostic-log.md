@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` meter SHALL deny an injected, named charge exactly once at its selected 1-based occurrence. Where `test-support` is enabled, the meter SHALL bound the admitted-charge log to 4096 entries without changing exact accounting. The public `InjectedDenial::occurrence` SHALL be `NonZeroU64`, making zero unrepresentable. The production meter SHALL expose optional fixed-size interval accounting of successful admissions and optional bounded per-charge event capture, both disabled by default.
+The `filament-exact` meter SHALL deny an injected, named charge exactly once at its selected 1-based occurrence. Where `test-support` is enabled, the meter SHALL bound the admitted-charge log to 4096 entries without changing exact accounting. The public `InjectedDenial::occurrence` SHALL be `NonZeroU64`, making zero unrepresentable. The production meter SHALL expose optional fixed-size interval accounting of successful admissions and optional bounded per-charge event capture, both disabled by default.
 
 ## Behavior
 
@@ -132,13 +132,13 @@ The `quire-exact` meter SHALL deny an injected, named charge exactly once at its
 
 ## Status
 
-AC-16 through AC-21 have public-meter executable bindings in `tests/ir1280_charge_accounting.rs` for the IR-1280 implementation. The kernel interval primitive does not complete QSL-1548 or `ix://agent-ix/quire-spec-language/FR-520` AC-11. QSL owns binder routing, read-presence entries (including zero-charge and Unavailable reads), per-call conservation and the semantic `accounting_version`; none belongs in the kernel capture.
+AC-16 through AC-21 have public-meter executable bindings in `tests/ir1280_charge_accounting.rs` for the IR-1280 implementation. The kernel interval primitive does not complete QSL-1548 or `ix://agent-ix/filament-spec-language/FR-520` AC-11. FSL owns binder routing, read-presence entries (including zero-charge and Unavailable reads), per-call conservation and the semantic `accounting_version`; none belongs in the kernel capture.
 
 PR #9 adds executable Trace bindings for AC-8 through AC-11. AC-7 was retired to FR-368; its ID is not reused. AC-12 and AC-13 have direct public-meter Trace bindings for the injected record and ordinary-limit precedence, including cancellation remaining first. AC-14 and AC-15 specify the IR-667 enriched test-support log and remain planned until executable bindings land; this specification does not claim runtime conformance. Test-support callers must adapt directly to typed records when implementation lands. Run `quire matrix` for the current criterion-to-test mapping.
 
 ## Dependencies
 
-- The `quire-exact` implementation is in `src/accounting.rs`. This requirement adds a one-shot denial, a bounded test-support diagnostic log and optional fixed-size production interval accounting; it does not add a compatibility layer or copy downstream code.
-- `ix://agent-ix/quire-spec-language` tests use both `admitted_charges()` and `InjectedDenial` with integer occurrence literals or values, so its callers must construct nonzero occurrences when they adopt this field type.
-- `ix://agent-ix/quire-contract-runtime` has a local meter copy and already uses `NonZeroU64`; RT #95 is the downstream pin-and-replace work and must consume the authoritative crate rather than vendor it.
-- `ix://agent-ix/quire-contract-codegen` uses the runtime's `NonZeroU64` denial in tests. No direct usage was found in `ix://agent-ix/quire-contract-ir` or the locally available `quire-driver` checkout.
+- The `filament-exact` implementation is in `src/accounting.rs`. This requirement adds a one-shot denial, a bounded test-support diagnostic log and optional fixed-size production interval accounting; it does not add a compatibility layer or copy downstream code.
+- `ix://agent-ix/filament-spec-language` tests use both `admitted_charges()` and `InjectedDenial` with integer occurrence literals or values, so its callers must construct nonzero occurrences when they adopt this field type.
+- `ix://agent-ix/filament-contract-runtime` has a local meter copy and already uses `NonZeroU64`; RT #95 is the downstream pin-and-replace work and must consume the authoritative crate rather than vendor it.
+- `ix://agent-ix/filament-contract-codegen` uses the runtime's `NonZeroU64` denial in tests. No direct usage was found in `ix://agent-ix/filament-contract-ir` or the locally available `filament-driver` checkout.

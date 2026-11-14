@@ -4,7 +4,7 @@ title: "Direct Rational IEEE outcomes preserve charge and stop boundaries"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-373
+  - target: ix://agent-ix/filament-exact/FR-373
     type: verifies
 ---
 # TC-921: Direct Rational IEEE outcomes preserve charge and stop boundaries

@@ -4,7 +4,7 @@ title: "Payload-byte bound per text profile"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-400
+  - target: ix://agent-ix/filament-exact/FR-400
     type: verifies
 ---
 # TC-948: Payload-byte bound per text profile

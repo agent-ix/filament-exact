@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The native Text carrier against the shipped `compare_text` and an
 //! independent reference (FR-404, TC-952).
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     admit_text, compare_native_text, compare_text, ComparisonOperator, IllTyped, IllTypedCause,
     LimitKind, Meter, NativeText, NativeTextRefusal, NormalizationForm, Outcome, ScalarLimits,
     Text, TextNotAdmittedCause, TextPayload, TextProfile, TextType, NATIVE_TEXT_CAPACITY as C,
 };
+use ix_trace_rs::trace;
 use std::cmp::Ordering;
 
 fn limits(value: u64) -> ScalarLimits {

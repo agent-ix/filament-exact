@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Production per-charge capture across direct and opaque Exact meter boundaries.
 
-use quire_exact::{
+use filament_exact::{
     evaluate_integer_arithmetic, evaluate_native_integer_ordering, Charge, ChargeAdmission,
     ChargePoint, Integer, IntegerArithmetic, LimitKind, Meter, NativeInteger, OrderingOperator,
     Outcome, ScalarLimits,
@@ -227,8 +227,8 @@ fn expected_event(
     work: u64,
     results: u64,
     sizes: &[(LimitKind, u64)],
-) -> quire_exact::ChargeEvent {
-    quire_exact::ChargeEvent {
+) -> filament_exact::ChargeEvent {
+    filament_exact::ChargeEvent {
         point,
         work_units: Integer::from(work),
         result_units: Integer::from(results),

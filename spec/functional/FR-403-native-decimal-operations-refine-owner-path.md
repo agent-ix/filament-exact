@@ -4,21 +4,21 @@ title: "Native Decimal operations refine the owner's metered Decimal path"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-402
+  - target: ix://agent-ix/filament-exact/FR-402
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-384
+  - target: ix://agent-ix/filament-exact/FR-384
     type: references
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: references
-  - target: ix://agent-ix/quire-exact/FR-363
+  - target: ix://agent-ix/filament-exact/FR-363
     type: references
-  - target: ix://agent-ix/quire-exact/FR-372
+  - target: ix://agent-ix/filament-exact/FR-372
     type: references
-  - target: ix://agent-ix/quire-specification/FR-140
+  - target: ix://agent-ix/filament-specification/FR-140
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-051
+  - target: ix://agent-ix/filament-contract-codegen/FR-051
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-403: Native Decimal operations refine the owner's metered Decimal path
@@ -126,7 +126,7 @@ Implemented (IR-1508): the admission, evaluation, gcd, ordering and read-out, wi
 
 ## Dependencies
 
-- IR-1444 (specified in quire-exact PR 146, implemented in PR 148) delivers the carrier, the native type and the constructor of [FR-402](./FR-402-kani-tractable-native-decimal-carrier.md), on which this requirement depends. FR-362 and QSpec FR-140 own the arithmetic and the charge schedule that this requirement refines. FR-384 is the precedent for admission before charge and for the typed capacity refusal.
+- IR-1444 (specified in filament-exact PR 146, implemented in PR 148) delivers the carrier, the native type and the constructor of [FR-402](./FR-402-kani-tractable-native-decimal-carrier.md), on which this requirement depends. FR-362 and QSpec FR-140 own the arithmetic and the charge schedule that this requirement refines. FR-384 is the precedent for admission before charge and for the typed capacity refusal.
 - FR-363 owns the ordering charges and the rule that the alignment power of ten is not materialized, and FR-372 owns Decimal membership; this requirement refines both. CG FR-051 is the consumer (prerequisite P1); CG's consumption is CG's ticket IR-259 and CG's credit, not this requirement's acceptance. CG FR-028 owns the 16 GiB ceiling.
 - A full-width proof of the operations waits on a separate Verus proof track (Behavior 41).
 - The `Meter` is the owner's and unchanged; its own allocation behaviour is outside this requirement.

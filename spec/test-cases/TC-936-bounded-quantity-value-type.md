@@ -4,7 +4,7 @@ title: "Bounded quantity value type"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-387
+  - target: ix://agent-ix/filament-exact/FR-387
     type: verifies
 ---
 # TC-936: Bounded quantity value type

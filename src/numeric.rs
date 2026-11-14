@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Metered exact numeric kernels: `Integer`/`Int[..]` arithmetic,
 //! `Rational[..]` arithmetic, numeric ordering and Boolean connectives, in the
-//! `quire.value.accounting/v1` charge order.
+//! `filament.value.accounting/v1` charge order.
 //!
 //! Every size amount is derived before the value it measures is retained; no
 //! power of ten is allocated to measure an aligned decimal coefficient.

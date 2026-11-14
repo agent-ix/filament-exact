@@ -3,7 +3,7 @@ id: TC-937
 title: "The kernel reads only declared scalar limit-kind spellings"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-388
+  - target: ix://agent-ix/filament-exact/FR-388
     type: verifies
 ---
 # TC-937: The kernel reads only declared scalar limit-kind spellings

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The native Decimal carrier against literals and the owner route (FR-402,
 //! TC-950).
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     Decimal, DecimalRepresentation, DecimalType, IllTypedCause, Integer, NativeDecimal as D,
     NativeDecimalRefusal as Refusal, NativeDecimalType as T, RoundingMode,
 };
+use ix_trace_rs::trace;
 
 type Row = (i128, i128, u64, u64, &'static [(i64, i64)]);
 const MAX: i128 = i128::MAX;

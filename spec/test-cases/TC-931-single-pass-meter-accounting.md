@@ -3,14 +3,14 @@ id: TC-931
 title: "Request-proportional meter accounting and bounded integer-arithmetic proof"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-359
+  - target: ix://agent-ix/filament-exact/FR-359
     type: verifies
 ---
 # TC-931: Request-proportional meter accounting and bounded integer-arithmetic proof
 
 ## Description
 
-Verify FR-359-AC-8, AC-11 and AC-12 (delivered), AC-9 (IR-844 standalone proof and mutation controls, with the IR-810 persistent gate) and record the permanently external AC-10 receipt. Kernel accounting and its Kani obligation belong to quire-exact. The five unchanged CG scalar tests are a separate consumer-owned IR-705/IR-17 acceptance receipt, not kernel test cases.
+Verify FR-359-AC-8, AC-11 and AC-12 (delivered), AC-9 (IR-844 standalone proof and mutation controls, with the IR-810 persistent gate) and record the permanently external AC-10 receipt. Kernel accounting and its Kani obligation belong to filament-exact. The five unchanged CG scalar tests are a separate consumer-owned IR-705/IR-17 acceptance receipt, not kernel test cases.
 
 ## Test Procedure
 
@@ -46,4 +46,4 @@ Healthy and mutant inputs ran sequentially in separate private detached worktree
 
 AC-9 is bound by `units_kani_proofs_verify` and delivered as the three `accounting::units_proofs` harnesses. Kani 0.68.0 / CBMC 6.11.0 / CaDiCaL, `-Z function-contracts --exact --unwind 3 --jobs 1 --solver cadical`, 24 GiB cgroup, swap disabled, 30-minute timeout, under the shared cargo lock: `units_charge_matches_independent_transition` VERIFIED (4 of 4 covers), 18.8 s verification, 20.8 s wall, 1.18 GB peak; `units_adapter_maps_common_charge_to_units_charge` VERIFIED (2 of 2 covers), 0.29 s verification, 1.7 s wall, peak not sampled (run shorter than the 2 s sampler); `units_injection_cancellation_preserves_occurrence_and_saturation` VERIFIED (4 of 4 covers), 12.5 s verification, 15.0 s wall, 0.69 GB peak. Mutant `previous.min(amount)`: FAILED at `consumed[k] matches` (19.0 s verification, 21.0 s wall, 1.30 GB peak). Mutant `LimitKind::ALL` loop in `charge_units_inner`: FAILED at `unwinding assertion loop 0` (3.0 s verification, 5.0 s wall, 0.41 GB). Mutant `second: common.sizes.first`: FAILED at `adapter keeps the second request` (0.28 s verification, 1.7 s wall, peak not sampled). Both reverted. The earlier memory exhaustion came from `next_charge.to_u64()` running `Integer::as_big` over an unconstrained `Vec<u32>` and from the `Integer`-typed `Charge::work` builder reaching `charge_general`; the harnesses now compare `next_charge.native()` and build `Charge` through the common-path setters. The monolithic `meter_integer_arithmetic_schedule_matches_reference` stays excluded and unclaimed. AC-10 and FR-371-AC-6 remain external consumer evidence.
 
-AC-10 is permanently externally evidenced in CG and deliberately untagged in quire-exact; its IR-17 adoption receipt is UNRUN. IR-705 reviewed spec/ADR work and IR-810's persistent gate precede that adoption. No consumer acceptance receipt is claimed.
+AC-10 is permanently externally evidenced in CG and deliberately untagged in filament-exact; its IR-17 adoption receipt is UNRUN. IR-705 reviewed spec/ADR work and IR-810's persistent gate precede that adoption. No consumer acceptance receipt is claimed.

@@ -4,24 +4,24 @@ title: "Carry a union member and its positional payload as a kernel value"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-262
+  - target: ix://agent-ix/filament-exact/FR-262
     type: references
-  - target: ix://agent-ix/quire-exact/FR-369
+  - target: ix://agent-ix/filament-exact/FR-369
     type: references
-  - target: ix://agent-ix/quire-exact/FR-376
+  - target: ix://agent-ix/filament-exact/FR-376
     type: references
-  - target: ix://agent-ix/quire-exact/FR-377
+  - target: ix://agent-ix/filament-exact/FR-377
     type: references
-  - target: ix://agent-ix/quire-exact/FR-378
+  - target: ix://agent-ix/filament-exact/FR-378
     type: references
 ---
 # FR-379: Carry a union member and its positional payload as a kernel value
 
 ## Description
 
-The `quire-exact` kernel SHALL carry one active member of a union declaration, with its payload values in declared position order, as `Value::Union`, with construction, comparison, key order, clone, `Debug` and drop that do not grow the native stack with the depth.
+The `filament-exact` kernel SHALL carry one active member of a union declaration, with its payload values in declared position order, as `Value::Union`, with construction, comparison, key order, clone, `Debug` and drop that do not grow the native stack with the depth.
 
-This requirement states what the kernel does. The language-level source is QSL FR-319, FR-321, FR-322 and FR-323, cited by number only. The kernel carries no member registry and mints no identity. The checking stage supplies the declaration key and exact member name already verified under QSpec FR-441, and the caller's type environment supplies the declared position types.
+This requirement states what the kernel does. The language-level source is FSL FR-319, FR-321, FR-322 and FR-323, cited by number only. The kernel carries no member registry and mints no identity. The checking stage supplies the declaration key and exact member name already verified under QSpec FR-441, and the caller's type environment supplies the declared position types.
 
 ## Inputs
 
@@ -40,7 +40,7 @@ This requirement states what the kernel does. The language-level source is QSL F
 2. **Exact construction.** `union(shape, member, payload)` refuses `ConstructionRefusal { component: Value, cause: WrongArity { declared, supplied } }` when the lengths differ, and otherwise `ConstructionRefusal { component: Position(i), cause: TypeMismatch }` for the first position whose value `ValueType::admits` refuses. It checks no registry membership and no reference conformance. `UnionValue::from_admitted` checks nothing (FR-378).
 3. **Evaluation.** `evaluate_union` checks the arity before it runs any argument, runs the arguments in position order, and returns the first stop of an argument (`Undefined`, `Refused` or `Incomplete`) without running a later argument and without any charge. A completed argument that its position type does not admit refuses `CheckedInvariant { cause: DeferredResultNotAdmitted }`. A completed evaluation charges `composite.result-retain` once, sized by the occurrence count of the result.
 4. **Equality.** For two unions of one declaration, different `VariantId`s give `false` with one pair. Equal `VariantId`s with equal payload lengths pair the payload positions in order, each as a pair of FR-376, and the union adds one pair. Equal `VariantId`s with different payload lengths refuse `ValueKindMismatch`.
-5. **Unlike unions and kinds.** Two unions of different declarations refuse `ValueKindMismatch` in equality and give `None` from `compare_keys`: a union declaration has no descendant, and QSL FR-319-AC-3 makes comparing members of two union declarations a type error, so such a pair never meets in a checked program. A union paired with an enum, a composite or any other value kind refuses `ValueKindMismatch` and gives `None`.
+5. **Unlike unions and kinds.** Two unions of different declarations refuse `ValueKindMismatch` in equality and give `None` from `compare_keys`: a union declaration has no descendant, and FSL FR-319-AC-3 makes comparing members of two union declarations a type error, so such a pair never meets in a checked program. A union paired with an enum, a composite or any other value kind refuses `ValueKindMismatch` and gives `None`.
 6. **Key order.** For two unions of one declaration, `compare_keys` orders by the UTF-8 bytes of the member identifier. Equal identifiers identify the same `VariantId` under the admitted FR-441 pair and compare the payload positions in order. Different payload lengths give `None`. Equal member identifiers in different union declarations give `None` at the cross-declaration boundary, and a union of another declaration is not admitted by `ValueType::Composite` of the first. Neither the member identity's representation nor the declaration position of the member takes part in the within-declaration order.
 7. **Collections.** `Set` and `Bag` hold unions in key order and merge equal members, `OrderedSet` keeps first-occurrence order, and `Sequence` keeps every occurrence, each from any supply order. A union that holds an IEEE value has no key: a `Set` formed through `form_grouped` refuses `CheckedInvariant { cause: CanonicalKeyUnavailable }`, and a `Sequence` keeps it.
 8. **Depth.** Clone, equality, key comparison, `Debug` and `Drop` of a union nested ten thousand levels deep complete on a small stack (FR-262). The storage a nested union holds grows linearly with its depth, and a child shared by two parents counts once for each occurrence.
@@ -68,4 +68,4 @@ Implemented. This requirement states the behavior of code written for QSL-500 be
 
 - Equality and key order of a payload that pairs composites of different declarations are [FR-376](./FR-376-composite-equality-across-declarations.md) and [FR-377](./FR-377-composite-canonical-key-across-declarations.md); the caller-admitted payload is [FR-378](./FR-378-caller-admitted-values-in-collections-options-and-composites.md); the cause names are [FR-369](./FR-369-typed-checked-invariant-causes.md); the depth rule is [FR-262](./FR-262-deep-values-and-types-in-the-kernel.md).
 - The falsifying controls are [TC-927](../test-cases/TC-927-union-carrier.md).
-- The language-level sources are QSL FR-319, FR-321, FR-322 and FR-323.
+- The language-level sources are FSL FR-319, FR-321, FR-322 and FR-323.

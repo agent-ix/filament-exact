@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel SHALL handle a `Value` and a `ValueType` of any depth without growing the native stack with the depth, in clone, equality, hash, debug format and drop. The caller's evaluation of a deep value keeps the id `FR-262` in the repository that owns it.
+The `filament-exact` kernel SHALL handle a `Value` and a `ValueType` of any depth without growing the native stack with the depth, in clone, equality, hash, debug format and drop. The caller's evaluation of a deep value keeps the id `FR-262` in the repository that owns it.
 
 ## Use case
 
@@ -32,4 +32,4 @@ Implemented.
 
 ## Dependencies
 
-- None. The caller's behaviour under the same id lives in `agent-ix/quire-spec-language`.
+- None. The caller's behaviour under the same id lives in `agent-ix/filament-spec-language`.

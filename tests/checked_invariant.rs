@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public checked-invariant carrier controls for FR-369.
 
+use filament_exact::{CheckedInvariantCause, IllTypedCause, Refusal};
 use ix_trace_rs::trace;
-use quire_exact::{CheckedInvariantCause, IllTypedCause, Refusal};
 
 // Independently authored exhaustive expectations, rather than a production list.
 fn expected_name(cause: CheckedInvariantCause) -> &'static str {
@@ -247,7 +247,7 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .starts_with("libquire_exact-")
+                .starts_with("libfilament_exact-")
                 && path
                     .extension()
                     .is_some_and(|extension| extension == "rlib")
@@ -269,7 +269,7 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
                 "metadata",
             ])
             .arg("--extern")
-            .arg(format!("quire_exact={}", library.display()))
+            .arg(format!("filament_exact={}", library.display()))
             .arg("-L")
             .arg(format!("dependency={}", dependencies.display()))
             .arg("--out-dir")
@@ -280,7 +280,7 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
     };
     let valid = compile(
         "required_payload",
-        "use quire_exact::{Refusal, CheckedInvariantCause};\n\
+        "use filament_exact::{Refusal, CheckedInvariantCause};\n\
          pub fn refusal() -> Refusal { Refusal::CheckedInvariant { cause: CheckedInvariantCause::PopulationPair } }",
     );
     assert!(
@@ -290,7 +290,7 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
     );
     let invalid = compile(
         "former_unit",
-        "pub fn refusal() -> quire_exact::Refusal { quire_exact::Refusal::CheckedInvariant }",
+        "pub fn refusal() -> filament_exact::Refusal { filament_exact::Refusal::CheckedInvariant }",
     );
     let error = String::from_utf8_lossy(&invalid.stderr);
     assert!(!invalid.status.success());
@@ -300,7 +300,7 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
     );
     let removed = compile(
         "removed_depth_cause",
-        "use quire_exact::CheckedInvariantCause;\n\
+        "use filament_exact::CheckedInvariantCause;\n\
          pub fn cause() -> CheckedInvariantCause { CheckedInvariantCause::CallDepthExceeded }",
     );
     let error = String::from_utf8_lossy(&removed.stderr);
@@ -312,7 +312,7 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
 
     let removed = compile(
         "removed_placeholder_cause",
-        "use quire_exact::CheckedInvariantCause;\n\
+        "use filament_exact::CheckedInvariantCause;\n\
          pub fn cause() -> CheckedInvariantCause { CheckedInvariantCause::GeneratedBodyPlaceholderInvoked }",
     );
     let error = String::from_utf8_lossy(&removed.stderr);

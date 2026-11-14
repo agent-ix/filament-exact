@@ -4,7 +4,7 @@ title: "The native Decimal carrier matches the owner route and verifies without 
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-402
+  - target: ix://agent-ix/filament-exact/FR-402
     type: verifies
 ---
 # TC-950: The native Decimal carrier matches the owner route and verifies without allocation

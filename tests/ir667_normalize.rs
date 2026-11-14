@@ -4,7 +4,7 @@
 
 use core::num::NonZeroU64;
 
-use quire_exact::{
+use filament_exact::{
     evaluate_integer_arithmetic, evaluate_rational_arithmetic, order_numbers, AdmittedCharge,
     Cancel, CancelCause, Charge, ChargePoint, Incomplete, InjectedDenial, Integer,
     IntegerArithmetic, LimitKind, Meter, OrderedOperands, OrderingOperator, Outcome, Rational,

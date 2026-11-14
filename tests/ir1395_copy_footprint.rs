@@ -4,8 +4,8 @@
 //! `allocation_counter` supplies the observer outside this unsafe-free crate.
 //! Fixtures are prepared and assertions run outside each measurement window.
 
+use filament_exact::{Integer, IntegerCopyFootprint};
 use ix_trace_rs::trace;
-use quire_exact::{Integer, IntegerCopyFootprint};
 
 fn measure<T>(call: impl FnOnce() -> T) -> (T, allocation_counter::AllocationInfo) {
     let mut outcome = None;

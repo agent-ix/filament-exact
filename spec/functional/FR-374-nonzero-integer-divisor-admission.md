@@ -4,16 +4,16 @@ title: "Borrowed nonzero Integer divisor admission"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-357
+  - target: ix://agent-ix/filament-exact/FR-357
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-371
+  - target: ix://agent-ix/filament-exact/FR-371
     type: references
 ---
 # FR-374: Borrowed nonzero Integer divisor admission
 
 ## Description
 
-The `quire-exact` kernel SHALL require an admitted borrowed nonzero mathematical
+The `filament-exact` kernel SHALL require an admitted borrowed nonzero mathematical
 `Integer` divisor at its public unmetered `Integer::exact_div`,
 `Integer::div_rem_truncating` and `Integer::div_mod_floor` boundaries.
 
@@ -131,7 +131,7 @@ fabricated quotient, remainder or substitute divisor after such a defect.
 The borrowed token can be reused for Rational's paired quotient calls and
 Decimal's local powers while its referent remains alive. It need not be stored
 inside an owner alongside its own referent. The sole measured downstream direct
-caller, QSL's literal-two `Exact::halved` implementation, remains QSL-owned;
+caller, FSL's literal-two `Exact::halved` implementation, remains FSL-owned;
 its sealed infallible trait need not gain a fallible result to borrow admission
 of its locally authored nonzero constant. This exact-owned contract does not
 authorize downstream source edits or copied helper implementations.
@@ -177,7 +177,7 @@ charge for zero, and no new admission charge for any divisor.
 [TC-922](../test-cases/TC-922-nonzero-integer-divisor-admission.md) specifies the
 bounded direct-helper and metered regression controls. The helper admission
 boundary and its Rational, Decimal and metered division callers are exact-owned;
-QSL owns adoption by its literal-two caller and downstream qualification.
+FSL owns adoption by its literal-two caller and downstream qualification.
 
 [FR-371 AC-5](./FR-371-bounded-integer-representation-refinement.md#acceptance-criteria)
 preserves these admitted-divisor signatures during prospective representation

@@ -4,7 +4,7 @@ title: "Copy structural identities through a measured reservation policy"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-389
+  - target: ix://agent-ix/filament-exact/FR-389
     type: references
 ---
 # FR-391: Copy structural identities through a measured reservation policy

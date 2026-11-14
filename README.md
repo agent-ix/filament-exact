@@ -1,20 +1,20 @@
-# quire-exact
+# filament-exact
 
-[![Quire](https://img.shields.io/badge/Quire-Specification%20Language-1F6FEB)](https://github.com/agent-ix/quire-spec-language)
+[![Filament](https://img.shields.io/badge/Filament-Specification%20Language-1F6FEB)](https://github.com/agent-ix/filament-spec-language)
 
-quire-exact is a Rust library of exact values: integers and fractions of any
+filament-exact is a Rust library of exact values: integers and fractions of any
 size, decimals, text, IEEE floating-point numbers, quantities and collections,
 plus the checked identities and result types that go with them.
 
 It is `no_std` (it needs only `alloc`), contains no `unsafe` code, and depends
-on no other Quire crate. The layers above it use it for arithmetic with no
+on no other Filament crate. The layers above it use it for arithmetic with no
 rounding error. When an operation has no value (dividing by zero, a result
 outside its declared range, a budget that ran out), it returns a closed, named
 outcome.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-  <img alt="Binary floating point rounds 0.1 + 0.2 to 0.30000000000000004. quire-exact adds the fractions 1/10 and 2/10 exactly and gets 3/10, and when an operation such as 1/2 divided by 0 has no value it returns undefined." src="docs/images/hero-light.svg">
+  <img alt="Binary floating point rounds 0.1 + 0.2 to 0.30000000000000004. filament-exact adds the fractions 1/10 and 2/10 exactly and gets 3/10, and when an operation such as 1/2 divided by 0 has no value it returns undefined." src="docs/images/hero-light.svg">
 </picture>
 
 > **Status: public prerelease.** The crate is at version 0.1.0 and is not
@@ -43,7 +43,7 @@ This example is adapted from `tests/ir673_scalar.rs`, which the test suite runs.
 It divides one half by zero under a `Meter` with generous limits:
 
 ```rust
-use quire_exact::{
+use filament_exact::{
     evaluate_rational_arithmetic as rational_op, Integer, Meter, Outcome, Rational,
     RationalArithmetic, ScalarLimits, Undefined,
 };
@@ -101,20 +101,20 @@ re-exported from the crate root; the modules are private.
 | --- | --- |
 | `test-support` | Keeps the ordered log of every charge a `Meter` admits (`Meter::admitted_charges`), so tests can assert exact charge sequences. Enable it only from a dev-dependency. |
 
-## Quire ecosystem
+## Filament ecosystem
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/ecosystem-dark.svg">
-  <img alt="The Quire repositories. The main chain runs from the standard, quire-specification, to the compiler, quire-spec-language, then quire-contract-ir, quire-contract-codegen and quire-contract-runtime. quire-spec-language also feeds quire-protocol, and quire-contract-ir feeds quire-analyze. quire-observation feeds quire-protocol and quire-mltl. Above the chain, quire-driver runs it, quire-integration tests it and quire-verification plans verification. Below it, shared libraries used throughout: quire-eval, quire-exact, quire-semantic-value, quire-walk, quire-canonical and quire-verification-contracts." src="docs/images/ecosystem-light.svg">
+  <img alt="The Filament repositories. The main chain runs from the standard, filament-specification, to the compiler, filament-spec-language, then filament-contract-ir, filament-contract-codegen and filament-contract-runtime. filament-spec-language also feeds filament-protocol, and filament-contract-ir feeds filament-analyze. filament-observation feeds filament-protocol and filament-mltl. Above the chain, filament-driver runs it, filament-integration tests it and filament-verification plans verification. Below it, shared libraries used throughout: filament-eval, filament-exact, filament-semantic-value, filament-walk, quire-canonical and filament-verification-contracts." src="docs/images/ecosystem-light.svg">
 </picture>
 
-`quire-exact` is the bottom leaf of the stack. It depends on no other Quire
+`filament-exact` is the bottom leaf of the stack. It depends on no other Filament
 crate, only on small `no_std` libraries (`num-bigint`,
 `unicode-normalization` and a few more, see `Cargo.toml`). The
-[Quire Specification Language](https://github.com/agent-ix/quire-spec-language)
+[Filament Specification Language](https://github.com/agent-ix/filament-spec-language)
 uses it as the shared exact-value layer under its checker and evaluator. The
 rules for the values themselves (decimals, text, quantities, integer division,
-IEEE profiles) are owned by [`quire-specification`](https://github.com/agent-ix/quire-specification); the requirements
+IEEE profiles) are owned by [`filament-specification`](https://github.com/agent-ix/filament-specification); the requirements
 this repository owns are in [`spec/`](spec/).
 
 ## Building and testing

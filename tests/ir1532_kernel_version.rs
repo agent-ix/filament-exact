@@ -2,8 +2,8 @@
 //! The public `KERNEL_VERSION` constant and the golden outcome and charge grid
 //! that guards the operations it versions (FR-406, TC-954).
 
+use filament_exact::KERNEL_VERSION;
 use ix_trace_rs::trace;
-use quire_exact::KERNEL_VERSION;
 
 /// Usable in a const context from an integration test.
 const VERSION_IN_CONST: u32 = KERNEL_VERSION;
@@ -19,8 +19,7 @@ fn kernel_version_is_a_public_u32_const() {
 mod golden {
     use std::fmt::Debug;
 
-    use ix_trace_rs::trace;
-    use quire_exact::{
+    use filament_exact::{
         admit_text, build_typed_prestate, compare_quantity, compare_text, divide, evaluate_decimal,
         evaluate_ieee, evaluate_integer_arithmetic, evaluate_native_decimal,
         evaluate_native_integer_arithmetic, evaluate_native_integer_division,
@@ -34,6 +33,7 @@ mod golden {
         RationalArithmetic, RoundingMode, ScalarLimits, TextPayload, TextProfile, TextType, UnitId,
         Value, ValueType,
     };
+    use ix_trace_rs::trace;
 
     use super::KERNEL_VERSION;
 
@@ -170,8 +170,8 @@ mod golden {
         })
     }
 
-    fn singleton(value: i128) -> quire_exact::NativeIntegerInterval {
-        quire_exact::NativeIntegerInterval::new(value, value).unwrap()
+    fn singleton(value: i128) -> filament_exact::NativeIntegerInterval {
+        filament_exact::NativeIntegerInterval::new(value, value).unwrap()
     }
 
     /// Evaluate the grid of FR-406 Behavior 5 on the current source.
@@ -252,9 +252,9 @@ mod golden {
             )
         }));
         grid.push(case("ordering.integers", limits(u64::MAX), |m| {
-            quire_exact::order_numbers(
+            filament_exact::order_numbers(
                 OrderingOperator::Less,
-                quire_exact::OrderedOperands::Integers(&b, &a),
+                filament_exact::OrderedOperands::Integers(&b, &a),
                 m,
             )
         }));

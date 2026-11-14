@@ -4,7 +4,7 @@
 //! `Rational`'s arithmetic (`add`/`sub`/`neg`/`mul`/`div`/`pow`,
 //! `divided_by_power_of_ten`/`divided_by_power_of_two`) is unmetered and
 //! exact, the same discipline [`crate::integer::Integer`]'s own arithmetic
-//! carries: a caller charges `quire.value.accounting/v1` before calling it.
+//! carries: a caller charges `filament.value.accounting/v1` before calling it.
 //! `divided_by_power_of_ten`/`divided_by_power_of_two` take a
 //! caller-supplied exponent with no bound of their own, so an uncharged call
 //! can build an arbitrarily large `BigInt`; callers bound or charge the
@@ -110,7 +110,7 @@ impl Rational {
         Self::reduce(self.numerator.clone(), self.denominator.mul(&power))
     }
 
-    /// `maxparts(r)` from `quire.value.accounting/v1`.
+    /// `maxparts(r)` from `filament.value.accounting/v1`.
     pub fn max_part_bits(&self) -> u64 {
         self.numerator
             .magnitude_bits()

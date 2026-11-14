@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel SHALL return the exact positive magnitude `2^63` when `Integer::abs` is called on an `Integer` equal to `i64::MIN`.
+The `filament-exact` kernel SHALL return the exact positive magnitude `2^63` when `Integer::abs` is called on an `Integer` equal to `i64::MIN`.
 
 ## Acceptance Criteria
 

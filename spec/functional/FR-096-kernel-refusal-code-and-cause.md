@@ -30,4 +30,4 @@ The twelve catalogued mappings are implemented. The typed `CheckedInvariant` map
 
 ## Dependencies
 
-- [FR-369](./FR-369-typed-checked-invariant-causes.md) owns the typed internal-fault cause. The caller's behaviour under the same id lives in `agent-ix/quire-spec-language`.
+- [FR-369](./FR-369-typed-checked-invariant-causes.md) owns the typed internal-fault cause. The caller's behaviour under the same id lives in `agent-ix/filament-spec-language`.

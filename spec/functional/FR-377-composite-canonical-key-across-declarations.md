@@ -4,20 +4,20 @@ title: "Canonical key orders composite values of different declarations by decla
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-376
+  - target: ix://agent-ix/filament-exact/FR-376
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-369
+  - target: ix://agent-ix/filament-exact/FR-369
     type: references
-  - target: ix://agent-ix/quire-spec-language/FR-359
+  - target: ix://agent-ix/filament-spec-language/FR-359
     type: references
 ---
 # FR-377: Canonical key orders composite values of different declarations by declaration key
 
 ## Description
 
-When `compare_keys` orders two composite values whose admitted declaration keys differ, the `quire-exact` kernel SHALL order them by the keys' own total order, compared before any slot. The kernel SHALL NOT derive a digest or compare a fixed digest seal to establish that order.
+When `compare_keys` orders two composite values whose admitted declaration keys differ, the `filament-exact` kernel SHALL order them by the keys' own total order, compared before any slot. The kernel SHALL NOT derive a digest or compare a fixed digest seal to establish that order.
 
-Two values of one type have equal keys exactly when they are equal under the kernel equality (the module rule of `src/key.rs`). FR-376 makes two composites of different declarations unequal, so their keys must differ and the key must order them. Set and bag canonical ordering uses this key, so their formation over such values no longer refuses `CanonicalKeyUnavailable`. QSL FR-359 (item 5) states the language-level order and names this requirement as the kernel's part.
+Two values of one type have equal keys exactly when they are equal under the kernel equality (the module rule of `src/key.rs`). FR-376 makes two composites of different declarations unequal, so their keys must differ and the key must order them. Set and bag canonical ordering uses this key, so their formation over such values no longer refuses `CanonicalKeyUnavailable`. FSL FR-359 (item 5) states the language-level order and names this requirement as the kernel's part.
 
 ## Inputs
 
@@ -61,4 +61,4 @@ Implemented.
 - Text that changes with this requirement: the `compare_keys` doc comment and the module doc of `src/key.rs`; the `CanonicalKeyUnavailable` row of [FR-369](./FR-369-typed-checked-invariant-causes.md) and the third step of [TC-917](../test-cases/TC-917-typed-checked-invariant-causes.md), which already uses a `Float` pair and stays valid; the `compare_keys` mentions in FR-370-AC-3 and FR-088-AC-11 keep their text.
 - Equality of the same pairs is [FR-376](./FR-376-composite-equality-across-declarations.md); the caller-admitted paths that store such members are [FR-378](./FR-378-caller-admitted-values-in-collections-options-and-composites.md).
 - The falsifying controls are [TC-925](../test-cases/TC-925-composite-canonical-key-across-declarations.md).
-- The language-level statement is QSL FR-359 (item 5 and cross-repo requirement 3).
+- The language-level statement is FSL FR-359 (item 5 and cross-repo requirement 3).

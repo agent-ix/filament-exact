@@ -4,7 +4,7 @@
 use core::num::NonZeroU64;
 use core::str::FromStr;
 
-use quire_exact::{
+use filament_exact::{
     evaluate_boolean, evaluate_integer_arithmetic, evaluate_rational_arithmetic, order_numbers,
     retain_boolean, BooleanConnective, ChargePoint, Incomplete, InjectedDenial, Integer,
     IntegerArithmetic, LimitKind, Meter, OrderedOperands, OrderingOperator, Outcome, Rational,
@@ -568,11 +568,11 @@ fn assert_denials<T>(points: &[ChargePoint], mut call: impl FnMut(&mut Meter) ->
 }
 
 trait IncompleteOutcome {
-    fn map_incomplete(self) -> quire_exact::Incomplete;
+    fn map_incomplete(self) -> filament_exact::Incomplete;
 }
 
 impl<T> IncompleteOutcome for Outcome<T> {
-    fn map_incomplete(self) -> quire_exact::Incomplete {
+    fn map_incomplete(self) -> filament_exact::Incomplete {
         match self {
             Outcome::Incomplete(record) => record,
             _ => panic!("expected an incomplete outcome"),

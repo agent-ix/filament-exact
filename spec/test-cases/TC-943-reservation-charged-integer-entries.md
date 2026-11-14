@@ -4,7 +4,7 @@ title: "Reservation-charged integer parse, sum, product, exact quotient and gcd"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-396
+  - target: ix://agent-ix/filament-exact/FR-396
     type: verifies
 ---
 # TC-943: Reservation-charged integer parse, sum, product, exact quotient and gcd

@@ -4,7 +4,7 @@ title: "KERNEL_VERSION is public and the golden test fails on an unintended outc
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-406
+  - target: ix://agent-ix/filament-exact/FR-406
     type: verifies
 ---
 # TC-954: KERNEL_VERSION is public and the golden test fails on an unintended outcome or charge change
@@ -15,7 +15,7 @@ Verify FR-406-AC-1 through FR-406-AC-5 through the public API, a golden outcome 
 
 ## Test Procedure
 
-1. For AC-1, use `quire_exact::KERNEL_VERSION` in a `const` item of an integration test (default features, then `test-support`) and in the `no_std` build of `make ci`; confirm the definition is an integer literal and read its doc comment.
+1. For AC-1, use `filament_exact::KERNEL_VERSION` in a `const` item of an integration test (default features, then `test-support`) and in the `no_std` build of `make ci`; confirm the definition is an integer literal and read its doc comment.
 2. For AC-2, with `test-support` enabled, run the golden test: for each case of FR-406 Behavior 5 format the outcome and its ordered charges to a stable string and compare with the recorded string.
 3. For AC-3, call the comparison function of the golden test on the recorded grid with one outcome string altered, and again with one charge altered, and assert a difference is reported each time.
 4. For AC-4, inspect the doc comment against Behavior 3.

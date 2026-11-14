@@ -3,7 +3,7 @@ id: TC-932
 title: "Report one kernel equality plan and only admitted pair charges"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-375
+  - target: ix://agent-ix/filament-exact/FR-375
     type: verifies
 ---
 # TC-932: Report one kernel equality plan and only admitted pair charges

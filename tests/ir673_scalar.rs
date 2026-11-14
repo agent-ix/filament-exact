@@ -3,7 +3,7 @@
 
 use std::num::NonZeroU64;
 
-use quire_exact::{
+use filament_exact::{
     evaluate_integer_arithmetic as integer_op, evaluate_rational_arithmetic as rational_op,
     order_numbers, ChargePoint, InjectedDenial, Integer, IntegerArithmetic, IntegerInterval,
     LimitKind, Meter, OrderedOperands, OrderingOperator, Outcome, Rational, RationalArithmetic,

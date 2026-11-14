@@ -4,7 +4,7 @@ title: "The native integer Divide and Modulo plan matches divide and modulo and 
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-409
+  - target: ix://agent-ix/filament-exact/FR-409
     type: verifies
 ---
 # TC-957: The native integer Divide and Modulo plan matches divide and modulo and settles each Kani harness

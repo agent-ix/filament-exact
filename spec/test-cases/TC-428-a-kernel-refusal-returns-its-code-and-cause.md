@@ -3,7 +3,7 @@ id: TC-428
 title: "A kernel refusal returns its code and cause"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-096
+  - target: ix://agent-ix/filament-exact/FR-096
     type: verifies
 ---
 # TC-428: A kernel refusal returns its code and cause
