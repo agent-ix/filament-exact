@@ -7,11 +7,11 @@
 
 use core::str::FromStr;
 
-use ix_trace_rs::trace;
-use num_bigint::BigInt;
-use quire_exact::{
+use filament_exact::{
     Integer, IntegerParseError, IntegerReserveError, NonZeroInteger, Reservation, ReservationDenied,
 };
+use ix_trace_rs::trace;
+use num_bigint::BigInt;
 
 /// Admits requests until the provision is spent; records what it admitted.
 struct Provision {

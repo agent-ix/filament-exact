@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public IEEE sign negation and native meter evidence.
 
-use quire_exact::{
+use filament_exact::{
     evaluate_ieee, IeeeOperation, IeeeOperationKind, IeeeValue, IeeeWidth, Meter, RoundingMode,
     ScalarLimits,
 };
 #[cfg(feature = "test-support")]
-use quire_exact::{ChargePoint, Integer, LimitKind, Outcome};
+use filament_exact::{ChargePoint, Integer, LimitKind, Outcome};
 
 fn limits(width: u64, work: u64) -> ScalarLimits {
     ScalarLimits {

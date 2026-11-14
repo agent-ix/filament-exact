@@ -3,7 +3,7 @@ id: TC-906
 title: "One-shot meter denial, bounded diagnostics and fixed-size interval capture"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: verifies
 ---
 # TC-906: One-shot meter denial, bounded diagnostics and fixed-size interval capture

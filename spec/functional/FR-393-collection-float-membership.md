@@ -3,7 +3,7 @@ id: FR-393
 title: Collection membership uses bit identity at float leaves
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-specification/FR-145
+  - target: ix://agent-ix/filament-specification/FR-145
     type: implements
 ---
 # FR-393: Collection membership uses bit identity at float leaves

@@ -4,17 +4,17 @@ title: "A Kani-tractable native Rational carrier and add, subtract, multiply, co
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-398
+  - target: ix://agent-ix/filament-exact/FR-398
     type: references
-  - target: ix://agent-ix/quire-exact/FR-403
+  - target: ix://agent-ix/filament-exact/FR-403
     type: references
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: references
-  - target: ix://agent-ix/quire-exact/FR-375
+  - target: ix://agent-ix/filament-exact/FR-375
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-046
+  - target: ix://agent-ix/filament-contract-codegen/FR-046
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-408: A Kani-tractable native Rational carrier and add, subtract, multiply, compare and equality refining the owner path
@@ -91,7 +91,7 @@ The charge points, order, limit kinds and amounts are the owner's (FR-362, FR-37
 
 ### Differential
 
-19. A host differential SHALL run the native operations beside the owner route (`Rational::new` from `Integer`, `evaluate_rational_arithmetic` or `Rational::add`/`sub`/`mul`, `order_numbers` and `planned_equality`) for every ordered pair of canonical values with numerator in `[-9, 9]` and denominator in `[1, 9]` (111 values, 12,321 pairs) for every operation of Behavior 6 to 8, and over a boundary set that includes `i64::MIN`, `i64::MAX` parts, zero, one, minus one, pairs whose sum needs reduction, and FR-403's 252-step gcd pair `(2^126 - 1)/2^126` (built with `from_rational`, since its parts exceed `i64`) multiplied by `1/1`. It SHALL compare the typed outcome, the completed value (through `to_rational`), the Boolean, every charge point with its limit kinds and amounts, the denied charge, the counters and the incomplete record, with a `Meter` at a sufficient, an exact and a one-less limit for each limit kind the charges use. The one intended difference is capacity refusal (Behavior 9): the differential SHALL list the capacity inputs exhaustively, check each against its named quantity and the unchanged `Meter`, and assert that no native completion differs from the owner. The differential lives in quire-exact's `tests/`, because the owner route and the native path are both in quire-exact.
+19. A host differential SHALL run the native operations beside the owner route (`Rational::new` from `Integer`, `evaluate_rational_arithmetic` or `Rational::add`/`sub`/`mul`, `order_numbers` and `planned_equality`) for every ordered pair of canonical values with numerator in `[-9, 9]` and denominator in `[1, 9]` (111 values, 12,321 pairs) for every operation of Behavior 6 to 8, and over a boundary set that includes `i64::MIN`, `i64::MAX` parts, zero, one, minus one, pairs whose sum needs reduction, and FR-403's 252-step gcd pair `(2^126 - 1)/2^126` (built with `from_rational`, since its parts exceed `i64`) multiplied by `1/1`. It SHALL compare the typed outcome, the completed value (through `to_rational`), the Boolean, every charge point with its limit kinds and amounts, the denied charge, the counters and the incomplete record, with a `Meter` at a sufficient, an exact and a one-less limit for each limit kind the charges use. The one intended difference is capacity refusal (Behavior 9): the differential SHALL list the capacity inputs exhaustively, check each against its named quantity and the unchanged `Meter`, and assert that no native completion differs from the owner. The differential lives in filament-exact's `tests/`, because the owner route and the native path are both in filament-exact.
 20. Out of scope: division, negation, `pow`, an optional `RationalDomain`, conversion of a carrier to an `IeeeFloat` (FR-373) and any operand form other than two carriers. CG FR-046 uses addition and equality only; subtract, multiply and the four orderings are included because they share the schedule of FR-362 and cost no further design, and CG consumes them when a later rational row needs them.
 
 ## Acceptance Criteria
@@ -112,7 +112,7 @@ The charge points, order, limit kinds and amounts are the owner's (FR-362, FR-37
 
 ## Relationship to CG FR-046
 
-CG FR-046 builds each Rational argument by `Rational::new(Integer, Integer)` with an accessor roundtrip, evaluates the body through the owner's exact operations and Meter, and draws two physical `i64` bindings per parameter. For the Kani row CG consumes this carrier instead: `NativeRational::from_i64_parts` as the representation constraint (it admits exactly the canonical pairs, so the roundtrip is `from_i64_parts` succeeding), `native_rational_add` and `native_rational_equal` as the generated body, and the values and charges of this requirement as the oracle in place of the owner's `Rational::add`. FR-046-AC-3 (body evaluation preserves the owner's operations, laziness and Meter order) is then a claim of equivalence that this requirement's differential (Behavior 19, FR-408-AC-9) backs on the host, and the Kani proof (FR-408-AC-11) backs inside the CG domain. CG owns the mapping from an admitted `Rational[min,max; dmin,dmax]` parameter to the two `i64` bindings, the refusal dispositions for a missing or non-`i64` domain, the replay path through `qsl_replay::WitnessValue::Rational`, the Meter entry state, and the FR-025 ABI. The kernel does not know the declared domain; a domain bound is a harness `assume`, not a kernel argument. A parameter whose domain exceeds signed 64 bits stays CG's `unsupported`. This requirement edits no CG specification. The row needs an amendment of CG FR-046 (its Behavior, FR-046-AC-2 and FR-046-AC-3, which today require the owner `Rational::new` roundtrip and the owner's exact operations) so that they call this native carrier instead. That amendment is a dependency of the row, delivered in the CG PR for IR-258 (no separate ticket); until it lands FR-046 and FR-408 disagree on the oracle.
+CG FR-046 builds each Rational argument by `Rational::new(Integer, Integer)` with an accessor roundtrip, evaluates the body through the owner's exact operations and Meter, and draws two physical `i64` bindings per parameter. For the Kani row CG consumes this carrier instead: `NativeRational::from_i64_parts` as the representation constraint (it admits exactly the canonical pairs, so the roundtrip is `from_i64_parts` succeeding), `native_rational_add` and `native_rational_equal` as the generated body, and the values and charges of this requirement as the oracle in place of the owner's `Rational::add`. FR-046-AC-3 (body evaluation preserves the owner's operations, laziness and Meter order) is then a claim of equivalence that this requirement's differential (Behavior 19, FR-408-AC-9) backs on the host, and the Kani proof (FR-408-AC-11) backs inside the CG domain. CG owns the mapping from an admitted `Rational[min,max; dmin,dmax]` parameter to the two `i64` bindings, the refusal dispositions for a missing or non-`i64` domain, the replay path through `fsl_replay::WitnessValue::Rational`, the Meter entry state, and the FR-025 ABI. The kernel does not know the declared domain; a domain bound is a harness `assume`, not a kernel argument. A parameter whose domain exceeds signed 64 bits stays CG's `unsupported`. This requirement edits no CG specification. The row needs an amendment of CG FR-046 (its Behavior, FR-046-AC-2 and FR-046-AC-3, which today require the owner `Rational::new` roundtrip and the owner's exact operations) so that they call this native carrier instead. That amendment is a dependency of the row, delivered in the CG PR for IR-258 (no separate ticket); until it lands FR-046 and FR-408 disagree on the oracle.
 
 **Limitations CG must carry.** The carrier does not model values outside signed 128 bits that the owner continues to compute. Inside signed 64 bits for both operands no capacity refusal exists (Behavior 9), which covers the first row; for the composed predicate over wider domains a capacity refusal is a typed cause, not a proof or a counterexample. The Kani proof over the CG domain is a bounded proof; it is not a universal 128-bit proof, which waits on the same Verus track as FR-403-AC-15.
 

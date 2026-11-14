@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! `quire.value.accounting/v1`: `u64` limits, named ordered charge points and
+//! `filament.value.accounting/v1`: `u64` limits, named ordered charge points and
 //! the exact incomplete record.
 //!
 //! Semantic-size counters record a high-water maximum; `work_units` and
@@ -1964,7 +1964,7 @@ mod tests {
     /// Trace: FR-358-AC-6
     /// A production meter's counters own no heap memory, however many
     /// charges it admits; the admission count still grows with every charge.
-    /// Built only without `test-support` (`cargo test -p quire-exact`, which
+    /// Built only without `test-support` (`cargo test -p filament-exact`, which
     /// `make ci` runs): with it, the meter keeps its ordered charge log,
     /// which allocates.
     #[cfg(not(feature = "test-support"))]

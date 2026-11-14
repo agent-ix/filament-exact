@@ -6,7 +6,7 @@
 //! unbounded collection's construction never refuses for cardinality: it
 //! still charges `collection.bound`, and stops only when the caller's meter
 //! does. Construction
-//! charges the `quire.value.accounting/v1` collection family: one
+//! charges the `filament.value.accounting/v1` collection family: one
 //! `collection.element` before each element expression; for a set, bag or
 //! ordered set, one `collection.member-walk` and `collection.member-test`
 //! per membership comparison against the members retained so far, in

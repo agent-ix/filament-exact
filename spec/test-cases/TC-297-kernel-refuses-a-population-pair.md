@@ -3,7 +3,7 @@ id: TC-297
 title: "Kernel admits, plan_pairs and compare_keys refuse a population pair"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-089
+  - target: ix://agent-ix/filament-exact/FR-089
     type: verifies
 ---
 # TC-297: Kernel admits, plan_pairs and compare_keys refuse a population pair

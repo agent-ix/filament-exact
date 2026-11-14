@@ -4,7 +4,7 @@ title: "Check the canonical key across composite declarations"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-377
+  - target: ix://agent-ix/filament-exact/FR-377
     type: verifies
 ---
 # TC-925: Check the canonical key across composite declarations

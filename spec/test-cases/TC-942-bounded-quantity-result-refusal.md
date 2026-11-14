@@ -4,7 +4,7 @@ title: "Bounded quantity result retains its typed target on refusal"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-395
+  - target: ix://agent-ix/filament-exact/FR-395
     type: verifies
 ---
 # TC-942: Bounded quantity result retains its typed target on refusal

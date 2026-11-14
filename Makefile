@@ -1,5 +1,5 @@
 # =============================================================================
-# quire-exact Makefile
+# filament-exact Makefile
 # =============================================================================
 
 CARGO ?= cargo
@@ -51,7 +51,7 @@ test:
 test-exhaustive:
 	$(CARGO) test --release --test ir1501_normalize -- --ignored
 
-# `quire-exact` is `#![no_std]` + `alloc`, with every dependency's default
+# `filament-exact` is `#![no_std]` + `alloc`, with every dependency's default
 # features off, so it builds for a bare-metal target.
 .PHONY: build-no-std
 build-no-std:

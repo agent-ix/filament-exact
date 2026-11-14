@@ -3,20 +3,20 @@ id: FR-385
 title: "Keep Bytes and JsonObject as distinct native kernel values"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-spec-language/FR-056
+  - target: ix://agent-ix/filament-spec-language/FR-056
     type: references
-  - target: ix://agent-ix/quire-specification/FR-149
+  - target: ix://agent-ix/filament-specification/FR-149
     type: references
-  - target: ix://agent-ix/quire-specification/FR-322
+  - target: ix://agent-ix/filament-specification/FR-322
     type: references
-  - target: ix://agent-ix/quire-exact/FR-370
+  - target: ix://agent-ix/filament-exact/FR-370
     type: references
 ---
 # FR-385: Keep Bytes and JsonObject as distinct native kernel values
 
 ## Description
 
-When a caller supplies a native Bytes or JsonObject value, the `quire-exact`
+When a caller supplies a native Bytes or JsonObject value, the `filament-exact`
 kernel SHALL retain its native type and value kind distinctly through type
 admission, equality planning and canonical-key comparison, as FR-370 does for
 UUID and Timestamp. The caller owns the mapping from its declared native type
@@ -93,6 +93,6 @@ canonical text is a different value of a different type.
 
 ## Dependencies
 
-- QSL `ix://agent-ix/quire-spec-language/FR-056` "Native Bytes, JsonObject and Duration" defines the canonical payloads and the closed caller wire forms and maps the two constructor causes to `invalid_runtime_input`/`invalid-value`; QSpec `ix://agent-ix/quire-specification/FR-149` owns their typed equality and key relation, and QSpec `ix://agent-ix/quire-specification/FR-322` resolves the member types.
+- FSL `ix://agent-ix/filament-spec-language/FR-056` "Native Bytes, JsonObject and Duration" defines the canonical payloads and the closed caller wire forms and maps the two constructor causes to `invalid_runtime_input`/`invalid-value`; QSpec `ix://agent-ix/filament-specification/FR-149` owns their typed equality and key relation, and QSpec `ix://agent-ix/filament-specification/FR-322` resolves the member types.
 - The spellings `BytesNoncanonical` and `JsonObjectNoncanonical` are this kernel's names for the two payload classes that FR-056 leaves to IR-704's Rust variant spellings; IR-704 owns the final variant spellings.
 - FR-370 states the UUID and Timestamp natives this requirement parallels.

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Fixed-size production interval accounting.
 use core::num::NonZeroU64;
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     Cancel, CancelCause, Charge, ChargeAccounting, ChargePoint, InjectedDenial, Integer, LimitKind,
     Meter, ScalarLimits,
 };
+use ix_trace_rs::trace;
 
 const KINDS: [LimitKind; 10] = [
     LimitKind::IntegerBits,

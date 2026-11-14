@@ -15,25 +15,25 @@
 //! [`NativeDecimal::from_retained`]:
 //!
 //! ```
-//! # use quire_exact::{NativeDecimal, NativeDecimalType, RoundingMode};
+//! # use filament_exact::{NativeDecimal, NativeDecimalType, RoundingMode};
 //! let ty = NativeDecimalType::new(0, 100, 0, 2, RoundingMode::Exact).unwrap();
 //! assert!(NativeDecimal::from_bindings(&ty, 5000, 2).is_ok());
 //! ```
 //!
 //! ```compile_fail,E0308
-//! # use quire_exact::{Integer, NativeDecimal, NativeDecimalType, RoundingMode};
+//! # use filament_exact::{Integer, NativeDecimal, NativeDecimalType, RoundingMode};
 //! let ty = NativeDecimalType::new(0, 100, 0, 2, RoundingMode::Exact).unwrap();
 //! let _ = NativeDecimal::from_bindings(&ty, Integer::from(5000_i64), 2);
 //! ```
 //!
 //! ```compile_fail,E0308
-//! # use quire_exact::{Decimal, Integer, NativeDecimal, NativeDecimalType, RoundingMode};
+//! # use filament_exact::{Decimal, Integer, NativeDecimal, NativeDecimalType, RoundingMode};
 //! let ty = NativeDecimalType::new(0, 100, 0, 2, RoundingMode::Exact).unwrap();
 //! let _ = NativeDecimal::from_bindings(&ty, Decimal::new(Integer::from(5000_i64), 2), 2);
 //! ```
 //!
 //! ```compile_fail,E0308
-//! # use quire_exact::{DecimalType, Integer, NativeDecimal, RoundingMode};
+//! # use filament_exact::{DecimalType, Integer, NativeDecimal, RoundingMode};
 //! let owner =
 //!     DecimalType::new(Integer::zero(), Integer::from(100_i64), 0, 2, RoundingMode::Exact)
 //!         .unwrap();
@@ -41,7 +41,7 @@
 //! ```
 //!
 //! ```compile_fail,E0451
-//! # use quire_exact::NativeDecimal;
+//! # use filament_exact::NativeDecimal;
 //! let _ = NativeDecimal { coefficient: 1, scale: 0 };
 //! ```
 

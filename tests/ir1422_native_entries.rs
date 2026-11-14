@@ -4,8 +4,7 @@
 //! charge event.
 use std::fmt::Debug;
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     charge_native_integer_schedule, divide, evaluate_boolean, evaluate_integer_arithmetic,
     evaluate_native_boolean_equality, evaluate_native_integer_arithmetic,
     evaluate_native_integer_division, evaluate_native_integer_equality,
@@ -18,6 +17,7 @@ use quire_exact::{
     NativeIntegerOperationKind as Kind, NativeIntegerPlan as Plan, NativeIntegerSchedule as Sched,
     OrderingOperator, Outcome, Refusal, ScalarLimits, Undefined, Value,
 };
+use ix_trace_rs::trace;
 
 const KINDS: [LimitKind; 10] = [
     LimitKind::IntegerBits,
@@ -323,7 +323,7 @@ fn multiply_i64_accepts_the_boundary_and_matches_the_integer_path() {
 fn multiply_i64_rejects_out_of_capacity_before_any_charge() {
     let mut meter = Meter::new(limits());
     let outside = |value: i128| Error::OperandOutsideInterval {
-        operand: quire_exact::NativeIntegerOperandPosition::Left,
+        operand: filament_exact::NativeIntegerOperandPosition::Left,
         value,
         interval: Range::new(i64::MIN as i128, i64::MAX as i128).unwrap(),
     };
@@ -349,7 +349,7 @@ fn multiply_i64_rejects_out_of_capacity_before_any_charge() {
     assert!(matches!(
         call(0, beyond, &mut meter),
         Err(Error::OperandOutsideInterval {
-            operand: quire_exact::NativeIntegerOperandPosition::Right,
+            operand: filament_exact::NativeIntegerOperandPosition::Right,
             ..
         })
     ));
@@ -425,7 +425,7 @@ fn boolean_equality_matches_planned_equality_over_boolean_values() {
 fn boolean_equality_denied_at_each_charge_point_matches_planned_equality() {
     use std::num::NonZeroU64;
 
-    use quire_exact::InjectedDenial;
+    use filament_exact::InjectedDenial;
     for point in [
         ChargePoint::EqualityPlanForm,
         ChargePoint::EqualityPlan,

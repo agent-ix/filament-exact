@@ -10,9 +10,9 @@ use core::str::FromStr;
 use std::hint::black_box;
 use std::time::Instant;
 
+use filament_exact::{Integer, NonZeroInteger};
 use num_bigint::BigInt;
 use num_integer::Integer as _;
-use quire_exact::{Integer, NonZeroInteger};
 
 fn digits(seed: &mut u64, count: usize) -> String {
     let mut text = String::with_capacity(count);

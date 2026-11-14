@@ -29,4 +29,4 @@ PR #9 adds executable Trace bindings for AC-1 through AC-4. Run `quire matrix` f
 
 ## Dependencies
 
-- [TC-914](../test-cases/TC-914-ieee-exceptional-value-semantics.md) is the verification home. Verification uses only the public `quire_exact` API; no downstream evaluator or copied tests are required.
+- [TC-914](../test-cases/TC-914-ieee-exceptional-value-semantics.md) is the verification home. Verification uses only the public `filament_exact` API; no downstream evaluator or copied tests are required.

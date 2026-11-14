@@ -4,11 +4,11 @@ title: "Bounded cancellable equality of retained Decimal types"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-381
+  - target: ix://agent-ix/filament-exact/FR-381
     type: references
-  - target: ix://agent-ix/quire-exact/FR-372
+  - target: ix://agent-ix/filament-exact/FR-372
     type: references
-  - target: ix://agent-ix/quire-semantic-value/FR-118
+  - target: ix://agent-ix/filament-semantic-value/FR-118
     type: references
 ---
 # FR-382: Bounded cancellable equality of retained Decimal types
@@ -16,7 +16,7 @@ relationships:
 ## Description
 
 When a supplied-admission caller compares two retained Decimal types as type
-links, `quire-exact` SHALL offer fallible equality under that caller's
+links, `filament-exact` SHALL offer fallible equality under that caller's
 authenticated finite magnitude ceiling `B`. This compares retained type
 identity, separate from [FR-372](./FR-372-fallible-bounded-decimal-membership.md)
 Decimal value membership and parallel to
@@ -72,7 +72,7 @@ type equality.
    most one fixed-width limb-pair step; the kernel does not promise a wall-clock
    bound on scheduling.
 6. The caller SHALL own the initiating type-link event, finite `B`, phase
-   budget, and stop projection under [QSV FR-118](ix://agent-ix/quire-semantic-value/FR-118).
+   budget, and stop projection under [QSV FR-118](ix://agent-ix/filament-semantic-value/FR-118).
    This helper SHALL make no QSV logical event, per-limb supplied-budget debit,
    or semantic meter charge.
 
@@ -91,7 +91,7 @@ type equality.
   borrowed-limb type-equality mechanism and typed stop precedent.
 - [FR-372](./FR-372-fallible-bounded-decimal-membership.md) concerns Decimal
   value membership; its scratch and shift bounds do not apply to type identity.
-- [QSV FR-118](ix://agent-ix/quire-semantic-value/FR-118) owns caller event order,
+- [QSV FR-118](ix://agent-ix/filament-semantic-value/FR-118) owns caller event order,
   bound authentication and supplied-phase failure projection.
 
 ## Status

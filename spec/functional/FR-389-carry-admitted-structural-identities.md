@@ -4,20 +4,20 @@ title: "Carry admitted structural identities without digest constructors"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-088
+  - target: ix://agent-ix/filament-exact/FR-088
     type: references
-  - target: ix://agent-ix/quire-exact/FR-089
+  - target: ix://agent-ix/filament-exact/FR-089
     type: references
-  - target: ix://agent-ix/quire-exact/FR-377
+  - target: ix://agent-ix/filament-exact/FR-377
     type: references
-  - target: ix://agent-ix/quire-exact/FR-379
+  - target: ix://agent-ix/filament-exact/FR-379
     type: references
 ---
 # FR-389: Carry admitted structural identities without digest constructors
 
 ## Description
 
-When the caller supplies an admitted semantic identity, the `quire-exact` kernel SHALL carry its structural components through the matching typed identity constructor, compare them by that identity's componentwise rule, and preserve the existing value admission, equality, key ordering and refusal behavior of [FR-088](./FR-088-enum-and-unit-identity-in-the-kernel.md), [FR-089](./FR-089-kernel-refuses-a-population-pair.md), [FR-377](./FR-377-composite-canonical-key-across-declarations.md) and [FR-379](./FR-379-carry-a-union-member-and-its-positional-payload-as-a-kernel-value.md). No kernel identity constructor accepts a digest or checks an identity preimage. The caller, not the kernel, joins an identity to an admitted package, declaration, model selection or population binding.
+When the caller supplies an admitted semantic identity, the `filament-exact` kernel SHALL carry its structural components through the matching typed identity constructor, compare them by that identity's componentwise rule, and preserve the existing value admission, equality, key ordering and refusal behavior of [FR-088](./FR-088-enum-and-unit-identity-in-the-kernel.md), [FR-089](./FR-089-kernel-refuses-a-population-pair.md), [FR-377](./FR-377-composite-canonical-key-across-declarations.md) and [FR-379](./FR-379-carry-a-union-member-and-its-positional-payload-as-a-kernel-value.md). No kernel identity constructor accepts a digest or checks an identity preimage. The caller, not the kernel, joins an identity to an admitted package, declaration, model selection or population binding.
 
 ## Inputs
 
@@ -79,4 +79,4 @@ The structural identity behavior through AC-12, AC-13 and AC-14 is implemented. 
 - QSpec FR-322 defines the structural `node_id` shape and componentwise order; FR-141 defines enum-value node identity; FR-441 defines the union member pair; FR-142 defines the evaluator-owned compound-unit term identity.
 - QSpec FR-150 owns the admitted EffectiveId and object-universe value; QSpec FR-201 owns the exact `MemberId`, `VariantId`, `UnitId`, `UniverseId` and `PopulationId` members and order, with TC-233 SI-01 through SI-06 as controls. The kernel holds these values and does not mint them.
 - The behavioral constraints remain [FR-088](./FR-088-enum-and-unit-identity-in-the-kernel.md), [FR-089](./FR-089-kernel-refuses-a-population-pair.md), [FR-377](./FR-377-composite-canonical-key-across-declarations.md) and [FR-379](./FR-379-carry-a-union-member-and-its-positional-payload-as-a-kernel-value.md).
-- QSV `compound_unit_id` in `quire-semantic-value/src/unit.rs` consumes structural `NodeKey`s while encoding a compound unit id. Its root-key cloning and nested-path traversal motivate this kernel API; exponent cloning, exponent formatting and output allocation remain QSV-owned.
+- QSV `compound_unit_id` in `filament-semantic-value/src/unit.rs` consumes structural `NodeKey`s while encoding a compound unit id. Its root-key cloning and nested-path traversal motivate this kernel API; exponent cloning, exponent formatting and output allocation remain QSV-owned.

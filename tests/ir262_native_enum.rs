@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The native enum carrier (FR-407, TC-955) through the public kernel API.
 //! The differential against the owner's `compare_enum` (FR-407-AC-7) lives in
-//! quire-semantic-value.
-use ix_trace_rs::trace;
-use quire_exact::{
+//! filament-semantic-value.
+use filament_exact::{
     compare_native_enum, ChargePoint, ComparisonOperator, EnumMember, EnumShape, IllTyped,
     IllTypedCause, Integer, LimitKind, Meter, NativeEnum, NativeEnumRefusal, NodeKey, Outcome,
     PathSegment, ScalarLimits, VariantId,
 };
+use ix_trace_rs::trace;
 
 fn limits(value_occurrences: u64, result_units: u64) -> ScalarLimits {
     ScalarLimits {
@@ -296,8 +296,8 @@ fn distinct_declaration_takes_precedence_over_unordered_ordering() {
 // ---- AC-6 ----
 
 #[cfg(feature = "test-support")]
-fn admitted(point: ChargePoint, value_occurrences: Option<u64>) -> quire_exact::AdmittedCharge {
-    quire_exact::AdmittedCharge {
+fn admitted(point: ChargePoint, value_occurrences: Option<u64>) -> filament_exact::AdmittedCharge {
+    filament_exact::AdmittedCharge {
         point,
         integer_bits: None,
         decimal_digits: None,
@@ -311,7 +311,7 @@ fn admitted(point: ChargePoint, value_occurrences: Option<u64>) -> quire_exact::
 }
 
 #[cfg(feature = "test-support")]
-fn full_sequence() -> Vec<quire_exact::AdmittedCharge> {
+fn full_sequence() -> Vec<filament_exact::AdmittedCharge> {
     vec![
         admitted(ChargePoint::EnumIdentityRead, Some(1)),
         admitted(ChargePoint::EnumIdentityRead, Some(2)),

@@ -4,8 +4,7 @@
 
 use std::cmp::Ordering;
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     compare_keys, construct_collection, evaluate_record, form, form_collection, form_grouped,
     from_admitted_slots, member_equal, plan_equality, planned_equality, planned_equality_with_plan,
     retain_composite, CheckedInvariantCause, CollectionKind, CollectionType, CollectionValue,
@@ -14,6 +13,7 @@ use quire_exact::{
     NodeKey, ObjectId, ObjectReference, OptionValue, OriginalDeclarationKey, Outcome, PathSegment,
     PopulationId, Presence, Refusal, ScalarLimits, UniverseId, Value, ValueType,
 };
+use ix_trace_rs::trace;
 
 fn meter() -> Meter {
     Meter::new(ScalarLimits {
@@ -86,7 +86,7 @@ fn wrappers(inner_left: &Value, inner_right: &Value) -> Vec<(&'static str, Value
     };
     let record = |inner: &Value| rec(W, vec![FieldValue::Present(inner.clone())]);
     let collection =
-        |kind, inner: &Value| quire_exact::from_admitted(coll_type(kind), vec![inner.clone()]);
+        |kind, inner: &Value| filament_exact::from_admitted(coll_type(kind), vec![inner.clone()]);
     let mut cases = vec![
         ("option", option(inner_left), option(inner_right)),
         ("record", record(inner_left), record(inner_right)),
@@ -157,7 +157,7 @@ fn keys(bytes: &[u8]) -> Vec<NodeKey> {
 }
 
 #[cfg(feature = "test-support")]
-fn log(meter: &Meter) -> Vec<quire_exact::ChargePoint> {
+fn log(meter: &Meter) -> Vec<filament_exact::ChargePoint> {
     meter.admitted_charges().iter().map(|c| c.point).collect()
 }
 
@@ -198,10 +198,10 @@ fn different_declarations_charge_the_one_pair_schedule() {
     assert_eq!(
         log(&meter),
         vec![
-            quire_exact::ChargePoint::EqualityPlanForm,
-            quire_exact::ChargePoint::EqualityPlan,
-            quire_exact::ChargePoint::EqualityPair,
-            quire_exact::ChargePoint::EqualityResultRetain,
+            filament_exact::ChargePoint::EqualityPlanForm,
+            filament_exact::ChargePoint::EqualityPlan,
+            filament_exact::ChargePoint::EqualityPair,
+            filament_exact::ChargePoint::EqualityResultRetain,
         ]
     );
     assert_eq!(meter.admission_count(), 4);
@@ -285,7 +285,7 @@ fn faults_that_remain_still_refuse() {
     let others = [
         Value::Integer(Integer::from(100_i64)),
         OptionValue::none(ValueType::Composite(key(P))),
-        quire_exact::from_admitted(coll_type(CollectionKind::Sequence), vec![]),
+        filament_exact::from_admitted(coll_type(CollectionKind::Sequence), vec![]),
         Value::Reference(match reference(1) {
             FieldValue::Present(Value::Reference(reference)) => reference,
             _ => unreachable!(),
@@ -325,7 +325,7 @@ fn member_equal_of_different_declarations_is_false() {
     );
     #[cfg(feature = "test-support")]
     {
-        use quire_exact::ChargePoint::{CollectionMemberTest, CollectionMemberWalk};
+        use filament_exact::ChargePoint::{CollectionMemberTest, CollectionMemberWalk};
         assert_eq!(
             log(&meter),
             vec![CollectionMemberWalk, CollectionMemberTest]
@@ -354,7 +354,7 @@ fn ordered_set_form(occurrences: Vec<Value>) -> (Vec<NodeKey>, Meter) {
 fn member_tests(meter: &Meter) -> usize {
     log(meter)
         .iter()
-        .filter(|point| **point == quire_exact::ChargePoint::CollectionMemberTest)
+        .filter(|point| **point == filament_exact::ChargePoint::CollectionMemberTest)
         .count()
 }
 
@@ -593,7 +593,7 @@ fn form_over_a_set_charges_one_member_comparison_and_no_element() {
     assert!(outcome.completed().is_some());
     #[cfg(feature = "test-support")]
     {
-        use quire_exact::ChargePoint::{
+        use filament_exact::ChargePoint::{
             CollectionBound, CollectionMemberTest, CollectionMemberWalk, CollectionResultRetain,
         };
         assert_eq!(
@@ -656,7 +656,7 @@ fn from_admitted_slots_keeps_a_descendant_slot_and_retains_once() {
     #[cfg(feature = "test-support")]
     assert_eq!(
         log(&meter),
-        vec![quire_exact::ChargePoint::CompositeResultRetain]
+        vec![filament_exact::ChargePoint::CompositeResultRetain]
     );
     assert_eq!(meter.admission_count(), 1);
     assert!(!pairs(&retained, &with_p).unwrap().1);

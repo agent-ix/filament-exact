@@ -3,7 +3,7 @@ id: TC-913
 title: "Six-mode decimal ties and strict default"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-365
+  - target: ix://agent-ix/filament-exact/FR-365
     type: verifies
 ---
 # TC-913: Six-mode decimal ties and strict default

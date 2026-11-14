@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public IEEE and text owner evidence for IR-673.
 
-use quire_exact::{
+use filament_exact::{
     admit_text, compare_ieee, compare_text, convert_ieee_width, evaluate_ieee, ieee_to_exact,
     ComparisonOperator, IeeeComparison, IeeeExactLoss, IeeeFlag, IeeeFlags, IeeeOperation,
     IeeeValue, IeeeWidth, IllTyped, IllTypedCause, Integer, IntegerInterval, LimitKind, Meter,

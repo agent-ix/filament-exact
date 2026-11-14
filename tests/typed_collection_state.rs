@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public checked collection state boundary (TC-941).
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     build_typed_prestate, from_admitted, from_admitted_slots, inspect_typed_poststate,
     BoundViolation, CardinalityBound, ChargePoint, CollectionKind, CollectionType, Component,
     ConstructionCause, ConstructionRefusal, FieldValue, InjectedDenial, Integer, Meter, NodeKey,
     Outcome, PathSegment, Refusal, ScalarLimits, Value, ValueType,
 };
+use ix_trace_rs::trace;
 use std::num::NonZeroU64;
 
 fn meter() -> Meter {

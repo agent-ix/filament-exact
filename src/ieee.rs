@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! `quire.value.ieee754-2019-default/v1`: binary32/binary64 bit-pattern
+//! `filament.value.ieee754-2019-default/v1`: binary32/binary64 bit-pattern
 //! values, the five IEEE rounding directions plus strict `exact`,
 //! deterministic NaN propagation, operation-local exception flags, the
 //! three distinct comparison intrinsics and explicit conversions.
@@ -32,7 +32,7 @@ use crate::outcome::{Outcome, Refusal, Stop, Undefined};
 use crate::rational::{Rational, RationalDomain};
 
 /// The IEEE profile definition identity.
-pub const IEEE_DEFINITION: &str = "quire.value.ieee754-2019-default/v1";
+pub const IEEE_DEFINITION: &str = "filament.value.ieee754-2019-default/v1";
 
 /// A declared `Float32[mode]`/`Float64[mode]` type: the interchange width and
 /// the rounding spelling that is part of the type (QSpec FR-322 pins

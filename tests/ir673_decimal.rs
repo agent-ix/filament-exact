@@ -3,7 +3,7 @@
 
 use std::cmp::Ordering;
 
-use quire_exact::{
+use filament_exact::{
     evaluate_decimal, order_numbers, Decimal, DecimalOperation, DecimalType, InexactTarget,
     Integer, LimitKind, Meter, OrderedOperands, OrderingOperator, Outcome, Refusal, RoundingMode,
     ScalarLimits,

@@ -8,9 +8,9 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel SHALL expose a public `LimitKind::from_code(&str) ->
+The `filament-exact` kernel SHALL expose a public `LimitKind::from_code(&str) ->
 Option<LimitKind>` reader for the exact member spellings of QSpec's
-`ScalarLimitsV1` in `quire.value.accounting/v1`. The reader gives a caller a
+`ScalarLimitsV1` in `filament.value.accounting/v1`. The reader gives a caller a
 typed limit kind without inventing another spelling vocabulary.
 
 ## Behavior
@@ -40,7 +40,7 @@ Specified. Implementation and independent full-vocabulary evidence are pending.
 
 ## Dependencies
 
-- QSpec `quire.value.accounting/v1` owns the `ScalarLimitsV1` field vocabulary.
+- QSpec `filament.value.accounting/v1` owns the `ScalarLimitsV1` field vocabulary.
 - IR-1131 supplies its authoritative full-vocabulary vector for
   FR-388-AC-3; this repository reads that vector from QSpec rather than
   copying it.

@@ -3,7 +3,7 @@ id: TC-910
 title: "Independent scalar value and atom-charge oracles"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: verifies
 ---
 # TC-910: Independent scalar value and atom-charge oracles

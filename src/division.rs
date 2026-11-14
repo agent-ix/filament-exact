@@ -17,11 +17,11 @@ use alloc::boxed::Box;
 /// A selectable `div`/`rem` law.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DivisionProfile {
-    /// `quire.value.integer-division.truncating/v1`.
+    /// `filament.value.integer-division.truncating/v1`.
     Truncating,
-    /// `quire.value.integer-division.floor/v1`.
+    /// `filament.value.integer-division.floor/v1`.
     Floor,
-    /// `quire.value.integer-division.euclidean/v1`.
+    /// `filament.value.integer-division.euclidean/v1`.
     Euclidean,
 }
 
@@ -32,9 +32,9 @@ impl DivisionProfile {
     /// The exact definition identity that selects this law.
     pub fn definition_identity(self) -> &'static str {
         match self {
-            Self::Truncating => "quire.value.integer-division.truncating/v1",
-            Self::Floor => "quire.value.integer-division.floor/v1",
-            Self::Euclidean => "quire.value.integer-division.euclidean/v1",
+            Self::Truncating => "filament.value.integer-division.truncating/v1",
+            Self::Floor => "filament.value.integer-division.floor/v1",
+            Self::Euclidean => "filament.value.integer-division.euclidean/v1",
         }
     }
 
@@ -320,7 +320,7 @@ mod tests {
     ///
     /// Also QSpec FR-147-AC-2 ("Division by zero is undefined and produces
     /// no numeric value"), verified through central `QSpec-TC-192`
-    /// (`agent-ix/quire-specification`): this is the kernel-level instance
+    /// (`agent-ix/filament-specification`): this is the kernel-level instance
     /// of that requirement.
     #[trace("QSpec-TC-192", "QSpec-FR-147-AC-2", "TC-905", "FR-357-AC-1")]
     #[test]

@@ -4,14 +4,14 @@ title: "Checked typed collection prestate and poststate readback"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-392
+  - target: ix://agent-ix/filament-exact/FR-392
     type: verifies
 ---
 # TC-941: Checked typed collection prestate and poststate readback
 
 ## Description
 
-Exercise [FR-392](../functional/FR-392-typed-collection-state-boundary.md) through the public `quire_exact` API. This is a planned test case, not implementation evidence.
+Exercise [FR-392](../functional/FR-392-typed-collection-state-boundary.md) through the public `filament_exact` API. This is a planned test case, not implementation evidence.
 
 ## Test Procedure
 

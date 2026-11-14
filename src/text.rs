@@ -3,7 +3,7 @@
 //! `Text[min,max; profile]` admission and metered comparison.
 //!
 //! Normalization uses exactly the Unicode 17.0.0 data selected by
-//! `quire.value.text.unicode-17.0.0/v1`. The build refuses any other
+//! `filament.value.text.unicode-17.0.0/v1`. The build refuses any other
 //! `unicode-normalization` table version. No locale, case folding, collation
 //! or grapheme segmentation is applied.
 //!
@@ -37,14 +37,14 @@ use crate::comparison::{ComparisonOperator, IllTyped, IllTypedCause};
 use crate::outcome::{Outcome, Refusal, Stop};
 
 /// Definition identity of the normalization tables.
-pub const UNICODE_TEXT_DEFINITION: &str = "quire.value.text.unicode-17.0.0/v1";
+pub const UNICODE_TEXT_DEFINITION: &str = "filament.value.text.unicode-17.0.0/v1";
 
 /// Unicode version the normalization tables implement.
 pub const UNICODE_VERSION: (u8, u8, u8) = (17, 0, 0);
 
 const _: () = assert!(
     matches!(unicode_normalization::UNICODE_VERSION, (17, 0, 0)),
-    "quire.value.text.unicode-17.0.0/v1 requires Unicode 17.0.0 normalization tables"
+    "filament.value.text.unicode-17.0.0/v1 requires Unicode 17.0.0 normalization tables"
 );
 
 /// A valid UTF-8 scalar has exactly one byte that is not a continuation byte.
@@ -362,7 +362,7 @@ impl Text {
     }
 }
 
-/// Admit `payload` into `text_type` under `quire.value.accounting/v1`.
+/// Admit `payload` into `text_type` under `filament.value.accounting/v1`.
 pub fn admit_text(payload: &TextPayload, text_type: &TextType, meter: &mut Meter) -> Outcome<Text> {
     Outcome::from_stop(admit(payload, text_type, meter))
 }

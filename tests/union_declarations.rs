@@ -6,14 +6,14 @@
 
 use std::cmp::Ordering;
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     compare_keys, evaluate_union, form, from_admitted_slots, plan_equality, planned_equality,
     union, CheckedInvariantCause, CollectionKind, CollectionType, Component, ConstructionCause,
     ConstructionRefusal, Deferred, EffectiveId, FieldValue, Integer, Meter, NodeKey, ObjectId,
     ObjectReference, OptionValue, OriginalDeclarationKey, Outcome, PathSegment, Refusal,
     ScalarLimits, UnionMember, UnionValue, UniverseId, Value, ValueType,
 };
+use ix_trace_rs::trace;
 
 const P: u8 = 1;
 const C: u8 = 2;
@@ -138,7 +138,7 @@ fn traversal_does_not_short_circuit_after_a_declaration_mismatch() {
 #[test]
 fn union_payload_pair_inside_another_value_leaves_enclosing_counts() {
     let option = |payload: Value| {
-        quire_exact::OptionValue::from_admitted(ValueType::Composite(key(U)), Some(payload))
+        filament_exact::OptionValue::from_admitted(ValueType::Composite(key(U)), Some(payload))
     };
     let (left, right) = (option(holding(p100())), option(holding(c100())));
     assert!(!equal(&left, &right));

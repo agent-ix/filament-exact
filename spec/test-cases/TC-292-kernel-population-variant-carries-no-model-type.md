@@ -3,14 +3,14 @@ id: TC-292
 title: "Kernel Value::Population carries PopulationId only, with no model dependency"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-089
+  - target: ix://agent-ix/filament-exact/FR-089
     type: verifies
 ---
 # TC-292: Kernel Value::Population carries PopulationId only, with no model dependency
 
 ## Description
 
-Verify FR-089-AC-2 by inspection: the kernel `Value::Population` variant's payload type is `PopulationId`, and no file under `src/` can import a population binding or any other caller's model type, because the crate's `Cargo.toml` names no crate that owns one. This is a structural fact about the dependency direction (every edge points into `quire-exact`, never out of it), not a runtime behaviour, so it is an inspection, not a test.
+Verify FR-089-AC-2 by inspection: the kernel `Value::Population` variant's payload type is `PopulationId`, and no file under `src/` can import a population binding or any other caller's model type, because the crate's `Cargo.toml` names no crate that owns one. This is a structural fact about the dependency direction (every edge points into `filament-exact`, never out of it), not a runtime behaviour, so it is an inspection, not a test.
 
 It catches an implementation that moves a population binding into the kernel instead of adding an opaque identity, which a test that only checks that `Value` admits a population value cannot tell from the correct shape.
 

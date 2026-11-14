@@ -4,11 +4,11 @@ title: "Bounded cancellable Integer and Rational supplied membership"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-semantic-value/FR-109
+  - target: ix://agent-ix/filament-semantic-value/FR-109
     type: references
-  - target: ix://agent-ix/quire-specification/FR-147
+  - target: ix://agent-ix/filament-specification/FR-147
     type: references
-  - target: ix://agent-ix/quire-specification/FR-323
+  - target: ix://agent-ix/filament-specification/FR-323
     type: references
 ---
 # FR-380: Bounded cancellable Integer and Rational supplied membership
@@ -30,7 +30,7 @@ cancellation handle.
 - A finite maximum `B` in magnitude **bits**, where zero has magnitude length
   one, authenticated by the supplied-admission owner for this invocation.
   The exact helper and a direct QSV supplied caller SHALL NOT invent or
-  default `B`. A QSL caller resolving QSpec FR-323's published 4096-bit
+  default `B`. A FSL caller resolving QSpec FR-323's published 4096-bit
   default supplies that authenticated finite `B` to QSV. A logical event
   ceiling, a value-only bound, or a type interval is not proof of `B`.
 
@@ -90,11 +90,11 @@ cancellation handle.
    fixed-width limb-pair step; allocator calls, if any, remain indivisible and
    carry no wall-clock latency claim.
 6. The supplied-admission consumer SHALL receive an authentic finite `B` for
-   the value **and all endpoints** before invoking these helpers. QSL's caller
+   the value **and all endpoints** before invoking these helpers. FSL's caller
    API omission resolves to QSpec FR-323's published 4096-bit default in the
-   effective request before QSL supplies `B` to QSV; neither the exact helper
+   effective request before FSL supplies `B` to QSV; neither the exact helper
    nor a direct QSV supplied caller SHALL infer that default. It SHALL
-   retain [QSV FR-109](ix://agent-ix/quire-semantic-value/FR-109)'s cumulative
+   retain [QSV FR-109](ix://agent-ix/filament-semantic-value/FR-109)'s cumulative
    logical-event budget, rooted locus and original cancellation handle, and
    project helper failure without recoding it as traversal Limit or Invalid
    membership. Limb steps SHALL NOT debit an evaluator meter or create a
@@ -119,24 +119,24 @@ cancellation handle.
 | FR-380-AC-5 | Inspection identifies whether the production comparison actually performs a fallible native conversion or storage request. For each reachable boundary, a denied checked conversion is typed capacity/resource refusal and an actual reservation denial carries its measured request; neither becomes false, unsupported size or traversal Limit, and retry after removing allocation denial agrees with a fresh run. When neither boundary exists, no artificial capacity/allocator refusal fixture or ceiling is required. | Inspection |
 | FR-380-AC-7 | Inspection of both direct exact-kernel `IntegerInterval::try_contains_bounded` and `RationalDomain::try_contains_bounded` signatures verifies that authenticated finite B is a required `magnitude_bits: u64` parameter, applied to the value and every endpoint, and neither helper selects a default B. A call omitting B is not part of either helper's API. | Inspection |
 
-The supplied-caller controls formerly FR-380-AC-6 are allocated to [QSV FR-122-AC-3](ix://agent-ix/quire-semantic-value/FR-122) and [QSL FR-486-AC-3 and FR-486-AC-4](ix://agent-ix/quire-spec-language/FR-486); the evaluator charge control remains with QSL. The required-parameter, no-default exact-helper clause is owned here by FR-380-AC-7 and verified by Inspection; the `NumericDomain` result for an absent B belongs to the direct QSV caller.
+The supplied-caller controls formerly FR-380-AC-6 are allocated to [QSV FR-122-AC-3](ix://agent-ix/filament-semantic-value/FR-122) and [FSL FR-486-AC-3 and FR-486-AC-4](ix://agent-ix/filament-spec-language/FR-486); the evaluator charge control remains with FSL. The required-parameter, no-default exact-helper clause is owned here by FR-380-AC-7 and verified by Inspection; the `NumericDomain` result for an absent B belongs to the direct QSV caller.
 
 ## Dependencies
 
 - [TC-928](../test-cases/TC-928-bounded-numeric-membership.md) defines the
   falsifying kernel and supplied-caller controls.
-- [QSpec FR-147](ix://agent-ix/quire-specification/FR-147) retains Integer and
+- [QSpec FR-147](ix://agent-ix/filament-specification/FR-147) retains Integer and
   Rational domain meaning. This requirement changes the bounded helper
   response, not mathematical membership.
-- [QSpec FR-323](ix://agent-ix/quire-specification/FR-323) defines QSL's
+- [QSpec FR-323](ix://agent-ix/filament-specification/FR-323) defines FSL's
   effective `limits.supplied.numeric_magnitude_bits` and published default.
-- [QSV FR-109](ix://agent-ix/quire-semantic-value/FR-109) owns supplied phase,
+- [QSV FR-109](ix://agent-ix/filament-semantic-value/FR-109) owns supplied phase,
   cumulative events, locus and consumer projection. Its current logical
-  budget is **not** a magnitude carrier. QSpec FR-323 defines the QSL-owned
+  budget is **not** a magnitude carrier. QSpec FR-323 defines the FSL-owned
   `limits.supplied.numeric_magnitude_bits` carrier and its published default;
-  the QSL producer and QSV consumer remain pending.
+  the FSL producer and QSV consumer remain pending.
 
 ## Status
 
-SPEC CANDIDATE. The kernel helper is implemented; QSL producer and QSV
+SPEC CANDIDATE. The kernel helper is implemented; FSL producer and QSV
 consumer implementation/tests remain pending.

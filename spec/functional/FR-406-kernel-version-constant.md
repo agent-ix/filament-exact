@@ -4,14 +4,14 @@ title: "The kernel exports a public KERNEL_VERSION constant that is bumped when 
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-contract-codegen/FR-056
+  - target: ix://agent-ix/filament-contract-codegen/FR-056
     type: references
 ---
 # FR-406: The kernel exports a public KERNEL_VERSION constant that is bumped when operation semantics change
 
 ## Description
 
-The kernel SHALL export `quire_exact::KERNEL_VERSION`, a public `u32` constant naming the semantic epoch of the kernel's operations. The crate version in `Cargo.toml` is `0.1.0` on every commit of a `branch = main` dependency and so cannot tell a consumer that the kernel's behaviour changed; this constant can (Behavior 1 to 6).
+The kernel SHALL export `filament_exact::KERNEL_VERSION`, a public `u32` constant naming the semantic epoch of the kernel's operations. The crate version in `Cargo.toml` is `0.1.0` on every commit of a `branch = main` dependency and so cannot tell a consumer that the kernel's behaviour changed; this constant can (Behavior 1 to 6).
 
 The consumer is Contract CodeGen's measured Kani tractability table (IR-1526, kernel-version half of its stale-row rule). A row records the `KERNEL_VERSION` it was measured against; a row whose recorded value differs from the constant a build exports is stale. Reading the constant, storing it in the table and the staleness comparison are CG's credit and not this requirement's acceptance.
 
@@ -32,7 +32,7 @@ The constant is a hand-bumped integer, not a digest of source files. A content h
 
 | ID | Criteria | Verification |
 | --- | --- | --- |
-| FR-406-AC-1 | `quire_exact::KERNEL_VERSION` is a public `u32` const reachable from the crate root in default, `test-support` and `no_std` builds, defined as an integer literal, usable in a const context, with a doc comment stating the bump rule. | Test (TC-954) |
+| FR-406-AC-1 | `filament_exact::KERNEL_VERSION` is a public `u32` const reachable from the crate root in default, `test-support` and `no_std` builds, defined as an integer literal, usable in a const context, with a doc comment stating the bump rule. | Test (TC-954) |
 | FR-406-AC-2 | The golden test evaluates the grid of Behavior 5, with the `test-support` feature enabled, and passes on the unchanged source. | Test (TC-954) |
 | FR-406-AC-3 | A fixture in which one expected outcome, and separately one expected charge, is altered makes the golden comparison report a difference. | Test (TC-954) |
 | FR-406-AC-4 | The doc comment names the change classes of Behavior 3 that do and do not require a bump, including the verification-cost class. | Inspection (TC-954) |

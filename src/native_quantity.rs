@@ -11,7 +11,7 @@
 //! and one body for host and `cfg(kani)` builds.
 //!
 //! ```
-//! # use quire_exact::{
+//! # use filament_exact::{
 //! #     CarriedQuantityType, Integer, IntegerInterval, NativeQuantity, NodeKey, PathSegment,
 //! #     QuantityBindings, QuantityCarrier, RoundingMode, UnitId,
 //! # };
@@ -31,21 +31,21 @@
 //! bare unit or owner `Rational` is accepted in its place:
 //!
 //! ```compile_fail,E0308
-//! # use quire_exact::{BoundedQuantityType, NativeQuantity, NodeKey, PathSegment, QuantityBindings, UnitId};
+//! # use filament_exact::{BoundedQuantityType, NativeQuantity, NodeKey, PathSegment, QuantityBindings, UnitId};
 //! # let key = NodeKey::new("test", vec![PathSegment::Text("cm".into())], 0).unwrap();
 //! let ty = BoundedQuantityType::new(UnitId::declared(key), None, None).unwrap();
 //! let _ = NativeQuantity::from_bindings(&ty, QuantityBindings::Int(1));
 //! ```
 //!
 //! ```compile_fail,E0308
-//! # use quire_exact::{NativeQuantity, NodeKey, PathSegment, QuantityBindings, UnitId};
+//! # use filament_exact::{NativeQuantity, NodeKey, PathSegment, QuantityBindings, UnitId};
 //! # let key = NodeKey::new("test", vec![PathSegment::Text("cm".into())], 0).unwrap();
 //! let unit = UnitId::declared(key);
 //! let _ = NativeQuantity::from_bindings(&unit, QuantityBindings::Int(1));
 //! ```
 //!
 //! ```compile_fail,E0308
-//! # use quire_exact::{Integer, NativeQuantity, QuantityBindings, Rational};
+//! # use filament_exact::{Integer, NativeQuantity, QuantityBindings, Rational};
 //! let rational = Rational::from_integer(Integer::from(1_i64));
 //! let _ = NativeQuantity::from_bindings(&rational, QuantityBindings::Int(1));
 //! ```

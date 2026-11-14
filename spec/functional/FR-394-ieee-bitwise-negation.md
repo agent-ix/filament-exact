@@ -4,7 +4,7 @@ title: IEEE negation flips only the sign bit
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-specification/FR-148
+  - target: ix://agent-ix/filament-specification/FR-148
     type: implements
 ---
 # FR-394: IEEE negation flips only the sign bit
@@ -50,8 +50,8 @@ at the sign bit.
    The kernel SHALL expose no completed result on that path.
 
 The language-level behavior and vectors are specified by
-[QSpec FR-148-AC-11](ix://agent-ix/quire-specification/FR-148) and
-[QSpec FR-148-AC-13](ix://agent-ix/quire-specification/FR-148). This requirement
+[QSpec FR-148-AC-11](ix://agent-ix/filament-specification/FR-148) and
+[QSpec FR-148-AC-13](ix://agent-ix/filament-specification/FR-148). This requirement
 owns the kernel operation and its native meter effects; it does not define a
 new source-language operation identity.
 
@@ -59,14 +59,14 @@ new source-language operation identity.
 
 | ID | Criteria | Verification |
 | --- | --- | --- |
-| FR-394-AC-1 | For each binary32 and binary64 bit pattern identified by [QSpec FR-148-AC-11](ix://agent-ix/quire-specification/FR-148), public `evaluate_ieee(IeeeOperation::Negate(value), mode, meter)` completes with the same width and bits equal to the operand bits XOR the width's sign mask (`0x80000000` or `0x8000000000000000`). `IeeeOperation::Negate(value).kind()` is `IeeeOperationKind::Negate`; a second public negation returns the original bits, including each NaN's signaling bit and payload. The test asserts completed value bits for every input. | Test |
-| FR-394-AC-2 | For every rounding mode selected by [QSpec FR-148-AC-11](ix://agent-ix/quire-specification/FR-148), including strict `Exact`, public negation of the referenced patterns completes with the AC-1 sign-bit result, empty flags and provenance recording that mode and the input width. No mode causes a refusal or quiets a signaling NaN. | Test |
+| FR-394-AC-1 | For each binary32 and binary64 bit pattern identified by [QSpec FR-148-AC-11](ix://agent-ix/filament-specification/FR-148), public `evaluate_ieee(IeeeOperation::Negate(value), mode, meter)` completes with the same width and bits equal to the operand bits XOR the width's sign mask (`0x80000000` or `0x8000000000000000`). `IeeeOperation::Negate(value).kind()` is `IeeeOperationKind::Negate`; a second public negation returns the original bits, including each NaN's signaling bit and payload. The test asserts completed value bits for every input. | Test |
+| FR-394-AC-2 | For every rounding mode selected by [QSpec FR-148-AC-11](ix://agent-ix/filament-specification/FR-148), including strict `Exact`, public negation of the referenced patterns completes with the AC-1 sign-bit result, empty flags and provenance recording that mode and the input width. No mode causes a refusal or quiets a signaling NaN. | Test |
 | FR-394-AC-3 | On a fresh meter with `IntegerBits = 32`, `ValueOccurrences = 1`, `WorkUnits = 2` and `ResultUnits = 1`, with unrelated limits zero, negating binary32 `0x40000000` completes with bits `0xc0000000`; the only admitted points are `ieee.operands` and `ieee.result-retain`, in that order, consuming two work units and one result unit. The analogous binary64 case uses `0x4000000000000000`, completes with `0xc000000000000000` at `IntegerBits = 64`, and has the same other limits and charge order. | Test |
 | FR-394-AC-4 | For the binary32 control in AC-3, `WorkUnits = 1` denies `ieee.result-retain` with `limit_kind = WorkUnits`, `limit = consumed = 1`, `next_charge = 1`, only `ieee.operands` admitted and no result unit or bits. `WorkUnits = 0` denies `ieee.operands` with no admitted charge or bits. An `IntegerBits` limit of 31 also denies `ieee.operands` with `next_charge = 32` and no admitted charge or bits. | Test |
 
 ## Dependencies
 
-- [QSpec FR-148](ix://agent-ix/quire-specification/FR-148) owns the language's
+- [QSpec FR-148](ix://agent-ix/filament-specification/FR-148) owns the language's
   binary32 and binary64 negate semantics and its acceptance criteria 11 and 13.
 - The existing [FR-366](./FR-366-ieee-exceptional-value-semantics.md) describes
   IEEE exceptional-value bit behavior in the kernel.

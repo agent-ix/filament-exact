@@ -4,19 +4,19 @@ title: "A kernel-checked native integer Divide and Modulo plan with measured Kan
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-384
+  - target: ix://agent-ix/filament-exact/FR-384
     type: references
-  - target: ix://agent-ix/quire-exact/FR-397
+  - target: ix://agent-ix/filament-exact/FR-397
     type: references
-  - target: ix://agent-ix/quire-exact/FR-405
+  - target: ix://agent-ix/filament-exact/FR-405
     type: references
-  - target: ix://agent-ix/quire-exact/AD-003
+  - target: ix://agent-ix/filament-exact/AD-003
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/AD-006
+  - target: ix://agent-ix/filament-contract-codegen/AD-006
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-057
+  - target: ix://agent-ix/filament-contract-codegen/FR-057
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-409: A kernel-checked native integer Divide and Modulo plan with measured Kani verdicts
@@ -25,7 +25,7 @@ relationships:
 
 The kernel SHALL extend the checked native integer plan of [FR-384](./FR-384-admitted-native-integer-refinement.md) with a `Divide` operation per `DivisionProfile` and a `Modulo` operation, so that a consumer can admit native division operands through `NativeIntegerPlan::new` and `NativeIntegerPlan::admit` and evaluate the admitted operation with the value, refusals and Meter charges of the exact `divide` and `modulo` (Behavior 1 to 12). Each Kani harness over the plan SHALL settle as an executed VERIFIED verdict or as a measured not-tractable row (Behavior 13 to 20).
 
-Today `NativeIntegerOperation` and `NativeIntegerOperationKind` (`src/native_integer.rs`) name only `Add`, `Subtract`, `Multiply` and `Negate`, and FR-384's capability table says the closed interval-operation input "cannot encode ... an unsupported division operation". The plan-free evaluators `evaluate_native_integer_division` and `evaluate_native_integer_modulo` of [FR-397](./FR-397-native-integer-division-wide-multiply-equality-and-charge-schedule.md) exist, but they check no operand interval and derive no capacity. CG AD-006 (ix://agent-ix/quire-contract-codegen/AD-006) requires a kernel-checked plan before native-route evaluation. CG FR-057 (ix://agent-ix/quire-contract-codegen/FR-057) therefore refuses native `div`, `rem` and `mod` (its AC-6) until such a plan exists. IR-1530 measured general-route `rt::Integer` arithmetic as not tractable from 2 bits, so a VERIFIED division verdict needs this native plan.
+Today `NativeIntegerOperation` and `NativeIntegerOperationKind` (`src/native_integer.rs`) name only `Add`, `Subtract`, `Multiply` and `Negate`, and FR-384's capability table says the closed interval-operation input "cannot encode ... an unsupported division operation". The plan-free evaluators `evaluate_native_integer_division` and `evaluate_native_integer_modulo` of [FR-397](./FR-397-native-integer-division-wide-multiply-equality-and-charge-schedule.md) exist, but they check no operand interval and derive no capacity. CG AD-006 (ix://agent-ix/filament-contract-codegen/AD-006) requires a kernel-checked plan before native-route evaluation. CG FR-057 (ix://agent-ix/filament-contract-codegen/FR-057) therefore refuses native `div`, `rem` and `mod` (its AC-6) until such a plan exists. IR-1530 measured general-route `rt::Integer` arithmetic as not tractable from 2 bits, so a VERIFIED division verdict needs this native plan.
 
 The consumer is CG FR-057 (IR-854, AC-7 and AC-8 on the native route), which renders `div` (the quotient under the claim's law), `rem` (the remainder under the claim's law; CG FR-014-AC-81 derives it) and `mod` (the Euclidean remainder). Every member combination of this plan therefore has a live consumer: the quotient and the remainder under each of the three laws, and `Modulo`. CG's harness, its measurements and its credit are CG's and are not this requirement's acceptance (as for FR-402, FR-405 and FR-407). The refusal that a measured not-tractable row receives is the mechanism of IR-1526: this requirement references that seam and builds none. CG FR-056's tractability table is the single shipped record of measured rows: it carries native rows with a required route field, and CG copies this kernel's measured rows into it from TC-957's evidence record. Amending AD-006 to allow plan-free evaluation is out of scope, and so is a constant-divisor tractability flag (CG FR-056), unless the measured rows need one (see Open items).
 

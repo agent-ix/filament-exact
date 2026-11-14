@@ -4,18 +4,18 @@ title: "A Map value type with a key type"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-097
+  - target: ix://agent-ix/filament-exact/FR-097
     type: references
-  - target: ix://agent-ix/quire-exact/FR-262
+  - target: ix://agent-ix/filament-exact/FR-262
     type: references
-  - target: ix://agent-ix/quire-specification/FR-154
+  - target: ix://agent-ix/filament-specification/FR-154
     type: references
 ---
 # FR-386: A Map value type with a key type
 
 ## Description
 
-The `quire-exact` kernel SHALL provide a value type `Map<K, V>[min, max]`, and the unbounded `Map<K, V>`, as the variant `ValueType::Map` holding a `MapType`. The type carries its key type `K`, its value type `V` and an optional `CardinalityBound`, and `MapType::key()` returns `K` so a caller can check a key against its own eligibility rule (QSL FR-230-AC-19 refuses `Map<Timer, Int>` at the key type). The kernel decides no key eligibility beyond the shape rule in Behavior 8. The kernel SHALL provide no map value in this requirement: the map type is type identity, so that a caller can declare, compare, hash and nest a package map (QSpec FR-154 "a map `values`") and read it as a clock collection of its kind (QSpec FR-154-AC-27) without a kernel value that inhabits it.
+The `filament-exact` kernel SHALL provide a value type `Map<K, V>[min, max]`, and the unbounded `Map<K, V>`, as the variant `ValueType::Map` holding a `MapType`. The type carries its key type `K`, its value type `V` and an optional `CardinalityBound`, and `MapType::key()` returns `K` so a caller can check a key against its own eligibility rule (FSL FR-230-AC-19 refuses `Map<Timer, Int>` at the key type). The kernel decides no key eligibility beyond the shape rule in Behavior 8. The kernel SHALL provide no map value in this requirement: the map type is type identity, so that a caller can declare, compare, hash and nest a package map (QSpec FR-154 "a map `values`") and read it as a clock collection of its kind (QSpec FR-154-AC-27) without a kernel value that inhabits it.
 
 ## Use case
 

@@ -4,7 +4,7 @@ title: "Check caller-admitted values in collections, Options and composites"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-378
+  - target: ix://agent-ix/filament-exact/FR-378
     type: verifies
 ---
 # TC-926: Check caller-admitted values in collections, Options and composites

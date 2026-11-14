@@ -3,12 +3,12 @@
 
 use std::{collections::HashSet, num::NonZeroU64};
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     divide, form_collection, modulo, BoundViolation, CardinalityBound, Charge, ChargePoint,
     CollectionKind, CollectionType, DivisionMember, DivisionProfile, InjectedDenial, Integer,
     IntegerDomain, LimitKind, Meter, Outcome, Refusal, ScalarLimits, Value, ValueType,
 };
+use ix_trace_rs::trace;
 
 fn limits() -> ScalarLimits {
     ScalarLimits {

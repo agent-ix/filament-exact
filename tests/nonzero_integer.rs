@@ -4,7 +4,7 @@
 use core::num::NonZeroU64;
 use core::str::FromStr;
 
-use quire_exact::{
+use filament_exact::{
     divide, modulo, ChargePoint, DivisionMember, DivisionProfile, Incomplete, InjectedDenial,
     Integer, IntegerDomain, IntegerInterval, LimitKind, Meter, NonZeroInteger, Outcome, Refusal,
     ScalarLimits, Undefined, ZeroDivisor,
@@ -198,7 +198,7 @@ fn assert_counters(
 
 #[cfg(feature = "test-support")]
 fn assert_prefix(meter: &Meter, prefix: &[(ChargePoint, Option<u64>, Option<u64>)]) {
-    use quire_exact::AdmittedCharge;
+    use filament_exact::AdmittedCharge;
     let expected: Vec<_> = prefix
         .iter()
         .map(|&(point, integer_bits, value_occurrences)| AdmittedCharge {

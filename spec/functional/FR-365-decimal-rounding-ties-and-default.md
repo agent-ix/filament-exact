@@ -29,4 +29,4 @@ PR #9 adds executable Trace bindings for AC-1 and AC-2. Run `quire matrix` for t
 
 ## Dependencies
 
-- [TC-913](../test-cases/TC-913-decimal-rounding-ties-and-default.md) is the verification home. Verification uses only the public `quire_exact` API; no downstream evaluator or copied tests are required.
+- [TC-913](../test-cases/TC-913-decimal-rounding-ties-and-default.md) is the verification home. Verification uses only the public `filament_exact` API; no downstream evaluator or copied tests are required.

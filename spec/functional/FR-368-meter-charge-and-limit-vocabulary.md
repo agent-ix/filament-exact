@@ -3,14 +3,14 @@ id: FR-368
 title: "Public meter charge and limit vocabularies are complete and uniquely spelled"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-specification/FR-013
+  - target: ix://agent-ix/filament-specification/FR-013
     type: depends_on
 ---
 # FR-368: Public meter charge and limit vocabularies are complete and uniquely spelled
 
 ## Description
 
-The `quire-exact` meter SHALL expose a complete, uniquely spelled public `ChargePoint` vocabulary and a `LimitKind` vocabulary in `ScalarLimits` field order.
+The `filament-exact` meter SHALL expose a complete, uniquely spelled public `ChargePoint` vocabulary and a `LimitKind` vocabulary in `ScalarLimits` field order.
 
 ## Behavior
 
@@ -18,7 +18,7 @@ The `quire-exact` meter SHALL expose a complete, uniquely spelled public `Charge
 
 `TemporalVisit`, spelled `temporal.visit` by `as_str()`, follows `model.navigate` at index 62 of `ChargePoint::ALL`; the first 62 entries retain their existing order. It names a caller-owned temporal operator visit charged through the existing `WorkUnits` limit, not a new limit kind. It is distinct from the graph-walk points `graph.expand`, `graph.edge` and `graph.result-retain`.
 
-The `ChargePoint` vocabulary SHALL append `FrameWrite` (`frame.write`) at index 63 and `FrameRedefinesLink` (`frame.redefines-link`) at index 64, in that order, without changing the identity or order of entries 0 through 62. These names identify the frame events defined by the authoritative operation-frame and value-accounting contracts. The operation-frame caller SHALL own detection and ordering of field writes, traversal of `redefines` links, and admission into its own frame meter. This vocabulary extension SHALL NOT move frame checking into `quire-exact`, merge the caller's `ModelNormalizationLimits.work_units` with the kernel's `ScalarLimits.work_units`, or add a kernel-owned frame charge schedule. A caller that directly uses the kernel `Meter` remains subject to that meter's ordinary named-point behavior; this does not alter the independent caller meter.
+The `ChargePoint` vocabulary SHALL append `FrameWrite` (`frame.write`) at index 63 and `FrameRedefinesLink` (`frame.redefines-link`) at index 64, in that order, without changing the identity or order of entries 0 through 62. These names identify the frame events defined by the authoritative operation-frame and value-accounting contracts. The operation-frame caller SHALL own detection and ordering of field writes, traversal of `redefines` links, and admission into its own frame meter. This vocabulary extension SHALL NOT move frame checking into `filament-exact`, merge the caller's `ModelNormalizationLimits.work_units` with the kernel's `ScalarLimits.work_units`, or add a kernel-owned frame charge schedule. A caller that directly uses the kernel `Meter` remains subject to that meter's ordinary named-point behavior; this does not alter the independent caller meter.
 
 ## Acceptance Criteria
 
@@ -37,4 +37,4 @@ PR #9 adds executable Trace bindings for AC-1 and AC-2. Run `quire matrix` for t
 
 ## Dependencies
 
-- [TC-916](../test-cases/TC-916-meter-charge-and-limit-vocabulary.md) verifies the vocabulary criteria through the public enum APIs. [FR-359](./FR-359-cumulative-meter-boundary.md) owns first-short-counter behavior that uses the limit-kind order. Operation-frame event and amount semantics remain with `ix://agent-ix/quire-specification/FR-013` and its value-accounting definition; QSL owns the independent caller meter.
+- [TC-916](../test-cases/TC-916-meter-charge-and-limit-vocabulary.md) verifies the vocabulary criteria through the public enum APIs. [FR-359](./FR-359-cumulative-meter-boundary.md) owns first-short-counter behavior that uses the limit-kind order. Operation-frame event and amount semantics remain with `ix://agent-ix/filament-specification/FR-013` and its value-accounting definition; FSL owns the independent caller meter.

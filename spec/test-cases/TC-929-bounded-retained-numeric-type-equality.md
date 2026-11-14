@@ -4,7 +4,7 @@ title: "Bounded retained numeric type equality checks both sides"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-381
+  - target: ix://agent-ix/filament-exact/FR-381
     type: verifies
 ---
 # TC-929: Bounded retained numeric type equality checks both sides

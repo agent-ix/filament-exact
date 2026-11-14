@@ -3,10 +3,10 @@
 
 use std::num::NonZeroU64;
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     Charge, ChargePoint, Incomplete, InjectedDenial, Integer, LimitKind, Meter, ScalarLimits,
 };
+use ix_trace_rs::trace;
 
 fn limits(work_units: u64) -> ScalarLimits {
     ScalarLimits {

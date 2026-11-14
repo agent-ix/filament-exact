@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel SHALL offer `divide`, which evaluates the one member of the `(q, r)` pair that an expression exposes, under the selected `DivisionProfile` (truncating, floor or Euclidean). Both members are computed exactly. The kernel checks only the exposed member against the consumer's domain. The quotient is exposed by `div` and the remainder by `rem`. The language-level rule is the caller's and keeps the id `FR-147` in the repository that owns it.
+The `filament-exact` kernel SHALL offer `divide`, which evaluates the one member of the `(q, r)` pair that an expression exposes, under the selected `DivisionProfile` (truncating, floor or Euclidean). Both members are computed exactly. The kernel checks only the exposed member against the consumer's domain. The quotient is exposed by `div` and the remainder by `rem`. The language-level rule is the caller's and keeps the id `FR-147` in the repository that owns it.
 
 
 The public `modulo` operation SHALL return the Euclidean remainder for nonzero divisors independently of any `DivisionProfile` selected for a separate `divide` call.
@@ -42,4 +42,4 @@ PR #9 adds executable Trace bindings for AC-7. Run `quire matrix` for the curren
 
 ## Dependencies
 
-- None. The caller's behaviour lives in `agent-ix/quire-spec-language`.
+- None. The caller's behaviour lives in `agent-ix/filament-spec-language`.

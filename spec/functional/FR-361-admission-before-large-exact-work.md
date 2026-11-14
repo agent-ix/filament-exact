@@ -3,16 +3,16 @@ id: FR-361
 title: "The kernel admits size charges before large exact work"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-357
+  - target: ix://agent-ix/filament-exact/FR-357
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: depends_on
 ---
 # FR-361: The kernel admits size charges before large exact work
 
 ## Description
 
-When a size charge for integer or rational arithmetic, integer division or modulus, or decimal scale expansion, arithmetic or result retention is denied, the `quire-exact` kernel SHALL return `Incomplete` at that point before requesting an allocation as large as the value being bounded.
+When a size charge for integer or rational arithmetic, integer division or modulus, or decimal scale expansion, arithmetic or result retention is denied, the `filament-exact` kernel SHALL return `Incomplete` at that point before requesting an allocation as large as the value being bounded.
 
 ## Behavior
 

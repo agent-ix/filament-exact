@@ -4,11 +4,11 @@ title: "State the payload-byte bound P of every text profile"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-399
+  - target: ix://agent-ix/filament-exact/FR-399
     type: references
-  - target: ix://agent-ix/quire-exact/FR-401
+  - target: ix://agent-ix/filament-exact/FR-401
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-052
+  - target: ix://agent-ix/filament-contract-codegen/FR-052
     type: references
 ---
 # FR-400: State the payload-byte bound P of every text profile
@@ -41,7 +41,7 @@ A `TextProfile` and a `max` (`u64`).
 
 **Looseness.** P is an upper bound, not the supremum of payload bytes. The scalar factor is attained. The byte factor is attained for `binary-utf8`, `unicode-scalars`, `nfd` and `nfkd` by a four-byte scalar that is its own normal form, but for `nfc` and `nfkc` the payload that attains `ratio` scalars does not consist of four-byte scalars (the payload of U+1F82 is 8 bytes against the bound of 16 for `max` of 1). A consumer whose capacity C is below P for such a profile treats the profile as unsupported, which narrows its supported domain and never admits a payload outside it. A byte supremum for `nfc` and `nfkc` is not derived here.
 
-**Consequence for CG FR-052-AC-12.** CG FR-052 defines P as the largest admitted payload length and builds its boundary family at L = min(P, C). For `nfc` and `nfkc` the bound `16 * max` is not attained: the longest payload the owner test constructs is `nfd(c)` repeated `max` times (12 bytes per retained scalar, AC-6), so no admitted payload of length L exists to build the family when P is at most C. CG needs this amendment, owned by the code lead: FR-052-AC-3 keeps P as the support bound (an upper bound, `P <= C`), and FR-052-AC-12 builds its family at L = min(A, C), where A is the largest attained payload length the quire-exact test records (FR-400-AC-6), A equal to P for the other four profiles. Until CG amends, the AC-12 family for `nfc` and `nfkc` cannot be built.
+**Consequence for CG FR-052-AC-12.** CG FR-052 defines P as the largest admitted payload length and builds its boundary family at L = min(P, C). For `nfc` and `nfkc` the bound `16 * max` is not attained: the longest payload the owner test constructs is `nfd(c)` repeated `max` times (12 bytes per retained scalar, AC-6), so no admitted payload of length L exists to build the family when P is at most C. CG needs this amendment, owned by the code lead: FR-052-AC-3 keeps P as the support bound (an upper bound, `P <= C`), and FR-052-AC-12 builds its family at L = min(A, C), where A is the largest attained payload length the filament-exact test records (FR-400-AC-6), A equal to P for the other four profiles. Until CG amends, the AC-12 family for `nfc` and `nfkc` cannot be built.
 
 ## Acceptance Criteria
 

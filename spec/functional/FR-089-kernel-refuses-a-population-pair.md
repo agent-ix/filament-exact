@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel `Value` SHALL carry a `Population` variant whose payload is an opaque `PopulationId`, never a population binding. The kernel is a leaf with no access to a caller's `PopulationId` to binding correspondence, so it SHALL refuse every population pair. The declared-maximum comparison is the caller's and keeps the id `FR-089` (AC-5) in the repository that owns it.
+The `filament-exact` kernel `Value` SHALL carry a `Population` variant whose payload is an opaque `PopulationId`, never a population binding. The kernel is a leaf with no access to a caller's `PopulationId` to binding correspondence, so it SHALL refuse every population pair. The declared-maximum comparison is the caller's and keeps the id `FR-089` (AC-5) in the repository that owns it.
 
 ## Use case
 
@@ -32,4 +32,4 @@ The population refusal is implemented with the current unit variant. Its typed `
 
 ## Dependencies
 
-- [FR-369](./FR-369-typed-checked-invariant-causes.md) names this pair's typed invariant cause. The caller's behaviour under the same id lives in `agent-ix/quire-spec-language`.
+- [FR-369](./FR-369-typed-checked-invariant-causes.md) names this pair's typed invariant cause. The caller's behaviour under the same id lives in `agent-ix/filament-spec-language`.

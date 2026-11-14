@@ -8,7 +8,7 @@ relationships: []
 
 ## Description
 
-The `quire-exact` kernel SHALL carry an enum value as its admitted `VariantId` and its rank in the canonical member list, and a quantity's unit as a two-domain `UnitId`. Naming declarations and supplying admitted identities are the caller's responsibility. The kernel SHALL neither compute nor validate a digest for these identities. This requirement is the kernel's own behaviour; the caller's checks keep the id `FR-088` in the repository that owns them.
+The `filament-exact` kernel SHALL carry an enum value as its admitted `VariantId` and its rank in the canonical member list, and a quantity's unit as a two-domain `UnitId`. Naming declarations and supplying admitted identities are the caller's responsibility. The kernel SHALL neither compute nor validate a digest for these identities. This requirement is the kernel's own behaviour; the caller's checks keep the id `FR-088` in the repository that owns them.
 
 ## Use case
 
@@ -32,4 +32,4 @@ Identity, rank, domain separation and refusal are required. The prior digest con
 
 ## Dependencies
 
-- The caller's identity admission and producer behavior under the same id lives in `agent-ix/quire-spec-language`; the source identity vocabulary is owned by `agent-ix/quire-specification`.
+- The caller's identity admission and producer behavior under the same id lives in `agent-ix/filament-spec-language`; the source identity vocabulary is owned by `agent-ix/filament-specification`.

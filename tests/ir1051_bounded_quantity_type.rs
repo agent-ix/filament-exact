@@ -4,12 +4,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     admit_text, BoundedQuantityType, CollectionKind, CollectionType, IllTyped, IllTypedCause,
     Integer, IntegerInterval, MapType, Meter, NodeKey, OptionValue, Quantity, Rational,
     RationalDomain, ScalarLimits, TextPayload, TextProfile, TextType, UnitId, Value, ValueType,
 };
+use ix_trace_rs::trace;
 
 /// Levels of nesting in the deep types.
 const DEEP: usize = 100_000;
@@ -18,7 +18,7 @@ fn unit(byte: u8) -> UnitId {
     UnitId::declared(
         NodeKey::new(
             "test",
-            vec![quire_exact::PathSegment::Text(byte.to_string())],
+            vec![filament_exact::PathSegment::Text(byte.to_string())],
             0,
         )
         .unwrap(),

@@ -3,7 +3,7 @@ id: TC-934
 title: "Distinct native Bytes and JsonObject values"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-385
+  - target: ix://agent-ix/filament-exact/FR-385
     type: verifies
 ---
 # TC-934: Distinct native Bytes and JsonObject values

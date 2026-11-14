@@ -3,24 +3,24 @@ id: FR-369
 title: "Carry the precise cause of a checked-invariant failure"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-090
+  - target: ix://agent-ix/filament-exact/FR-090
     type: references
-  - target: ix://agent-ix/quire-exact/FR-096
+  - target: ix://agent-ix/filament-exact/FR-096
     type: references
-  - target: ix://agent-ix/quire-exact/FR-089
+  - target: ix://agent-ix/filament-exact/FR-089
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-042
+  - target: ix://agent-ix/filament-contract-codegen/FR-042
     type: references
-  - target: ix://agent-ix/quire-spec-language/FR-485
+  - target: ix://agent-ix/filament-spec-language/FR-485
     type: references
 ---
 # FR-369: Carry the precise cause of a checked-invariant failure
 
-The shared cause carrier and kernel producers are owned here. The producer controls formerly FR-369-AC-3/4, AC-7 and AC-9 are allocated without weakening their text to [RT FR-278](ix://agent-ix/quire-contract-runtime/FR-278), [CG FR-042](ix://agent-ix/quire-contract-codegen/FR-042) and [QSV FR-122](ix://agent-ix/quire-semantic-value/FR-122), respectively. Their tests remain PLANNED at those owners.
+The shared cause carrier and kernel producers are owned here. The producer controls formerly FR-369-AC-3/4, AC-7 and AC-9 are allocated without weakening their text to [RT FR-278](ix://agent-ix/filament-contract-runtime/FR-278), [CG FR-042](ix://agent-ix/filament-contract-codegen/FR-042) and [QSV FR-122](ix://agent-ix/filament-semantic-value/FR-122), respectively. Their tests remain PLANNED at those owners.
 
 ## Description
 
-When the exact kernel, the checked-expression residue in `quire-contract-runtime`, the shared `quire-semantic-value` leaf, or a generated CG oracle detects a checked-program invariant failure, the shared `quire-exact::Refusal` SHALL carry the failure's closed, typed cause. A caller SHALL distinguish each condition in the tables below, including a re-entrant meter borrow and a nested entry into an already-active checked package, by matching that cause without inspecting a message or guessing from a location. These failures remain internal faults, not catalog refusals or proof results. Runtime-managed calls use explicit frames and `work_units` execution fuel under RT FR-273; exhausted fuel returns `Incomplete` with `limit_kind: work_units`, and no call-depth ceiling or `CallDepthExceeded` checked-invariant cause decides an outcome.
+When the exact kernel, the checked-expression residue in `filament-contract-runtime`, the shared `filament-semantic-value` leaf, or a generated CG oracle detects a checked-program invariant failure, the shared `filament-exact::Refusal` SHALL carry the failure's closed, typed cause. A caller SHALL distinguish each condition in the tables below, including a re-entrant meter borrow and a nested entry into an already-active checked package, by matching that cause without inspecting a message or guessing from a location. These failures remain internal faults, not catalog refusals or proof results. Runtime-managed calls use explicit frames and `work_units` execution fuel under RT FR-273; exhausted fuel returns `Incomplete` with `limit_kind: work_units`, and no call-depth ceiling or `CallDepthExceeded` checked-invariant cause decides an outcome.
 
 ## Inputs
 
@@ -34,7 +34,7 @@ When the exact kernel, the checked-expression residue in `quire-contract-runtime
 
 ## Behavior
 
-The public `CheckedInvariantCause` SHALL be a closed enum of the thirty-one variants in the two tables. `ScheduledComparisonRefused`, `EqualityQuantityConversionRejected`, `GeneratedTypeCheckRejected` and `GeneratedEqualityCheckRejected` each SHALL carry `{ cause: IllTypedCause }`; the other twenty-seven variants are unit variants. The existing typed refusal returned by a scheduled comparator, an equality quantity conversion, or CG's semantic-value type/equality check SHALL be retained in that payload without string conversion. `IllTypedCause` is already owned and exported by `quire-exact::comparison`, which RT origin/main imports from the kernel; no kernel-to-RT or kernel-to-QSV dependency or duplicate type is introduced. The enum SHALL support `Copy`, `Clone`, `Debug`, `Eq`, `Hash` and `PartialEq` so a caller can compare and retain a cause without retaining a value or allocating a message. The existing `Refusal` remains `Clone`, `Debug`, `Eq` and `PartialEq`.
+The public `CheckedInvariantCause` SHALL be a closed enum of the thirty-one variants in the two tables. `ScheduledComparisonRefused`, `EqualityQuantityConversionRejected`, `GeneratedTypeCheckRejected` and `GeneratedEqualityCheckRejected` each SHALL carry `{ cause: IllTypedCause }`; the other twenty-seven variants are unit variants. The existing typed refusal returned by a scheduled comparator, an equality quantity conversion, or CG's semantic-value type/equality check SHALL be retained in that payload without string conversion. `IllTypedCause` is already owned and exported by `filament-exact::comparison`, which RT origin/main imports from the kernel; no kernel-to-RT or kernel-to-QSV dependency or duplicate type is introduced. The enum SHALL support `Copy`, `Clone`, `Debug`, `Eq`, `Hash` and `PartialEq` so a caller can compare and retain a cause without retaining a value or allocating a message. The existing `Refusal` remains `Clone`, `Debug`, `Eq` and `PartialEq`.
 
 | Cause | Trigger and owning source on the measured main revisions |
 |---|---|
@@ -89,10 +89,10 @@ other cause identities, payloads and triggers are unchanged.
 | `GeneratedDescriptorReconstructionFailed` | A generated equality oracle receives a prepared descriptor with the wrong binding, expected package identity or context requirement, or an admitted context with the wrong package identity: `src/oracle/equality/mod.rs`, `oracle_{symbol}` prepared-environment check. Descriptor reconstruction errors while preparing that environment retain their separate typed `EnvironmentError` path. |
 
 The two tables assign the retained causes for the target contract. The
-original producer inventory was measured on quire-exact main
+original producer inventory was measured on filament-exact main
 `497c581c9dd14eb70083488209827dd8a5b3e03a`,
-quire-contract-runtime main `4180f0ea135767637b10a981393c5aef22220ace`,
-and quire-semantic-value `e0ada80708fe73469923a9d6c2263cfebc0087a0`.
+filament-contract-runtime main `4180f0ea135767637b10a981393c5aef22220ace`,
+and filament-semantic-value `e0ada80708fe73469923a9d6c2263cfebc0087a0`.
 The `NativeIntegerCapacityBreach` row records the later kernel producer added
 by IR-705 in `src/native_integer.rs`. The two CG rows without reachable
 current triggers remain required target assignments. FR-042-AC-1 and TC-057
@@ -117,18 +117,18 @@ unexpected-placement failure is a checked-program internal fault. A reached
 internal fault with its precise `IllTypedCause`, rather than becoming a
 catalog `ill_typed` refusal after checking.
 
-These tables do not classify the remaining QSL constructors: QSL
-`qsl-eval/src/value/expression/evaluate.rs:238` uses one helper for missing
+These tables do not classify the remaining FSL constructors: FSL
+`fsl-eval/src/value/expression/evaluate.rs:238` uses one helper for missing
 stack/frame/slot values and distinct checked-node, operator, profile,
 composite, query and navigation assumptions.
-`qsl-semantics/src/value/model_query.rs:119` uses another helper for an empty
+`fsl-semantics/src/value/model_query.rs:119` uses another helper for an empty
 object-identity bridge and wrong reference/collection/option shapes. In
 particular, the empty-identity premise is not fully enforced at population
 binding admission, so this bridge failure cannot be dismissed as unreachable.
-QSL SHALL split or reroute those producers under a QSL-owned specification
+FSL SHALL split or reroute those producers under a FSL-owned specification
 before pinning this required-payload API;
 assigning all of them one generic default kernel cause is forbidden. The
-existing QSL mapping of *received* checked-invariant refusals remains as below.
+existing FSL mapping of *received* checked-invariant refusals remains as below.
 The kernel's equality catch-all SHALL check the two-population case before
 returning `ValueKindMismatch`; otherwise [FR-089](./FR-089-kernel-refuses-a-population-pair.md)
 would lose its distinct cause. A constructor added later SHALL choose a
@@ -137,8 +137,8 @@ specified cause or extend this closed table and its tests before merging.
 ### Generated body carrier and leaf failure boundary
 
 The two generated-function triggers above SHALL follow the producer contract
-owned by [CG FR-042](ix://agent-ix/quire-contract-codegen/FR-042) and
-CG FR-021. At that body boundary the generated `quire_eval::Body::resume`
+owned by [CG FR-042](ix://agent-ix/filament-contract-codegen/FR-042) and
+CG FR-021. At that body boundary the generated `filament_eval::Body::resume`
 SHALL return the located typed kernel payload inside
 `Ok(Transition::Done(Evaluation { outcome: FamilyOutcome::Evaluated(
 Outcome::Refused(Refusal::CheckedInvariant { cause })), .. }))`.
@@ -175,12 +175,12 @@ For **every** `CheckedInvariant` cause, `Refusal::code()` and
 `Refusal::cause()` SHALL return `None`. The typed cause SHALL remain available
 to Rust callers through the variant payload and `Refusal` equality; neither
 method SHALL synthesize a catalog spelling from it. QSpec FR-096 and FR-100
-and QSL's FR-096/FR-100 mapping SHALL treat every such *received* payload as
+and FSL's FR-096/FR-100 mapping SHALL treat every such *received* payload as
 an internal fault, not an ordinary refusal record. At S6a,
 `Machine::stopped` SHALL return `Err(InternalFault)` with code
 `runtime_invariant`, stage `S6a` and invariant `checked-program-invariant`
 for either located or unlocated stops; it returns no `Evaluation` holding the
-checked-invariant refusal. The QSL reference interpreter's public call path SHALL carry that fault as
+checked-invariant refusal. The FSL reference interpreter's public call path SHALL carry that fault as
 `CallFailure::Fault`. The generated host-body carrier above is a separate
 boundary: it retains the located typed payload in its `Done` evaluation,
 without changing the internal-failure classification. A replay fault SHALL settle as `Failed`, category
@@ -198,7 +198,7 @@ remains pre-charge; the payload does not authorize extra work.
 
 This shared carrier is limited to the kernel's checked failures, RT's
 currently extracted exact residue, QSV's shared semantic-value failures and
-CG's generated checked-oracle failures listed above. It does not import a QSL
+CG's generated checked-oracle failures listed above. It does not import a FSL
 model, checker, catalog, or evaluator type, and does not admit an arbitrary
 caller-supplied reason.
 [FR-090](./FR-090-kernel-outcome-carries-no-caller-cause.md)
@@ -211,8 +211,8 @@ states this narrow boundary.
 | FR-369-AC-1 | The public `Refusal::CheckedInvariant` has a required `CheckedInvariantCause` payload whose closed variant set and four typed `IllTypedCause` payloads equal the thirty-one table rows; `CheckedInvariantCause` implements the stated traits, and the old unit constructor does not compile. | Test |
 | FR-369-AC-2 | Every kernel producer in collection, value, division and equality returns exactly its table cause; two population values return `PopulationPair`, a population paired with another kind returns `ValueKindMismatch`, and unlike collection kinds return `CollectionKindMismatch`. Two composites of different declarations return `false` and a composite paired with a non-composite returns `ValueKindMismatch` (FR-376-AC-1, FR-376-AC-6). | Test |
 | FR-369-AC-5 | For every typed checked-invariant cause, `Refusal::code()` and `Refusal::cause()` return `None`, and `Eq` distinguishes otherwise equal refusals whose causes differ. Ordinary kernel refusal codes and causes are unchanged. | Test |
-| FR-369-AC-6 | Every typed cause interpreted by QSL's reference `Machine::stopped` follows its existing internal-fault path: no refusal record or `Evaluation`, `runtime_invariant`/`S6a`/`checked-program-invariant` at S6a, `CallFailure::Fault` at that public interpreter call, and `Failed` with unavailable basis for an internal replay fault. Neither a received interpreter stop nor the generated-body carrier in AC-10 becomes an ordinary replay refusal, `Inconclusive`, `Incomplete(Cancelled)`, a proved result or a certification rejection; an unknown received cause retains fault provenance. | Inspection |
-| FR-369-AC-8 | The public carrier contains no QSL model/checker/catalog type or dependency on RT or QSV, RT and QSV own no second refusal enum or compatibility shim, and an exhaustive source inventory finds every kernel, RT, QSV and CG production checked-invariant constructor assigned exactly one cause from the two tables. | Inspection |
+| FR-369-AC-6 | Every typed cause interpreted by FSL's reference `Machine::stopped` follows its existing internal-fault path: no refusal record or `Evaluation`, `runtime_invariant`/`S6a`/`checked-program-invariant` at S6a, `CallFailure::Fault` at that public interpreter call, and `Failed` with unavailable basis for an internal replay fault. Neither a received interpreter stop nor the generated-body carrier in AC-10 becomes an ordinary replay refusal, `Inconclusive`, `Incomplete(Cancelled)`, a proved result or a certification rejection; an unknown received cause retains fault provenance. | Inspection |
+| FR-369-AC-8 | The public carrier contains no FSL model/checker/catalog type or dependency on RT or QSV, RT and QSV own no second refusal enum or compatibility shim, and an exhaustive source inventory finds every kernel, RT, QSV and CG production checked-invariant constructor assigned exactly one cause from the two tables. | Inspection |
 | FR-369-AC-10 | Inspection against CG FR-021-AC-38..40 / FR-042-AC-2/3 finds the same two generated-function triggers, checker-issued result type and genuine owner declaration inputs. A proven wrong completed value or exact invalid-declaration rejection uses the located typed kernel payload in `Ok(Transition::Done(Evaluation))`; undecided QSV failures retain `BodyFailure::QsvEnvironment` / `CallFailure::Body`, never either checked-invariant cause or `BodyFailure::Fault`. A body or scheduler implementation fault retains its distinct fault channel. All eight CG cause assignments and the closed thirty-one-cause carrier remain required. Exact carrier construction tests supply no evidence that the planned generated producers execute; CG owns those tests. | Inspection |
 
 ## Status
@@ -227,7 +227,7 @@ placeholder variant. `tests/checked_invariant.rs` matches the complete carrier
 and rejects both removed constructors through the Rust compiler. The RT FR-273
 explicit-frame/work-fuel cutover must remove its depth-stop producers before
 it pins this kernel API. IR-712 owns QSV producers, IR-709 owns CG producers
-and consumers, and QSL's direct constructor migration is required before it
+and consumers, and FSL's direct constructor migration is required before it
 pins this API. This carrier change alone does not establish the downstream
 producer and mapping criteria.
 
@@ -243,11 +243,11 @@ producer and mapping criteria.
   typed-producer tests must retain unknown name, foreign expression and meter
   borrow through the shared type. RT's
   collection/equality/composite/quantity cases need matching tagged tests.
-  [QSV FR-122](ix://agent-ix/quire-semantic-value/FR-122) owns the corresponding QSV internal-fault controls; [RT FR-278](ix://agent-ix/quire-contract-runtime/FR-278) and [CG FR-042](ix://agent-ix/quire-contract-codegen/FR-042) own their producer controls.
+  [QSV FR-122](ix://agent-ix/filament-semantic-value/FR-122) owns the corresponding QSV internal-fault controls; [RT FR-278](ix://agent-ix/filament-contract-runtime/FR-278) and [CG FR-042](ix://agent-ix/filament-contract-codegen/FR-042) own their producer controls.
   CG FR-018/FR-021 must migrate generated constructors and replay consumers;
-  QSpec/QSL FR-096/FR-100 must migrate unit matches. QSL's two production
-  constructor sites additionally need a QSL-owned typed-cause/family-fault
-  ruling *before* the QSL lock pins the kernel API. The QSL test-support
-  fixture in `qsl-semantics/src/check/family.rs` must also stop constructing
+  QSpec/FSL FR-096/FR-100 must migrate unit matches. FSL's two production
+  constructor sites additionally need a FSL-owned typed-cause/family-fault
+  ruling *before* the FSL lock pins the kernel API. The FSL test-support
+  fixture in `fsl-semantics/src/check/family.rs` must also stop constructing
   `CallDepthExceeded` before its kernel pin advances. These are downstream
   code/spec changes outside this kernel carrier slice.

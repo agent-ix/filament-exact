@@ -3,7 +3,7 @@ id: TC-917
 title: "Typed checked-invariant causes identify their failing condition"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-369
+  - target: ix://agent-ix/filament-exact/FR-369
     type: verifies
 ---
 # TC-917: Typed checked-invariant causes identify their failing condition
@@ -13,7 +13,7 @@ relationships:
 Verify the public shared carrier and every kernel-produced cause of
 [FR-369](../functional/FR-369-typed-checked-invariant-causes.md) without
 substituting hand-built refusals for the production paths. The RT and QSV producers and
-CG/QSL mapping controls are exercised in their owning repositories during the
+CG/FSL mapping controls are exercised in their owning repositories during the
 coordinated cutover. Scope: FR-369-AC-1, FR-369-AC-2 and FR-369-AC-5.
 
 ## Test Procedure

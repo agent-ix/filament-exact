@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public common/general charge refinement controls.
 
+use filament_exact::{Charge, ChargePoint, Incomplete, Integer, LimitKind, Meter, ScalarLimits};
 use ix_trace_rs::trace;
-use quire_exact::{Charge, ChargePoint, Incomplete, Integer, LimitKind, Meter, ScalarLimits};
 
 fn limits() -> ScalarLimits {
     ScalarLimits {

@@ -4,11 +4,11 @@ title: "Rational-target IEEE conversion returns Outcome directly"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-366
+  - target: ix://agent-ix/filament-exact/FR-366
     type: references
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: references
-  - target: ix://agent-ix/quire-specification/FR-148
+  - target: ix://agent-ix/filament-specification/FR-148
     type: references
 ---
 # FR-373: Rational-target IEEE conversion returns Outcome directly
@@ -62,11 +62,11 @@ There is no outer `Result` or cancellation variant.
    the kernel outcome. The operation never replaces the supplied meter or handle.
 
 The direct signature cannot express a Decimal, Integer or bounded Integer target.
-[QSpec FR-148](ix://agent-ix/quire-specification/FR-148) owns the language's
+[QSpec FR-148](ix://agent-ix/filament-specification/FR-148) owns the language's
 uncharged `ill_typed` rejection of those conversions at its type boundary.
 Removing or changing the shared `IllTypedCause::IeeeToNonRationalExact` vocabulary
-is outside this requirement. QSL and RT API adoption belongs to their owning
-lanes; this requirement claims neither consumer migration nor deletion of QSL's
+is outside this requirement. FSL and RT API adoption belongs to their owning
+lanes; this requirement claims neither consumer migration nor deletion of FSL's
 temporary defensive outer-error mapping. No numeric default changes.
 
 ## Acceptance Criteria

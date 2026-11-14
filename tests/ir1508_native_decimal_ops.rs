@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The native Decimal operations against independent literals and the owner
 //! route (FR-403, TC-951).
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     evaluate_decimal, evaluate_native_decimal, order_native_decimals, order_numbers, ChargeEvent,
     ChargePoint, Decimal, DecimalOperation, DecimalResult, DecimalType, InexactTarget, Integer,
     IntegerInterval, LimitKind, Meter, NativeDecimal as D, NativeDecimalCapacityQuantity as Q,
@@ -10,6 +9,7 @@ use quire_exact::{
     OrderedOperands, OrderingOperator as O, Outcome, Rational, Refusal, RoundingMode as M,
     ScalarLimits, Undefined,
 };
+use ix_trace_rs::trace;
 
 const MAX: i128 = i128::MAX;
 const MIN: i128 = i128::MIN;
@@ -173,7 +173,7 @@ fn seen(meter: &mut Meter) -> Seen {
     }
 }
 
-fn read_out(outcome: Outcome<quire_exact::NativeDecimalResult>) -> Outcome<DecimalResult> {
+fn read_out(outcome: Outcome<filament_exact::NativeDecimalResult>) -> Outcome<DecimalResult> {
     match outcome {
         Outcome::Completed(result) => Outcome::Completed(result.to_decimal_result()),
         Outcome::Undefined(reason) => Outcome::Undefined(reason),
@@ -1284,9 +1284,9 @@ fn a_capacity_refusal_is_never_another_outcome() {
 #[trace("TC-951", "FR-403-AC-10")]
 fn results_and_losses_are_copy_and_admission_does_not_allocate() {
     fn is_copy<X: Copy>() {}
-    is_copy::<quire_exact::NativeDecimalResult>();
-    is_copy::<quire_exact::NativeDecimalLoss>();
-    is_copy::<quire_exact::AdmittedNativeDecimalOperation>();
+    is_copy::<filament_exact::NativeDecimalResult>();
+    is_copy::<filament_exact::NativeDecimalLoss>();
+    is_copy::<filament_exact::AdmittedNativeDecimalOperation>();
     is_copy::<Nop>();
     let cases: Vec<(T, Nop)> = types()
         .into_iter()

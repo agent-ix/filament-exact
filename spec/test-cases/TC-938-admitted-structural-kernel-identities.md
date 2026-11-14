@@ -4,7 +4,7 @@ title: "Admitted structural identities replace kernel digest constructors"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-389
+  - target: ix://agent-ix/filament-exact/FR-389
     type: verifies
 ---
 # TC-938: Admitted structural identities replace kernel digest constructors

@@ -3,7 +3,7 @@ id: TC-388
 title: "The kernel Refusal has no wrong-snapshot variant"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-090
+  - target: ix://agent-ix/filament-exact/FR-090
     type: verifies
 ---
 # TC-388: The kernel Refusal has no wrong-snapshot variant

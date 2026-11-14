@@ -4,7 +4,7 @@ title: "Fallible structural identity copy with measured reservations"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-391
+  - target: ix://agent-ix/filament-exact/FR-391
     type: verifies
 ---
 # TC-940: Fallible structural identity copy with measured reservations

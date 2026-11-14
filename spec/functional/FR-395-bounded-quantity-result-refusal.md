@@ -4,11 +4,11 @@ title: "A bounded quantity result refuses with its exact target"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-088
+  - target: ix://agent-ix/filament-exact/FR-088
     type: references
-  - target: ix://agent-ix/quire-exact/FR-096
+  - target: ix://agent-ix/filament-exact/FR-096
     type: references
-  - target: ix://agent-ix/quire-specification/FR-322
+  - target: ix://agent-ix/filament-specification/FR-322
     type: references
 ---
 # FR-395: A bounded quantity result refuses with its exact target

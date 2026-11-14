@@ -1,4 +1,4 @@
-# quire-exact
+# filament-exact
 
 The exact-value kernel: checked identity, outcome and refusal, provenance and bound value types, with no dependency on any other crate in the quire ecosystem.
 

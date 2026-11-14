@@ -4,14 +4,14 @@ title: "Non-metered Text constructor from admitted parts"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-399
+  - target: ix://agent-ix/filament-exact/FR-399
     type: verifies
 ---
 # TC-947: Non-metered Text constructor from admitted parts
 
 ## Description
 
-Verify FR-399-AC-1 through FR-399-AC-7 through the public `quire_exact` API: `Text::from_admitted`, `admit_text`, `compare_text`, `NormalizationForm::apply` and `TextType::admits`. Operands, retained sequences and the counting allocator are prepared outside each measurement window.
+Verify FR-399-AC-1 through FR-399-AC-7 through the public `filament_exact` API: `Text::from_admitted`, `admit_text`, `compare_text`, `NormalizationForm::apply` and `TextType::admits`. Operands, retained sequences and the counting allocator are prepared outside each measurement window.
 
 ## Test Procedure
 

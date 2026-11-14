@@ -3,7 +3,7 @@ id: TC-411
 title: "Declared and compound unit identities remain distinct"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-088
+  - target: ix://agent-ix/filament-exact/FR-088
     type: verifies
 ---
 # TC-411: Declared and compound unit identities remain distinct

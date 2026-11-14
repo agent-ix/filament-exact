@@ -355,7 +355,7 @@ impl Integer {
     /// storage refusals. The source and its lazy image cache remain unchanged.
     ///
     /// ```
-    /// use quire_exact::{Integer, IntegerCopyError, IntegerDecimalError};
+    /// use filament_exact::{Integer, IntegerCopyError, IntegerDecimalError};
     /// let original = Integer::from(42_i64);
     /// let copied = original.try_clone();
     /// match copied {
@@ -609,7 +609,7 @@ impl fmt::Debug for Integer {
 /// admitted token across all three division helpers:
 ///
 /// ```
-/// use quire_exact::{Integer, NonZeroInteger};
+/// use filament_exact::{Integer, NonZeroInteger};
 /// let divisor = Integer::from(2_i64);
 /// let token = NonZeroInteger::try_from(&divisor).unwrap();
 /// assert_eq!(Integer::from(6_i64).exact_div(token), Integer::from(3_i64));
@@ -620,19 +620,19 @@ impl fmt::Debug for Integer {
 /// Plain integer borrows cannot be passed to any division helper:
 ///
 /// ```compile_fail,E0308
-/// use quire_exact::Integer;
+/// use filament_exact::Integer;
 /// let two = Integer::from(2_i64);
 /// Integer::one().exact_div(&two);
 /// ```
 ///
 /// ```compile_fail,E0308
-/// use quire_exact::Integer;
+/// use filament_exact::Integer;
 /// let two = Integer::from(2_i64);
 /// Integer::one().div_rem_truncating(&two);
 /// ```
 ///
 /// ```compile_fail,E0308
-/// use quire_exact::Integer;
+/// use filament_exact::Integer;
 /// let two = Integer::from(2_i64);
 /// Integer::one().div_mod_floor(&two);
 /// ```
@@ -640,20 +640,20 @@ impl fmt::Debug for Integer {
 /// The referent is private, immutable and cannot outlive its owner:
 ///
 /// ```compile_fail,E0423
-/// use quire_exact::{Integer, NonZeroInteger};
+/// use filament_exact::{Integer, NonZeroInteger};
 /// let zero = Integer::zero();
 /// let token = NonZeroInteger(&zero);
 /// ```
 ///
 /// ```compile_fail,E0594
-/// use quire_exact::{Integer, NonZeroInteger};
+/// use filament_exact::{Integer, NonZeroInteger};
 /// let two = Integer::from(2_i64);
 /// let token = NonZeroInteger::try_from(&two).unwrap();
 /// *token.get() = Integer::zero();
 /// ```
 ///
 /// ```compile_fail,E0597
-/// use quire_exact::{Integer, NonZeroInteger};
+/// use filament_exact::{Integer, NonZeroInteger};
 /// let token = {
 ///     let two = Integer::from(2_i64);
 ///     NonZeroInteger::try_from(&two).unwrap()
@@ -664,7 +664,7 @@ impl fmt::Debug for Integer {
 /// The owner cannot be replaced while an admitted borrow remains in use:
 ///
 /// ```compile_fail,E0506
-/// use quire_exact::{Integer, NonZeroInteger};
+/// use filament_exact::{Integer, NonZeroInteger};
 /// let mut two = Integer::from(2_i64);
 /// let token = NonZeroInteger::try_from(&two).unwrap();
 /// two = Integer::zero();
@@ -674,12 +674,12 @@ impl fmt::Debug for Integer {
 /// Zero cannot be produced through a default or internal constructor:
 ///
 /// ```compile_fail,E0277
-/// use quire_exact::NonZeroInteger;
+/// use filament_exact::NonZeroInteger;
 /// let token: NonZeroInteger<'_> = Default::default();
 /// ```
 ///
 /// ```compile_fail,E0624
-/// use quire_exact::{Integer, NonZeroInteger};
+/// use filament_exact::{Integer, NonZeroInteger};
 /// let zero = Integer::zero();
 /// let token = NonZeroInteger::from_proven_nonzero(&zero);
 /// ```
@@ -747,7 +747,7 @@ impl Integer {
         }
     }
 
-    /// `bits(x)` from `quire.value.accounting/v1`: the magnitude bit length,
+    /// `bits(x)` from `filament.value.accounting/v1`: the magnitude bit length,
     /// where zero has length one.
     pub fn magnitude_bits(&self) -> u64 {
         match &self.0 {
@@ -770,7 +770,7 @@ impl Integer {
         }
     }
 
-    /// `digits(x)` from `quire.value.accounting/v1`: the base-ten magnitude
+    /// `digits(x)` from `filament.value.accounting/v1`: the base-ten magnitude
     /// digit count, where zero has one digit.
     pub fn decimal_digits(&self) -> u64 {
         length_amount(self.as_big().magnitude().to_str_radix(10).len())

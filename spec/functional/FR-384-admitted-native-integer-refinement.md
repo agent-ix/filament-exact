@@ -3,11 +3,11 @@ id: FR-384
 title: "Admitted native integer evaluation refines arbitrary precision"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-371
+  - target: ix://agent-ix/filament-exact/FR-371
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: depends_on
 ---
 # FR-384: Admitted native integer evaluation refines arbitrary precision
@@ -82,4 +82,4 @@ The implementation SHALL retain default/test-support and no_std plus alloc compa
 
 ## Dependencies
 
-[AD-003](../assurance/AD-003-bounded-integer-representation.md) records the additive admitted API decision and its proof boundary. Consumer-owned [CG FR-015](ix://agent-ix/quire-contract-codegen/FR-015) owns authentic CheckedPackageV2 generation and proof profiles; kernel refinement cannot replace those consumer runs. This requirement is prospective until implementation, independent review and actual qualification evidence land.
+[AD-003](../assurance/AD-003-bounded-integer-representation.md) records the additive admitted API decision and its proof boundary. Consumer-owned [CG FR-015](ix://agent-ix/filament-contract-codegen/FR-015) owns authentic CheckedPackageV2 generation and proof profiles; kernel refinement cannot replace those consumer runs. This requirement is prospective until implementation, independent review and actual qualification evidence land.

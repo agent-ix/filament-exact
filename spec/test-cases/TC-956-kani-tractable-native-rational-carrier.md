@@ -4,14 +4,14 @@ title: "The native Rational carrier matches the owner route and verifies"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-408
+  - target: ix://agent-ix/filament-exact/FR-408
     type: verifies
 ---
 # TC-956: The native Rational carrier matches the owner route and verifies
 
 ## Description
 
-Verify FR-408-AC-1 through FR-408-AC-11 through the public kernel API, a literal-charge test, the owner differential and the recorded Kani measurement. The differential lives in quire-exact's `tests/`, because the owner route (`Rational`, `evaluate_rational_arithmetic`, `order_numbers`, `planned_equality`) is in the same crate. Each mutant names the input or inspection that fails it.
+Verify FR-408-AC-1 through FR-408-AC-11 through the public kernel API, a literal-charge test, the owner differential and the recorded Kani measurement. The differential lives in filament-exact's `tests/`, because the owner route (`Rational`, `evaluate_rational_arithmetic`, `order_numbers`, `planned_equality`) is in the same crate. Each mutant names the input or inspection that fails it.
 
 ## Test Procedure
 

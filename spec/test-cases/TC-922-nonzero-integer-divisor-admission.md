@@ -4,7 +4,7 @@ title: "Nonzero Integer admission prevents direct zero division"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-374
+  - target: ix://agent-ix/filament-exact/FR-374
     type: verifies
 ---
 # TC-922: Nonzero Integer admission prevents direct zero division
@@ -48,7 +48,7 @@ plain-divisor signatures are not retained as a comparison implementation.
    construction. Reject caller-divisor admission unwrap/expect, forced
    validation clones, unchecked public bypass, new construction errors in
    canonical infallible public APIs and fabricated fallback arithmetic.
-   Keep QSL's literal-two caller and its pin qualification in QSL's lane.
+   Keep FSL's literal-two caller and its pin qualification in FSL's lane.
 5. On fresh sufficient real meters, call public `divide` with dividend 1
    and divisor zero under each profile and member, and `modulo` with the
    same operands. Assert exact `Undefined(DivisionByZero)`, zero retained

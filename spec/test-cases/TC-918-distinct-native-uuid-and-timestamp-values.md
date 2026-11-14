@@ -3,7 +3,7 @@ id: TC-918
 title: "Distinct native UUID and Timestamp values"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-370
+  - target: ix://agent-ix/filament-exact/FR-370
     type: verifies
 ---
 # TC-918: Distinct native UUID and Timestamp values
@@ -49,7 +49,7 @@ interfaces. Scope: FR-370-AC-1 through FR-370-AC-8.
 
    For every tabled pair, call `plan_equality` and `compare_keys` with the
    native on the left and then with the operand order reversed. These are
-   direct kernel precondition violations; QSL's checked mixed-type refusal
+   direct kernel precondition violations; FSL's checked mixed-type refusal
    remains at its caller boundary.
 4. Compare the equal and unequal same-kind native pairs with `compare_keys`,
    including their reverse order. Compare Timestamp `10` against `2` and
@@ -87,5 +87,5 @@ interfaces. Scope: FR-370-AC-1 through FR-370-AC-8.
 
 ## Status
 
-Planned. QSL's tagged-wire cases are outside this kernel test and are specified
-by the published owning QSL/QSpec contracts.
+Planned. FSL's tagged-wire cases are outside this kernel test and are specified
+by the published owning FSL/QSpec contracts.

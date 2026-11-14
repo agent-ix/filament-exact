@@ -3,11 +3,11 @@ id: FR-371
 title: "Bounded integer execution refines the mathematical representation"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-361
+  - target: ix://agent-ix/filament-exact/FR-361
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-358
+  - target: ix://agent-ix/filament-exact/FR-358
     type: depends_on
 ---
 # FR-371: Bounded integer execution refines the mathematical representation
@@ -92,7 +92,7 @@ The representation may increase Integer/Value size. Avoiding BigInt work on this
 
 ## Dependencies
 
-[TC-919](../test-cases/TC-919-bounded-integer-representation-refinement.md) owns the planned kernel refinement checks and identifies the separate consumer-owned qualification boundary. The consumer obligations are [CG TC-025](ix://agent-ix/quire-contract-codegen/TC-025) and [CG TC-027](ix://agent-ix/quire-contract-codegen/TC-027); the kernel does not copy their harnesses or replace their assertions. The five unchanged actual CG consumer proof/receipt tests required by [FR-359-AC-10](./FR-359-cumulative-meter-boundary.md) remain a separate adoption boundary; the three original healthy/mutant controls under AC-6 do not replace receipt and both-operand-order coverage.
+[TC-919](../test-cases/TC-919-bounded-integer-representation-refinement.md) owns the planned kernel refinement checks and identifies the separate consumer-owned qualification boundary. The consumer obligations are [CG TC-025](ix://agent-ix/filament-contract-codegen/TC-025) and [CG TC-027](ix://agent-ix/filament-contract-codegen/TC-027); the kernel does not copy their harnesses or replace their assertions. The five unchanged actual CG consumer proof/receipt tests required by [FR-359-AC-10](./FR-359-cumulative-meter-boundary.md) remain a separate adoption boundary; the three original healthy/mutant controls under AC-6 do not replace receipt and both-operand-order coverage.
 
 ## Status
 

@@ -6,11 +6,11 @@
 mod generator;
 mod scan;
 
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     admit_text, compare_text, normalize_text, ChargePoint, ComparisonOperator, Integer, LimitKind,
     Meter, NormalizationForm, NormalizeRefusal, ScalarLimits, TextPayload, TextProfile, TextType,
 };
+use ix_trace_rs::trace;
 use unicode_normalization::char::{
     canonical_combining_class, compose, decompose_canonical, decompose_compatible,
 };
@@ -335,7 +335,7 @@ fn normalization_allocates_nothing() {
     assert_eq!(info.count_total, 0);
 }
 
-fn admitted(profile: TextProfile, text: &str) -> quire_exact::Text {
+fn admitted(profile: TextProfile, text: &str) -> filament_exact::Text {
     let text_type = TextType::new(0, 64, profile).unwrap();
     let payload = TextPayload::from_utf8(text.as_bytes()).unwrap();
     admit_text(&payload, &text_type, &mut Meter::new(limits()))
@@ -346,8 +346,8 @@ fn admitted(profile: TextProfile, text: &str) -> quire_exact::Text {
 /// The `text.normalize-output` amounts that `compare_text` records.
 fn output_amounts(
     operator: ComparisonOperator,
-    left: &quire_exact::Text,
-    right: &quire_exact::Text,
+    left: &filament_exact::Text,
+    right: &filament_exact::Text,
 ) -> (bool, Vec<Integer>) {
     let mut meter = Meter::new(limits());
     meter.enable_charge_capture(4096, 4096);
@@ -379,7 +379,7 @@ fn order_and_counts_match_the_shipped_compare() {
     for form in FORMS {
         let profile = profile_of(form);
         let fitting: Vec<&String> = texts.iter().filter(|text| fits(form, text)).collect();
-        let prepared: Vec<(String, usize, quire_exact::Text)> = fitting
+        let prepared: Vec<(String, usize, filament_exact::Text)> = fitting
             .iter()
             .map(|text| {
                 let (out, count) = run::<64, 32, 64>(form, text.as_bytes()).unwrap();
@@ -449,7 +449,7 @@ fn long_runs_of_non_starters_reorder_and_respect_the_buffer() {
 #[trace("TC-949", "FR-401-AC-8")]
 fn the_checked_in_tables_equal_a_regeneration() {
     let regenerated = generator::render();
-    if std::env::var_os("QUIRE_EXACT_GENERATE_TABLES").is_some() {
+    if std::env::var_os("FILAMENT_EXACT_GENERATE_TABLES").is_some() {
         std::fs::write(
             concat!(
                 env!("CARGO_MANIFEST_DIR"),

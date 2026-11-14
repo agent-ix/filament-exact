@@ -3,7 +3,7 @@ id: TC-908
 title: "Absolute value of the minimum signed 64-bit integer"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-360
+  - target: ix://agent-ix/filament-exact/FR-360
     type: verifies
 ---
 # TC-908: Absolute value of the minimum signed 64-bit integer

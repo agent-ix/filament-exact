@@ -4,7 +4,7 @@ title: "Copy and render arbitrary-precision integers with typed allocation refus
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-389
+  - target: ix://agent-ix/filament-exact/FR-389
     type: references
 ---
 # FR-390: Copy and render arbitrary-precision integers with typed allocation refusal
@@ -69,4 +69,4 @@ Specified. Copy footprint and allocation-free bit length are implemented; QSV co
 ## Dependencies
 
 - [FR-389](./FR-389-carry-admitted-structural-identities.md) owns structural node copying; this requirement owns only `Integer` copying and decimal text.
-- QSV uses these operations for compound-unit term exponents and remains responsible for fallible term collection, structural key copying and canonical encoding. QSL FR-259 owns the compound-unit identity interpretation.
+- QSV uses these operations for compound-unit term exponents and remains responsible for fallible term collection, structural key copying and canonical encoding. FSL FR-259 owns the compound-unit identity interpretation.

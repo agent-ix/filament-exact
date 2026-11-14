@@ -16,7 +16,7 @@
 //! value, one that passed that target's membership, can be retained:
 //!
 //! ```compile_fail,E0599
-//! # use quire_exact::{DecimalType, Integer, Rational, RoundingMode};
+//! # use filament_exact::{DecimalType, Integer, Rational, RoundingMode};
 //! let target = DecimalType::new(Integer::zero(), Integer::from(100_i64), 0, 2, RoundingMode::Exact).unwrap();
 //! let placed = target.placement(&Rational::from_integer(Integer::one())).unwrap().materialize().unwrap();
 //! let _ = placed.retain(); // `retain` exists only after `admit`
@@ -25,7 +25,7 @@
 //! and an admitted value is retained at its own target, never another's:
 //!
 //! ```compile_fail,E0061
-//! # use quire_exact::{DecimalType, Integer, Rational, RoundingMode};
+//! # use filament_exact::{DecimalType, Integer, Rational, RoundingMode};
 //! let wide = DecimalType::new(Integer::zero(), Integer::from(100_000_i64), 0, 5, RoundingMode::Exact).unwrap();
 //! let narrow = DecimalType::new(Integer::zero(), Integer::from(100_i64), 0, 2, RoundingMode::Exact).unwrap();
 //! let one = Rational::from_integer(Integer::one());
@@ -543,7 +543,7 @@ impl DecimalResult {
     }
 }
 
-/// Evaluate `operation` into `target` under `quire.value.accounting/v1`.
+/// Evaluate `operation` into `target` under `filament.value.accounting/v1`.
 pub fn evaluate_decimal(
     operation: DecimalOperation<'_>,
     target: &DecimalType,
@@ -1141,7 +1141,7 @@ pub fn power_of_ten_bits(shift: u64) -> Integer {
     )
 }
 
-/// `sbits(c,k)` from `quire.value.accounting/v1`: `bits(c)` when `k = 0` and
+/// `sbits(c,k)` from `filament.value.accounting/v1`: `bits(c)` when `k = 0` and
 /// `bits(c) + bits(10^k)` otherwise, from the unshifted coefficient. Every
 /// shifted-coefficient `integer_bits` amount routes through this function.
 pub fn sbits(coefficient: &Integer, shift: u64) -> Integer {
@@ -1153,7 +1153,7 @@ pub fn sbits(coefficient: &Integer, shift: u64) -> Integer {
     }
 }
 
-/// `sdigits(c,k)` from `quire.value.accounting/v1`: `digits(c) + k`. Every
+/// `sdigits(c,k)` from `filament.value.accounting/v1`: `digits(c) + k`. Every
 /// shifted-coefficient `decimal_digits` amount routes through this function.
 pub fn sdigits(coefficient: &Integer, shift: u64) -> Integer {
     Integer::from(coefficient.decimal_digits()).add(&Integer::from(shift))

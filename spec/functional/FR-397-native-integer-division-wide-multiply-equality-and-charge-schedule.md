@@ -4,18 +4,18 @@ title: "Native integer division, i64-wide multiply, Integer and Boolean equality
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-384
+  - target: ix://agent-ix/filament-exact/FR-384
     type: references
-  - target: ix://agent-ix/quire-exact/FR-362
+  - target: ix://agent-ix/filament-exact/FR-362
     type: references
-  - target: ix://agent-ix/quire-spec-language/FR-562
+  - target: ix://agent-ix/filament-spec-language/FR-562
     type: references
 ---
 # FR-397: Native integer division, i64-wide multiply, Integer and Boolean equality and charge schedule entries charge identically to the Integer path
 
 ## Description
 
-When a generated-code consumer evaluates an operation on native operands (FR-384) that its checked bounds prove fits a machine word, the exact kernel SHALL expose a native entry for division, modulus, an i64-wide multiply, Integer equality and Boolean equality, and a charge-only entry, so that the consumer can skip the arbitrary-precision call and still produce the value, the refusal and the Meter charge sequence of the existing `Integer` path. QSL FR-562 (AC-2, AC-3, AC-4) is the consuming requirement. This requirement adds no new charge point, amount or refusal type.
+When a generated-code consumer evaluates an operation on native operands (FR-384) that its checked bounds prove fits a machine word, the exact kernel SHALL expose a native entry for division, modulus, an i64-wide multiply, Integer equality and Boolean equality, and a charge-only entry, so that the consumer can skip the arbitrary-precision call and still produce the value, the refusal and the Meter charge sequence of the existing `Integer` path. FSL FR-562 (AC-2, AC-3, AC-4) is the consuming requirement. This requirement adds no new charge point, amount or refusal type.
 
 ## Inputs
 
@@ -62,5 +62,5 @@ Implemented.
 ## Dependencies
 
 - [FR-384](./FR-384-admitted-native-integer-refinement.md) owns the native carrier, admission and the signed32 `Multiply` plan.
-- QSL FR-562 owns the consuming fast-path rule.
-- The `quire-contract-codegen` Kani-tractable healthy-clause harness (IR-1022) consumes `evaluate_native_boolean_equality`.
+- FSL FR-562 owns the consuming fast-path rule.
+- The `filament-contract-codegen` Kani-tractable healthy-clause harness (IR-1022) consumes `evaluate_native_boolean_equality`.

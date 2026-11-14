@@ -3,20 +3,20 @@ id: FR-370
 title: "Keep UUID and Timestamp as distinct native kernel values"
 type: FR
 relationships:
-  - target: ix://agent-ix/quire-spec-language/FR-056
+  - target: ix://agent-ix/filament-spec-language/FR-056
     type: references
-  - target: ix://agent-ix/quire-specification/FR-149
+  - target: ix://agent-ix/filament-specification/FR-149
     type: references
-  - target: ix://agent-ix/quire-specification/FR-208
+  - target: ix://agent-ix/filament-specification/FR-208
     type: references
-  - target: ix://agent-ix/quire-specification/FR-272
+  - target: ix://agent-ix/filament-specification/FR-272
     type: references
 ---
 # FR-370: Keep UUID and Timestamp as distinct native kernel values
 
 ## Description
 
-When a caller supplies a native UUID or Timestamp value, the `quire-exact`
+When a caller supplies a native UUID or Timestamp value, the `filament-exact`
 kernel SHALL retain its native type and value kind distinctly through type
 admission, equality planning and canonical-key comparison. The caller owns the
 mapping from its declared native type and input representation to this kernel
@@ -113,10 +113,10 @@ the integer happens to describe the same instant in a caller's domain.
 
 ## Status
 
-Planned. The owning QSL and QSpec contracts are published; the kernel source
+Planned. The owning FSL and QSpec contracts are published; the kernel source
 implementation and acceptance tests remain to be delivered.
 
 ## Dependencies
 
-- QSL `ix://agent-ix/quire-spec-language/FR-056` defines the canonical UUID/Timestamp payload and closed tagged caller-wire forms; QSpec `ix://agent-ix/quire-specification/FR-149` owns their typed equality and key relation. QSpec `ix://agent-ix/quire-specification/FR-208` declares that an event occurrence field resolves to native `Timestamp`; QSpec `ix://agent-ix/quire-specification/TC-235` keeps `UUID`, `Timestamp`, and `Int` distinct in K2.
-- QSL owns tagged-wire validation and maps this kernel's three typed constructor causes to `invalid_runtime_input`/`invalid-value` at the actual input path under QSpec `ix://agent-ix/quire-specification/FR-272`. QSL also owns K2's `Instant` to `Timestamp` binding and `Int` substitution refusal; this kernel owns the canonical payload constructors and native value operations. No shared catalogue code is added.
+- FSL `ix://agent-ix/filament-spec-language/FR-056` defines the canonical UUID/Timestamp payload and closed tagged caller-wire forms; QSpec `ix://agent-ix/filament-specification/FR-149` owns their typed equality and key relation. QSpec `ix://agent-ix/filament-specification/FR-208` declares that an event occurrence field resolves to native `Timestamp`; QSpec `ix://agent-ix/filament-specification/TC-235` keeps `UUID`, `Timestamp`, and `Int` distinct in K2.
+- FSL owns tagged-wire validation and maps this kernel's three typed constructor causes to `invalid_runtime_input`/`invalid-value` at the actual input path under QSpec `ix://agent-ix/filament-specification/FR-272`. FSL also owns K2's `Instant` to `Timestamp` binding and `Int` substitution refusal; this kernel owns the canonical payload constructors and native value operations. No shared catalogue code is added.

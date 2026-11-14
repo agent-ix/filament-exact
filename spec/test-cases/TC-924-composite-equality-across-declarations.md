@@ -4,7 +4,7 @@ title: "Check equality of composite values across declarations"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-376
+  - target: ix://agent-ix/filament-exact/FR-376
     type: verifies
 ---
 # TC-924: Check equality of composite values across declarations

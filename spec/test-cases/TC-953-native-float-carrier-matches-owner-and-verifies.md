@@ -4,7 +4,7 @@ title: "The native float carrier matches the owner's float path and verifies und
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-405
+  - target: ix://agent-ix/filament-exact/FR-405
     type: verifies
 ---
 # TC-953: The native float carrier matches the owner's float path and verifies under Kani

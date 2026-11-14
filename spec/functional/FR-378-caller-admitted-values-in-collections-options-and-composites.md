@@ -4,22 +4,22 @@ title: "Collections, Options and composites hold values the caller admitted by c
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-376
+  - target: ix://agent-ix/filament-exact/FR-376
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-377
+  - target: ix://agent-ix/filament-exact/FR-377
     type: depends_on
-  - target: ix://agent-ix/quire-exact/FR-369
+  - target: ix://agent-ix/filament-exact/FR-369
     type: references
-  - target: ix://agent-ix/quire-spec-language/FR-359
+  - target: ix://agent-ix/filament-spec-language/FR-359
     type: references
 ---
 # FR-378: Collections, Options and composites hold values the caller admitted by conformance
 
 ## Description
 
-Where a caller has admitted a composite element, payload or slot by conformance with knowledge the kernel does not hold (which declaration conforms to which), the `quire-exact` kernel SHALL store that value unchanged when the caller builds a collection with `form` or `form_grouped`, an `Option` with `OptionValue::from_admitted`, or a composite with `from_admitted_slots`.
+Where a caller has admitted a composite element, payload or slot by conformance with knowledge the kernel does not hold (which declaration conforms to which), the `filament-exact` kernel SHALL store that value unchanged when the caller builds a collection with `form` or `form_grouped`, an `Option` with `OptionValue::from_admitted`, or a composite with `from_admitted_slots`.
 
-The kernel has no declaration graph and takes none, so these existing caller-admitted paths are the sanctioned ones and no new constructor is added. The kernel's exact constructors and `ValueType::admits` stay exact. QSL FR-359 (items 5 and 8 and cross-repo requirement 3) states the language-level need.
+The kernel has no declaration graph and takes none, so these existing caller-admitted paths are the sanctioned ones and no new constructor is added. The kernel's exact constructors and `ValueType::admits` stay exact. FSL FR-359 (items 5 and 8 and cross-repo requirement 3) states the language-level need.
 
 ## Inputs
 
@@ -66,4 +66,4 @@ Implemented. The slice changed documentation and added tests, and added no const
 - Equality and key order of the held members are [FR-376](./FR-376-composite-equality-across-declarations.md) and [FR-377](./FR-377-composite-canonical-key-across-declarations.md); the closed cause set is [FR-369](./FR-369-typed-checked-invariant-causes.md).
 - Text that changes with this requirement: the doc comments on the items in Behavior 8. No existing FR or AC text changes.
 - The falsifying controls are [TC-926](../test-cases/TC-926-caller-admitted-values-in-collections-options-and-composites.md).
-- QSL FR-359 requirement 3 asked for an environment-taking collection constructor; this requirement shows `form` already provides the caller-admitted path and asks for none.
+- FSL FR-359 requirement 3 asked for an environment-taking collection constructor; this requirement shows `form` already provides the caller-admitted path and asks for none.

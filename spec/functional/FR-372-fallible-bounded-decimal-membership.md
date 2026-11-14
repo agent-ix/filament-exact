@@ -4,9 +4,9 @@ title: "Fallible bounded Decimal supplied membership"
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-semantic-value/FR-109
+  - target: ix://agent-ix/filament-semantic-value/FR-109
     type: references
-  - target: ix://agent-ix/quire-spec-language/FR-321
+  - target: ix://agent-ix/filament-spec-language/FR-321
     type: references
 ---
 # FR-372: Fallible bounded Decimal supplied membership
@@ -43,7 +43,7 @@ nonmembership.
    Boolean result or typed `DecimalMembershipFailure`. This operation SHALL
    leave both the type and Decimal representations unchanged.
 2. Completed membership SHALL conform to the authoritative Decimal value
-   membership rule in [QSpec FR-140](ix://agent-ix/quire-specification/FR-140).
+   membership rule in [QSpec FR-140](ix://agent-ix/filament-specification/FR-140).
 3. When that owning rule rejects the normalized scale, the operation SHALL
    complete with nonmembership after
    polling cancellation and without requesting scratch storage. Sign and zero
@@ -143,7 +143,7 @@ semantic meter, replacement cancellation handle or partial admission output.
 
 10. A supplied-admission consumer SHALL invoke this authoritative helper under
     the actual initiating logical event and cumulative phase budget owned by
-    [QSV FR-109](ix://agent-ix/quire-semantic-value/FR-109). It SHALL establish
+    [QSV FR-109](ix://agent-ix/filament-semantic-value/FR-109). It SHALL establish
     the admitted `B` and `S` premises and native scratch envelope before claiming
     that Decimal membership is qualified. Helper limb steps SHALL NOT create
     an additional traversal event, per-limb supplied budget debit or evaluator
@@ -170,18 +170,18 @@ semantic meter, replacement cancellation handle or partial admission output.
 | FR-372-AC-4 | A pre-cancelled original handle causes no scratch request. Cancellation observed during the longest admitted division/comparison path returns the original cause before another limb step or result; cancellation observed immediately after successful reservation prevents scratch work. Neither failure is classified as nonmembership or work exhaustion. | Test |
 | FR-372-AC-6 | Final implementation qualification establishes the Euclidean/remainder and sign invariants, exact reservation boundary, checked layout conversions, allocation-free inline unsigned-magnitude stream and Large borrowed dependency iterator, absence of cache initialization or BigInt-image construction on those streams, and stated arithmetic polling gap. Its record distinguishes requested storage from allocator overhead and work latency from unbounded allocator elapsed time. | Analysis |
 
-The integrated supplied Decimal control formerly FR-372-AC-5 is allocated to [QSV FR-122-AC-2](ix://agent-ix/quire-semantic-value/FR-122) for the supplied path and [QSL FR-486-AC-5](ix://agent-ix/quire-spec-language/FR-486) for evaluator effects. Both remain PLANNED for owner tests.
+The integrated supplied Decimal control formerly FR-372-AC-5 is allocated to [QSV FR-122-AC-2](ix://agent-ix/filament-semantic-value/FR-122) for the supplied path and [FSL FR-486-AC-5](ix://agent-ix/filament-spec-language/FR-486) for evaluator effects. Both remain PLANNED for owner tests.
 
 ## Dependencies
 
 - [TC-920](../test-cases/TC-920-fallible-decimal-membership-boundaries.md)
   defines the falsifying controls.
-- [QSpec FR-140](ix://agent-ix/quire-specification/FR-140) owns Decimal value
+- [QSpec FR-140](ix://agent-ix/filament-specification/FR-140) owns Decimal value
   semantics and the membership rule invoked by this kernel helper.
-- [QSV FR-109](ix://agent-ix/quire-semantic-value/FR-109) owns cumulative
+- [QSV FR-109](ix://agent-ix/filament-semantic-value/FR-109) owns cumulative
   supplied logical work, construction custody and typed phase/locus preservation.
-  [QSL FR-321](ix://agent-ix/quire-spec-language/FR-321) owns supplied consumer
-  admission. IR-714 and QSL-681 align phase interfaces; QSL owns public phase
+  [FSL FR-321](ix://agent-ix/filament-spec-language/FR-321) owns supplied consumer
+  admission. IR-714 and QSL-681 align phase interfaces; FSL owns public phase
   projection and numeric defaults. Their budgets are not kernel helper counters.
 - IR-718 specifies this prerequisite; IR-719 owns subsequent production kernel
   and QSV integration. QSL-503's generic Decimal/full-size supplied path awaits

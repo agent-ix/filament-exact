@@ -1,16 +1,16 @@
 [package]
-name = "quire-exact"
+name = "filament-exact"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.98"
 description = "The exact-value kernel: checked identity, typestate, outcome and refusal, provenance, and bound value types, with no dependency on any other crate in the quire ecosystem."
 authors = ["Agent IX <peter@agent-ix.ai>"]
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/agent-ix/quire-exact"
+repository = "https://github.com/agent-ix/filament-exact"
 publish = false
 
 [lib]
-name = "quire_exact"
+name = "filament_exact"
 path = "src/lib.rs"
 
 [features]

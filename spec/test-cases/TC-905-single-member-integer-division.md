@@ -3,7 +3,7 @@ id: TC-905
 title: "Division and modulo return exact typed outcomes"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-357
+  - target: ix://agent-ix/filament-exact/FR-357
     type: verifies
 ---
 # TC-905: Division and modulo return exact typed outcomes

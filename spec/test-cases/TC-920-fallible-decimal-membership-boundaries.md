@@ -4,7 +4,7 @@ title: "Fallible Decimal membership boundaries and real scratch denial"
 type: TC
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-372
+  - target: ix://agent-ix/filament-exact/FR-372
     type: verifies
 ---
 # TC-920: Fallible Decimal membership boundaries and real scratch denial
@@ -120,5 +120,5 @@ mechanism and states allocator limitations.
 ## Status
 
 PLANNED/UNRUN. IR-719 owns executable implementation and qualification. The
-integrated phase controls await the owning QSV/QSL interfaces; no kernel-only
+integrated phase controls await the owning QSV/FSL interfaces; no kernel-only
 test or source inspection claims QSL-503 full-size acceptance.

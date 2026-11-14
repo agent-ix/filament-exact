@@ -3,7 +3,7 @@ id: TC-911
 title: "Decimal ordering values, retained charges and analytic refusal"
 type: TC
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-363
+  - target: ix://agent-ix/filament-exact/FR-363
     type: verifies
 ---
 # TC-911: Decimal ordering values, retained charges and analytic refusal

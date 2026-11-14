@@ -4,17 +4,17 @@ title: "A Kani-tractable native IEEE float carrier and operations refining the o
 type: FR
 org: agent-ix
 relationships:
-  - target: ix://agent-ix/quire-exact/FR-402
+  - target: ix://agent-ix/filament-exact/FR-402
     type: references
-  - target: ix://agent-ix/quire-exact/FR-403
+  - target: ix://agent-ix/filament-exact/FR-403
     type: references
-  - target: ix://agent-ix/quire-exact/FR-394
+  - target: ix://agent-ix/filament-exact/FR-394
     type: references
-  - target: ix://agent-ix/quire-exact/FR-384
+  - target: ix://agent-ix/filament-exact/FR-384
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-053
+  - target: ix://agent-ix/filament-contract-codegen/FR-053
     type: references
-  - target: ix://agent-ix/quire-contract-codegen/FR-028
+  - target: ix://agent-ix/filament-contract-codegen/FR-028
     type: references
 ---
 # FR-405: A Kani-tractable native IEEE float carrier and operations refining the owner's float path
