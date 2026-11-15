@@ -342,7 +342,7 @@ impl EnumMember {
 /// count however deep the type runs: a value `N` levels deep holds `O(N)`
 /// type nodes, not `O(N^2)`.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Eq)]
 pub enum ValueType {
     /// `Boolean`.
@@ -528,7 +528,7 @@ impl ValueType {
 /// - [`ValueType::admits`] reads only the outermost value, since a nested
 ///   value carries a type that was checked when it was built.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone)]
 pub enum Value {
     /// A Boolean.

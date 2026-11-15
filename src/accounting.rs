@@ -79,7 +79,7 @@ pub struct ScalarLimits {
 
 /// One counter of [`ScalarLimits`].
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum LimitKind {
     /// `integer_bits`.
@@ -181,7 +181,7 @@ impl LimitKind {
 
 /// A normative named charge point.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ChargePoint {
     /// `decimal.operands`.
@@ -475,7 +475,7 @@ impl ChargePoint {
 /// next_charge, charge_point }`. It never carries a partial value or any other
 /// member.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Incomplete {
     /// First unavailable counter in `ScalarLimitsV1` field order.
@@ -1002,7 +1002,7 @@ pub struct TruncatedChargeCapture {
 /// The diagnostic admitted-charge log ([`Meter::admitted_charges`]) exists only
 /// under the `test-support` feature, which only a dev-dependency may enable.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Meter {
     counters: Counters,

@@ -352,9 +352,9 @@ pub enum IeeeOperation<O = IeeeValue> {
     Multiply(O, O),
     /// `a / b`.
     Divide(O, O),
-    /// `quire::value::ieee::sqrt(a)`.
+    /// `filament::value::ieee::sqrt(a)`.
     SquareRoot(O),
-    /// `quire::value::ieee::fma(a, b, c)`: `a * b + c` with one rounding.
+    /// `filament::value::ieee::fma(a, b, c)`: `a * b + c` with one rounding.
     FusedMultiplyAdd(O, O, O),
 }
 
@@ -421,11 +421,11 @@ impl IeeeOperation {
 /// A comparison intrinsic. The three are distinct selected operations.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum IeeeComparison {
-    /// `quire::value::ieee::numericEqual`.
+    /// `filament::value::ieee::numericEqual`.
     NumericEqual,
-    /// `quire::value::ieee::totalOrder(a, b)`: `a` precedes or equals `b`.
+    /// `filament::value::ieee::totalOrder(a, b)`: `a` precedes or equals `b`.
     TotalOrder,
-    /// `quire::value::ieee::bitIdentical`.
+    /// `filament::value::ieee::bitIdentical`.
     BitIdentical,
 }
 
@@ -496,11 +496,11 @@ impl IeeeOperationKind {
     pub fn intrinsic_identity(self) -> Option<&'static str> {
         match self {
             Self::Negate => None,
-            Self::SquareRoot => Some("quire::value::ieee::sqrt"),
-            Self::FusedMultiplyAdd => Some("quire::value::ieee::fma"),
-            Self::NumericEqual => Some("quire::value::ieee::numericEqual"),
-            Self::TotalOrder => Some("quire::value::ieee::totalOrder"),
-            Self::BitIdentical => Some("quire::value::ieee::bitIdentical"),
+            Self::SquareRoot => Some("filament::value::ieee::sqrt"),
+            Self::FusedMultiplyAdd => Some("filament::value::ieee::fma"),
+            Self::NumericEqual => Some("filament::value::ieee::numericEqual"),
+            Self::TotalOrder => Some("filament::value::ieee::totalOrder"),
+            Self::BitIdentical => Some("filament::value::ieee::bitIdentical"),
             Self::Add
             | Self::Subtract
             | Self::Multiply

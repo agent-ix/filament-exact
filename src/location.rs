@@ -64,7 +64,7 @@ impl From<String> for Role {
 /// and an ordinal disambiguating repeated occurrences of that role on the
 /// same node (e.g. the third `"reference"` occurrence).
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Origin {
     role: Role,
@@ -93,7 +93,7 @@ impl Origin {
 /// occurrence within it. Names a node id and an occurrence key; carries no
 /// bytes of its own.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Location {
     node: NodeKey,
