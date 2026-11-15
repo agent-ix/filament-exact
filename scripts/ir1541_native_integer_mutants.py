@@ -166,9 +166,11 @@ def host(ids):
 
 
 def playback_values(text):
-    block = text.split("concrete_vals", 1)[1]
+    tests = [b for b in text.split("Concrete playback unit test for")[1:]
+             if "Check for `cover`" not in b and "concrete_vals" in b]
+    block = tests[0].split("concrete_vals", 1)[1].split("kani::concrete_playback_run", 1)[0]
     vals = []
-    for m in re.finditer(r"vec!\[\s*([\d,\s]*)\s*\]", block.split("let mut", 1)[0] if "let mut" in block else block):
+    for m in re.finditer(r"vec!\[\s*([\d,\s]*)\s*\]", block):
         nums = [int(x) for x in re.findall(r"\d+", m.group(1))]
         vals.append(nums)
     return vals
@@ -180,7 +182,6 @@ def le(bytes_):
 
 def replay_spec(harness, vals):
     """The IR1541_REPLAY line for a decoded playback."""
-    tag = re.match(r"(trunc|floor|euclid|modulo)", harness).group(1)
     if harness.startswith("modulo_plan"):
         d = [le(v) for v in vals[:4]]
         present = vals[4][0] != 0
@@ -194,6 +195,7 @@ def replay_spec(harness, vals):
         kind = "Q" if "quotient" in harness else "R"
         return f"plan|{kind}:Truncating|{min(d[0], d[1])}|{max(d[0], d[1])}|{min(d[2], d[3])}|{max(d[2], d[3])}|" \
                f"{int(present)}|{min(r)}|{max(r)}"
+    tag = re.match(r"(trunc|floor|euclid|modulo)", harness).group(1)
     present = vals[0][0] != 0
     r = [le(vals[1]), le(vals[2])]
     a, b = le(vals[3]), le(vals[4])

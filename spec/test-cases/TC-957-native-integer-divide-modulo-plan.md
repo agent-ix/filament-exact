@@ -56,11 +56,90 @@ The grid is fixed before implementation from independent literals, not from the 
 
 The versioned record of every executed harness, filled by the coder from executed runs. It is the kernel's only record of a measured row. CG copies each measured row from here into CG FR-056's tractability table, which IR-1526's seam loads and which is the single shipped record. Each row gives the harness id, operation kind, profile, member, divisor shape, width, outcome (VERIFIED, or timeout, memory exhaustion or unreliable; a FAILED verdict is a defect, not a row), time and peak memory with provenance. A symbolic width above its combination's smallest failing width is listed with the outcome `not run, covered by <harness id>`.
 
-No harness has run. The record is empty and no outcome is claimed.
+Every harness ran once under `cargo kani` with a 600-second wall-clock limit, one job at a time, inside a 24 GiB memory-limited cgroup scope. Time is wall-clock seconds. Peak is the cgroup `memory.peak` read inside the scope (an upper bound including the build); every peak is far below the 16 GiB ceiling. A `timeout (600 s)` row is a measured row, not a proof. A `not run` row is covered by the smaller-width row of its member combination. The last column is the assigned harness mutant of Behavior 22: each listed mutant returned a FAILED verdict on that harness, followed by the replay verdict of its decoded playback on the host (`REPLAY-DIFFERS` or `REPLAY-SAME`).
 
-| Harness id | Kind | Profile | Member | Shape | Width | Outcome | Time | Peak |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| (none yet) | | | | | | | | |
+| Harness id | Kind | Profile | Member | Shape | Width | Outcome | Time (s) | Peak (GiB, cgroup memory.peak) | Covers | Assigned mutant |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| divide_quotient_plan_refuses_min_over_minus_one_and_derives_capacity | Divide | all three | Quotient | plan | - | VERIFIED | 3.3 | 0.45 | 4/4 | min-over-minus-one-unguarded FAILED REPLAY-DIFFERS |
+| divide_remainder_plan_derives_capacity_and_never_refuses | Divide | all three | Remainder | plan | - | VERIFIED | 3.7 | 0.43 | 3/3 | remainder-capacity-widened FAILED REPLAY-DIFFERS |
+| modulo_plan_derives_capacity_and_never_refuses | Modulo | all three | - | plan | - | VERIFIED | 3.0 | 0.43 | 3/3 | modulo-capacity-lowered FAILED REPLAY-DIFFERS |
+| trunc_quotient_sym_w8 | Divide | Truncating | Quotient | symbolic | 8 | VERIFIED | 48.6 | 1.67 | 3/6 | swap-truncating-floor FAILED REPLAY-SAME; swap-truncating-euclidean FAILED REPLAY-SAME; zero-guard-removed FAILED REPLAY-DIFFERS; result-interval-skipped FAILED REPLAY-DIFFERS |
+| trunc_quotient_sym_w16 | Divide | Truncating | Quotient | symbolic | 16 | VERIFIED | 374.7 | 1.67 | 3/6 | swap-truncating-floor FAILED REPLAY-DIFFERS |
+| trunc_quotient_sym_w32 | Divide | Truncating | Quotient | symbolic | 32 | timeout (600 s) | 600.0 | 1.67 | not reached | - |
+| trunc_quotient_sym_w64 | Divide | Truncating | Quotient | symbolic | 64 | not run, covered by trunc_quotient_sym_w32 | | | | |
+| trunc_quotient_sym_w128 | Divide | Truncating | Quotient | symbolic | 128 | not run, covered by trunc_quotient_sym_w32 | | | | |
+| floor_quotient_sym_w8 | Divide | Floor | Quotient | symbolic | 8 | VERIFIED | 51.5 | 1.71 | 3/6 | swap-floor-truncating FAILED REPLAY-DIFFERS; swap-floor-euclidean FAILED REPLAY-DIFFERS; zero-guard-removed FAILED REPLAY-SAME |
+| floor_quotient_sym_w16 | Divide | Floor | Quotient | symbolic | 16 | timeout (600 s) | 600.0 | 1.71 | not reached | - |
+| floor_quotient_sym_w32 | Divide | Floor | Quotient | symbolic | 32 | not run, covered by floor_quotient_sym_w16 | | | | |
+| floor_quotient_sym_w64 | Divide | Floor | Quotient | symbolic | 64 | not run, covered by floor_quotient_sym_w16 | | | | |
+| floor_quotient_sym_w128 | Divide | Floor | Quotient | symbolic | 128 | not run, covered by floor_quotient_sym_w16 | | | | |
+| euclid_quotient_sym_w8 | Divide | Euclidean | Quotient | symbolic | 8 | VERIFIED | 52.3 | 1.71 | 3/6 | swap-euclidean-truncating FAILED REPLAY-DIFFERS; swap-euclidean-floor FAILED REPLAY-DIFFERS; zero-guard-removed FAILED REPLAY-SAME |
+| euclid_quotient_sym_w16 | Divide | Euclidean | Quotient | symbolic | 16 | timeout (600 s) | 600.0 | 1.71 | not reached | - |
+| euclid_quotient_sym_w32 | Divide | Euclidean | Quotient | symbolic | 32 | not run, covered by euclid_quotient_sym_w16 | | | | |
+| euclid_quotient_sym_w64 | Divide | Euclidean | Quotient | symbolic | 64 | not run, covered by euclid_quotient_sym_w16 | | | | |
+| euclid_quotient_sym_w128 | Divide | Euclidean | Quotient | symbolic | 128 | not run, covered by euclid_quotient_sym_w16 | | | | |
+| trunc_remainder_sym_w8 | Divide | Truncating | Remainder | symbolic | 8 | VERIFIED | 66.4 | 2.23 | 3/6 | swap-truncating-floor FAILED REPLAY-DIFFERS; swap-truncating-euclidean FAILED REPLAY-DIFFERS; remainder-returns-quotient FAILED REPLAY-DIFFERS |
+| trunc_remainder_sym_w16 | Divide | Truncating | Remainder | symbolic | 16 | VERIFIED | 437.8 | 2.24 | 3/6 | swap-truncating-floor FAILED REPLAY-DIFFERS |
+| trunc_remainder_sym_w32 | Divide | Truncating | Remainder | symbolic | 32 | timeout (600 s) | 600.0 | 2.24 | not reached | - |
+| trunc_remainder_sym_w64 | Divide | Truncating | Remainder | symbolic | 64 | not run, covered by trunc_remainder_sym_w32 | | | | |
+| trunc_remainder_sym_w128 | Divide | Truncating | Remainder | symbolic | 128 | not run, covered by trunc_remainder_sym_w32 | | | | |
+| floor_remainder_sym_w8 | Divide | Floor | Remainder | symbolic | 8 | VERIFIED | 73.6 | 2.28 | 3/6 | swap-floor-truncating FAILED REPLAY-DIFFERS; swap-floor-euclidean FAILED REPLAY-DIFFERS |
+| floor_remainder_sym_w16 | Divide | Floor | Remainder | symbolic | 16 | timeout (600 s) | 600.0 | 2.27 | not reached | - |
+| floor_remainder_sym_w32 | Divide | Floor | Remainder | symbolic | 32 | not run, covered by floor_remainder_sym_w16 | | | | |
+| floor_remainder_sym_w64 | Divide | Floor | Remainder | symbolic | 64 | not run, covered by floor_remainder_sym_w16 | | | | |
+| floor_remainder_sym_w128 | Divide | Floor | Remainder | symbolic | 128 | not run, covered by floor_remainder_sym_w16 | | | | |
+| euclid_remainder_sym_w8 | Divide | Euclidean | Remainder | symbolic | 8 | VERIFIED | 88.2 | 2.28 | 3/6 | swap-euclidean-truncating FAILED REPLAY-DIFFERS; swap-euclidean-floor FAILED REPLAY-SAME |
+| euclid_remainder_sym_w16 | Divide | Euclidean | Remainder | symbolic | 16 | timeout (600 s) | 600.0 | 2.27 | not reached | - |
+| euclid_remainder_sym_w32 | Divide | Euclidean | Remainder | symbolic | 32 | not run, covered by euclid_remainder_sym_w16 | | | | |
+| euclid_remainder_sym_w64 | Divide | Euclidean | Remainder | symbolic | 64 | not run, covered by euclid_remainder_sym_w16 | | | | |
+| euclid_remainder_sym_w128 | Divide | Euclidean | Remainder | symbolic | 128 | not run, covered by euclid_remainder_sym_w16 | | | | |
+| modulo_sym_w8 | Modulo | Euclidean (Modulo) | - | symbolic | 8 | VERIFIED | 64.7 | 2.26 | 3/6 | modulo-truncating FAILED REPLAY-DIFFERS; modulo-floor FAILED REPLAY-DIFFERS |
+| modulo_sym_w16 | Modulo | Euclidean (Modulo) | - | symbolic | 16 | timeout (600 s) | 600.0 | 2.26 | not reached | - |
+| modulo_sym_w32 | Modulo | Euclidean (Modulo) | - | symbolic | 32 | not run, covered by modulo_sym_w16 | | | | |
+| modulo_sym_w64 | Modulo | Euclidean (Modulo) | - | symbolic | 64 | not run, covered by modulo_sym_w16 | | | | |
+| modulo_sym_w128 | Modulo | Euclidean (Modulo) | - | symbolic | 128 | not run, covered by modulo_sym_w16 | | | | |
+| trunc_quotient_const_7_w64 | Divide | Truncating | Quotient | constant 7 | 64 | VERIFIED | 121.8 | 1.67 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_quotient_const_7_w128 | Divide | Truncating | Quotient | constant 7 | 128 | VERIFIED | 527.0 | 1.60 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_quotient_const_neg7_w64 | Divide | Truncating | Quotient | constant -7 | 64 | VERIFIED | 93.0 | 1.67 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_quotient_const_neg7_w128 | Divide | Truncating | Quotient | constant -7 | 128 | VERIFIED | 496.9 | 1.79 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_quotient_const_neg1_w64 | Divide | Truncating | Quotient | constant -1 | 64 | VERIFIED | 37.3 | 1.67 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| trunc_quotient_const_neg1_w128 | Divide | Truncating | Quotient | constant -1 | 128 | VERIFIED | 38.9 | 1.75 | 2/6 | result-interval-skipped FAILED REPLAY-SAME |
+| floor_quotient_const_7_w64 | Divide | Floor | Quotient | constant 7 | 64 | VERIFIED | 343.4 | 1.71 | 2/6 | swap-floor-truncating FAILED REPLAY-DIFFERS |
+| floor_quotient_const_7_w128 | Divide | Floor | Quotient | constant 7 | 128 | timeout (600 s) | 600.0 | 1.64 | not reached | - |
+| floor_quotient_const_neg7_w64 | Divide | Floor | Quotient | constant -7 | 64 | VERIFIED | 469.4 | 1.71 | 2/6 | swap-floor-truncating FAILED REPLAY-SAME |
+| floor_quotient_const_neg7_w128 | Divide | Floor | Quotient | constant -7 | 128 | timeout (600 s) | 600.0 | 1.64 | not reached | - |
+| floor_quotient_const_neg1_w64 | Divide | Floor | Quotient | constant -1 | 64 | VERIFIED | 33.4 | 1.71 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| floor_quotient_const_neg1_w128 | Divide | Floor | Quotient | constant -1 | 128 | VERIFIED | 44.9 | 1.81 | 2/6 | result-interval-skipped FAILED REPLAY-SAME |
+| euclid_quotient_const_7_w64 | Divide | Euclidean | Quotient | constant 7 | 64 | VERIFIED | 331.0 | 1.71 | 2/6 | swap-euclidean-truncating FAILED REPLAY-DIFFERS |
+| euclid_quotient_const_7_w128 | Divide | Euclidean | Quotient | constant 7 | 128 | timeout (600 s) | 600.0 | 1.63 | not reached | - |
+| euclid_quotient_const_neg7_w64 | Divide | Euclidean | Quotient | constant -7 | 64 | timeout (600 s) | 600.0 | 1.71 | not reached | - |
+| euclid_quotient_const_neg7_w128 | Divide | Euclidean | Quotient | constant -7 | 128 | timeout (600 s) | 600.0 | 1.64 | not reached | - |
+| euclid_quotient_const_neg1_w64 | Divide | Euclidean | Quotient | constant -1 | 64 | VERIFIED | 35.6 | 1.71 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| euclid_quotient_const_neg1_w128 | Divide | Euclidean | Quotient | constant -1 | 128 | VERIFIED | 38.7 | 1.80 | 2/6 | result-interval-skipped FAILED REPLAY-SAME |
+| trunc_remainder_const_7_w64 | Divide | Truncating | Remainder | constant 7 | 64 | VERIFIED | 80.6 | 2.24 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_remainder_const_7_w128 | Divide | Truncating | Remainder | constant 7 | 128 | VERIFIED | 398.4 | 2.05 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_remainder_const_neg7_w64 | Divide | Truncating | Remainder | constant -7 | 64 | VERIFIED | 71.3 | 2.24 | 2/6 | swap-truncating-floor FAILED REPLAY-SAME |
+| trunc_remainder_const_neg7_w128 | Divide | Truncating | Remainder | constant -7 | 128 | timeout (600 s) | 600.0 | 2.05 | not reached | - |
+| trunc_remainder_const_neg1_w64 | Divide | Truncating | Remainder | constant -1 | 64 | VERIFIED | 52.8 | 1.98 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| trunc_remainder_const_neg1_w128 | Divide | Truncating | Remainder | constant -1 | 128 | VERIFIED | 39.4 | 2.05 | 2/6 | result-interval-skipped FAILED REPLAY-SAME |
+| floor_remainder_const_7_w64 | Divide | Floor | Remainder | constant 7 | 64 | VERIFIED | 114.0 | 2.24 | 2/6 | swap-floor-truncating FAILED REPLAY-DIFFERS |
+| floor_remainder_const_7_w128 | Divide | Floor | Remainder | constant 7 | 128 | timeout (600 s) | 600.0 | 2.08 | not reached | - |
+| floor_remainder_const_neg7_w64 | Divide | Floor | Remainder | constant -7 | 64 | VERIFIED | 129.7 | 2.27 | 2/6 | swap-floor-truncating FAILED REPLAY-SAME |
+| floor_remainder_const_neg7_w128 | Divide | Floor | Remainder | constant -7 | 128 | timeout (600 s) | 600.0 | 2.08 | not reached | - |
+| floor_remainder_const_neg1_w64 | Divide | Floor | Remainder | constant -1 | 64 | VERIFIED | 45.5 | 2.23 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| floor_remainder_const_neg1_w128 | Divide | Floor | Remainder | constant -1 | 128 | VERIFIED | 39.4 | 2.09 | 2/6 | result-interval-skipped FAILED REPLAY-SAME |
+| euclid_remainder_const_7_w64 | Divide | Euclidean | Remainder | constant 7 | 64 | VERIFIED | 147.5 | 2.23 | 2/6 | swap-euclidean-truncating FAILED REPLAY-DIFFERS |
+| euclid_remainder_const_7_w128 | Divide | Euclidean | Remainder | constant 7 | 128 | timeout (600 s) | 600.0 | 2.08 | not reached | - |
+| euclid_remainder_const_neg7_w64 | Divide | Euclidean | Remainder | constant -7 | 64 | VERIFIED | 114.8 | 2.27 | 2/6 | swap-euclidean-truncating FAILED REPLAY-SAME |
+| euclid_remainder_const_neg7_w128 | Divide | Euclidean | Remainder | constant -7 | 128 | timeout (600 s) | 600.0 | 2.08 | not reached | - |
+| euclid_remainder_const_neg1_w64 | Divide | Euclidean | Remainder | constant -1 | 64 | VERIFIED | 40.0 | 2.25 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| euclid_remainder_const_neg1_w128 | Divide | Euclidean | Remainder | constant -1 | 128 | VERIFIED | 44.6 | 2.08 | 2/6 | result-interval-skipped FAILED REPLAY-SAME |
+| modulo_const_7_w64 | Modulo | Euclidean (Modulo) | - | constant 7 | 64 | VERIFIED | 116.0 | 2.23 | 2/6 | modulo-truncating FAILED REPLAY-SAME |
+| modulo_const_7_w128 | Modulo | Euclidean (Modulo) | - | constant 7 | 128 | timeout (600 s) | 600.0 | 2.08 | not reached | - |
+| modulo_const_neg7_w64 | Modulo | Euclidean (Modulo) | - | constant -7 | 64 | VERIFIED | 103.9 | 2.27 | 2/6 | modulo-truncating FAILED REPLAY-SAME |
+| modulo_const_neg7_w128 | Modulo | Euclidean (Modulo) | - | constant -7 | 128 | timeout (600 s) | 600.0 | 2.08 | not reached | - |
+| modulo_const_neg1_w64 | Modulo | Euclidean (Modulo) | - | constant -1 | 64 | VERIFIED | 38.3 | 2.01 | 2/6 | result-interval-skipped FAILED REPLAY-DIFFERS |
+| modulo_const_neg1_w128 | Modulo | Euclidean (Modulo) | - | constant -1 | 128 | VERIFIED | 47.1 | 2.08 | 2/6 | not run |
 
 ## Expected Results
 
@@ -68,4 +147,4 @@ Every grid case through the plan has the outcome, value, refusal payload and cha
 
 ## Status
 
-PLANNED (IR-1541). Not run.
+Run under IR-1541. The `Divide` and `Modulo` plan variants exist. The host differential (`tests/ir1541_native_integer_divide.rs`) passes and all 15 host mutants of Behavior 22 are killed. All 80 Kani harnesses of the ladder reached a terminal state, none FAILED. 42 are VERIFIED with every cover reached: the three plan harnesses; the symbolic divisor at width 8 for all seven member combinations; the symbolic divisor at width 16 for truncating quotient and truncating remainder only; every constant `-1` harness at widths 64 and 128; and the constant `7` and `-7` harnesses at width 64 for every combination except Euclidean quotient `-7` (timeout), plus width 128 for truncating quotient (`7`, `-7`) and truncating remainder (`7`). 19 are measured rows with outcome timeout at 600 s: the symbolic divisor at width 16 for floor quotient, Euclidean quotient, floor remainder, Euclidean remainder and `Modulo`, at width 32 for truncating quotient and truncating remainder, and the constant `7`/`-7` harnesses at width 128 not listed as VERIFIED, plus Euclidean quotient `-7` at width 64. 19 further symbolic-divisor harnesses are recorded as not run, covered by the smaller-width row of their combination. No harness hit memory exhaustion, and every peak is below the 16 GiB ceiling. Of the 42 VERIFIED harnesses, 41 had their assigned mutant run on Kani and every one of the 53 mutant runs returned FAILED; 30 of those runs also have a decoded playback that replays with a differing outcome on the host (REPLAY-DIFFERS), and the other 23 do not (REPLAY-SAME: the playback decoder does not reproduce the distinguishing input), so the replay requirement of FR-409-AC-9 is PARTIAL for those 23. `modulo_const_neg1_w128` has no mutant run, so its mutant is PARTIAL. A proof is claimed only for a VERIFIED harness; no proof is claimed for a timeout row or for a combination as a whole, and the evidence record of TC-957 is the only copy of the measured rows.

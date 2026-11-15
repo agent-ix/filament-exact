@@ -2,8 +2,7 @@
 //! The native integer `Divide` and `Modulo` plan against `divide` and `modulo`
 //! over `Integer`, the plan-free evaluators and independent literals
 //! (FR-409, TC-957).
-use ix_trace_rs::trace;
-use quire_exact::{
+use filament_exact::{
     charge_native_integer_schedule, divide, evaluate_native_integer_arithmetic,
     evaluate_native_integer_division, evaluate_native_integer_modulo, modulo, ChargeEvent,
     ChargePoint, DivisionMember, DivisionProfile, Integer, IntegerDomain, IntegerInterval,
@@ -13,6 +12,7 @@ use quire_exact::{
     NativeIntegerOperationKind as Kind, NativeIntegerPlan as Plan, NativeIntegerSchedule as Sched,
     Outcome, Refusal, ScalarLimits, Undefined,
 };
+use ix_trace_rs::trace;
 
 const KINDS: [LimitKind; 10] = [
     LimitKind::IntegerBits,
