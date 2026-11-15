@@ -50,3 +50,14 @@ Not mergeable as is. The measured-row record is faithful to the raw results, and
 | FR-409-AC-10 | examined | spec/functional/FR-409-kernel-checked-native-integer-divide-and-modulo-plan.md:144 | No proof is claimed for a harness without an executed VERIFIED verdict. The Status records, per member combination, shape and width, the verdict or the table row, and claims none before the runs exist. |
 | FR-409 Status | examined | spec/functional/FR-409-kernel-checked-native-integer-divide-and-modulo-plan.md:156 | Run under IR-1541. ... so the replay requirement of FR-409-AC-9 is PARTIAL for those 23. `modulo_const_neg1_w128` has no mutant run, so its mutant is PARTIAL. |
 | TC-957 Evidence record | examined | spec/test-cases/TC-957-native-integer-divide-modulo-plan.md:57-142 | Every harness ran once under `cargo kani` with a 600-second wall-clock limit ... |
+
+## Dispositions
+
+Disposition pass 1, against fix commit 7eac59d1. Scripted re-check of TC-957 against `ir1541-results.tsv`, `ir1541-probe.final.tsv` and `ir1541-mutants3.tsv`: 80 ladder rows, 42 VERIFIED / 20 timeout / 18 not run. Every VERIFIED time, peak and assigned-mutant cell matches the tsv, and every not-run row matches its covering row. The `trunc_quotient_sym_w64` timeout row equals the probe record (600.0 s, 1.67 GiB). The FR-409 and TC-957 Status counts match.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | Status now reads '54 of 54 REPLAY-DIFFERS' and names the earlier cause as the shared build directory, not the decoder. TC-957 rows carry REPLAY-DIFFERS from the recomputed tsv, and the reviewer's independent healthy replay agrees. |
+| FND-002 | fixed | `modulo_const_neg1_w128` now records `result-interval-skipped FAILED REPLAY-DIFFERS`. The log `mutant-result-interval-skipped-modulo_const_neg1_w128.log` has VERIFICATION:- FAILED, 122.6 s, memory.peak 14335586304 B (13.35 GiB, under 16 GiB). The reviewer reproduced the healthy replay (plan == exact, ModuloOutOfDomain), and the mutant completes 0. |
+| FND-003 | fixed | A probe table now records both runs: `probe trunc_quotient_sym_w8` VERIFIED 47.8 s 1.67 GiB, and `probe trunc_quotient_sym_w64` timeout 600.0 s 1.67 GiB. These equal `ir1541-probe.final.tsv`. The `trunc_quotient_sym_w64` row is now the probe's measured timeout rather than 'not run', and Status says so. |
+| FND-004 | fixed | The Status now says 'every cover that belongs to the harness reached', and the column is 'Required covers reached' with an explanation of Kani's total. |

@@ -60,3 +60,12 @@ Kani spot check (2 harnesses, reviewer run, cadical, 16 GiB scope): `modulo_plan
 | FR-409-AC-9 | examined | spec/functional/FR-409-kernel-checked-native-integer-divide-and-modulo-plan.md:143 | Each mutant of Behavior 22 fails the host differential at its distinguishing input ... An evaluation-harness playback replayed through `divide` or `modulo` over `Integer` gives a different value or outcome from the mutant's ... |
 | scripts/ir1541_native_integer_mutants.py | examined | scripts/ir1541_native_integer_mutants.py:1-275 | Buildable mutants of FR-409 Behavior 22 / TC-957, host and Kani. |
 | scripts/ir1541_run_kani.py | examined | scripts/ir1541_run_kani.py:1-106 | Run FR-409 Kani harnesses one job at a time and append a results TSV. |
+
+## Dispositions
+
+Disposition pass 1, against fix commit 7eac59d1 (`git diff 4002545d..7eac59d1`). Reviewer checks: `--lib` 258 passed / 0 failed / 1 ignored; ir1541 test 6 passed + 1 ignored; ir705 test 10 passed; clippy and fmt clean (`CARGO_TARGET_DIR=/home/peter/dev/.review-targets/ir1541`, under the cargo slot lock). The coder's recomputed `ir1541-mutants3.tsv` has 54 rows, all FAILED REPLAY-DIFFERS. For the 53 old rows the decoded playback lines and mutant columns are unchanged, and every healthy column equals the reviewer's independent healthy replay. The new row's healthy replay was reproduced by the reviewer.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | `replay()` now sets `CARGO_TARGET_DIR=<copy>/target-replay` per copy, and the new `replay` mode recomputes every row from the kept Kani logs. 54/54 REPLAY-DIFFERS, matching the reviewer's healthy replay. |
+| FND-002 | fixed | The runner's raw cell is no longer used in the record: the column is now 'Required covers reached' (`3/3 required`, `2/2 required`, `4/4 required`), and the TC text explains that Kani's total counts covers of other combinations that share the body. |

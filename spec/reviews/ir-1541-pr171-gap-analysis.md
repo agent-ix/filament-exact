@@ -42,3 +42,11 @@ One traceability gap: AC-7 has no tagged evidence. Otherwise the code-to-require
 | FR-409-AC-5, AC-6, AC-8, AC-10 | examined | spec/functional/FR-409-kernel-checked-native-integer-divide-and-modulo-plan.md:139-144 | Inspection criteria, `method-without-symbol` |
 | FR-409-AC-7 | examined | spec/functional/FR-409-kernel-checked-native-integer-divide-and-modulo-plan.md:141 | The probe of Behavior 17 ran before the full set, and its two records exist with time and peak. ... |
 | FR-409-AC-9 | examined | spec/functional/FR-409-kernel-checked-native-integer-divide-and-modulo-plan.md:143 | Each mutant of Behavior 22 fails the host differential at its distinguishing input ... |
+
+## Dispositions
+
+Disposition pass 1, against fix commit 7eac59d1. `quire matrix --scope .`: FR-409-AC-7 is `tagged` (tests/ir1541_native_integer_divide.rs:652), and FR-409-AC-9 is `tagged` (:615 ignored driver and :652). The new test passes at 7eac59d1.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | `the_evidence_record_settles_every_harness_with_its_probe_and_mutant` is tagged FR-409-AC-7 and FR-409-AC-9. It parses TC-957 and asserts one record per expected harness id (80), time and peak for VERIFIED and timeout rows, a FAILED assigned mutant without REPLAY-SAME on every VERIFIED row, valid 'covered by' targets, and both probe rows. |
