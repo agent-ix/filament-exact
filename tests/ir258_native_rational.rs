@@ -1012,3 +1012,34 @@ fn the_two_hundred_fifty_two_step_gcd_pair_reduces_like_the_owner() {
         (1, 1)
     );
 }
+
+fn euclid(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        (a, b) = (b, a % b);
+    }
+    a
+}
+
+/// `n/1 * 1/d` forms the unreduced pair `n/d` and so drives the reduction of
+/// one chosen pair; the expected side is Euclid's algorithm.
+#[test]
+#[trace("TC-956", "FR-408-AC-12")]
+fn the_u8_tier_reduces_every_pair_as_euclid_does_across_its_threshold() {
+    for numerator in -600i64..=600 {
+        for denominator in 1i64..=600 {
+            let mut meter = generous();
+            let product = completed(native_rational_multiply(
+                &nat(numerator, 1),
+                &nat(1, denominator),
+                &mut meter,
+            ));
+            let gcd = euclid(numerator.unsigned_abs(), denominator as u64) as i64;
+            let expected = if numerator == 0 {
+                (0, 1)
+            } else {
+                (i128::from(numerator / gcd), i128::from(denominator / gcd))
+            };
+            assert_eq!(parts(&product), expected, "{numerator}/{denominator}");
+        }
+    }
+}
