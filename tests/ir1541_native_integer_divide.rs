@@ -642,3 +642,76 @@ fn replay_a_decoded_playback() {
         combo.existing(a, b, result, &mut Meter::new(limits()))
     );
 }
+
+/// The evidence record of TC-957 settles every harness of the ladder exactly
+/// once, carries the probe records, and gives every VERIFIED row a time, a
+/// peak and an assigned mutant that failed with a differing replay.
+#[test]
+#[trace("TC-957", "FR-409-AC-7")]
+#[trace("TC-957", "FR-409-AC-9")]
+fn the_evidence_record_settles_every_harness_with_its_probe_and_mutant() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("spec/test-cases/TC-957-native-integer-divide-modulo-plan.md");
+    let text = std::fs::read_to_string(path).unwrap();
+    let rows: Vec<Vec<&str>> = text
+        .lines()
+        .filter(|l| l.starts_with("| ") && !l.starts_with("| ---"))
+        .map(|l| l.trim_matches('|').split('|').map(str::trim).collect())
+        .collect();
+    let mut expected: Vec<String> = vec![
+        "divide_quotient_plan_refuses_min_over_minus_one_and_derives_capacity".into(),
+        "divide_remainder_plan_derives_capacity_and_never_refuses".into(),
+        "modulo_plan_derives_capacity_and_never_refuses".into(),
+    ];
+    for combo in [
+        "trunc_quotient",
+        "floor_quotient",
+        "euclid_quotient",
+        "trunc_remainder",
+        "floor_remainder",
+        "euclid_remainder",
+        "modulo",
+    ] {
+        for w in [8, 16, 32, 64, 128] {
+            expected.push(format!("{combo}_sym_w{w}"));
+        }
+        for d in ["7", "neg7", "neg1"] {
+            for w in [64, 128] {
+                expected.push(format!("{combo}_const_{d}_w{w}"));
+            }
+        }
+    }
+    for id in &expected {
+        let mine: Vec<&Vec<&str>> = rows.iter().filter(|r| r[0] == id).collect();
+        assert_eq!(mine.len(), 1, "{id} must have exactly one record");
+        let row = mine[0];
+        let outcome = row[6];
+        if outcome == "VERIFIED" {
+            assert!(
+                row[7].parse::<f64>().is_ok() && row[8].parse::<f64>().is_ok(),
+                "{id} VERIFIED needs time and peak"
+            );
+            assert!(
+                row[10].contains("FAILED") && !row[10].contains("REPLAY-SAME"),
+                "{id} needs its assigned mutant failing with a differing replay: {}",
+                row[10]
+            );
+        } else if outcome.starts_with("not run, covered by ") {
+            let by = outcome.trim_start_matches("not run, covered by ");
+            assert!(expected.iter().any(|e| e == by), "{id} cites {by}");
+        } else {
+            assert!(outcome.starts_with("timeout"), "{id}: {outcome}");
+            assert!(row[7].parse::<f64>().is_ok() && row[8].parse::<f64>().is_ok());
+        }
+    }
+    for probe in [
+        "probe trunc_quotient_sym_w8",
+        "probe trunc_quotient_sym_w64",
+    ] {
+        assert!(
+            rows.iter()
+                .any(|r| r[0] == probe && r[7].parse::<f64>().is_ok()),
+            "{probe} record missing"
+        );
+    }
+}

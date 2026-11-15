@@ -215,13 +215,57 @@ def replay_spec(harness, vals):
 
 
 def replay(cwd, spec_line):
-    env = dict(os.environ, IR1541_REPLAY=spec_line)
+    # Each copy builds into its own target directory, so the healthy replay
+    # never reuses a mutant's test binary.
+    env = dict(os.environ, IR1541_REPLAY=spec_line,
+               CARGO_TARGET_DIR=os.path.join(cwd, "target-replay"))
     proc = subprocess.run(["cargo", "test", "--test", TESTS, "replay_a_decoded_playback", "--",
                            "--ignored", "--nocapture"], cwd=cwd, capture_output=True, text=True, env=env)
     out = proc.stdout + proc.stderr
     lines = [l for l in out.splitlines() if l.startswith(("plan=", "exact="))]
     panicked = "panicked" in out
     return lines, panicked
+
+
+def replay_row(harness, work, log):
+    """Replay the decoded playback of a FAILED mutant run on the healthy crate and the mutant."""
+    text = open(log, errors="replace").read()
+    try:
+        vals = playback_values(text)
+        line = replay_spec(harness, vals)
+        healthy, _ = replay(ROOT, line)
+        mutated, mpanic = replay(work, line)
+        if harness.startswith(("divide_", "modulo_plan")):
+            differs = healthy != mutated
+        else:
+            healthy_ok = len(healthy) == 2 and healthy[0].split("=", 1)[1] == healthy[1].split("=", 1)[1]
+            mutant_differs = mpanic or len(mutated) < 2 or mutated[0].split("=", 1)[1] != mutated[1].split("=", 1)[1]
+            differs = healthy_ok and mutant_differs
+        return [line, " ; ".join(healthy), " ; ".join(mutated) + (" PANIC" if mpanic else ""),
+                "REPLAY-DIFFERS" if differs else "REPLAY-SAME"]
+    except Exception as exc:  # noqa: BLE001
+        return ["", "", "", f"DECODE-ERROR {exc!r}"]
+
+
+def rereplay(results, out):
+    """Recompute every replay column from the kept Kani logs, one mutant copy at a time."""
+    rows = [l.rstrip("\n").split("\t") for l in open(results)]
+    by_mutant = {}
+    for r in rows:
+        by_mutant.setdefault(r[0], []).append(r)
+    done = []
+    for mutant, group in by_mutant.items():
+        work = prepare(mutant)
+        for r in group:
+            log = os.path.join(os.path.dirname(os.path.abspath(results)), "ir1541-logs",
+                               f"mutant-{mutant}-{r[1]}.log")
+            r[5:] = replay_row(r[1], work, log)
+            done.append(r)
+            print("\t".join(r[:3] + r[8:]), flush=True)
+        shutil.rmtree(work, ignore_errors=True)
+    with open(out, "w") as f:
+        for r in done:
+            f.write("\t".join(r) + "\n")
 
 
 def kani(results, selected):
@@ -237,22 +281,7 @@ def kani(results, selected):
             harness, 600, log, "-Z concrete-playback --concrete-playback=print")
         row = [mutant, harness, outcome, f"{float(wall):.1f}", peak, "", "", "", ""]
         if outcome == "FAILED":
-            text = open(log, errors="replace").read()
-            try:
-                vals = playback_values(text)
-                line = replay_spec(harness, vals)
-                healthy, _ = replay(ROOT, line)
-                mutated, mpanic = replay(work, line)
-                if harness.startswith(("divide_", "modulo_plan")):
-                    differs = healthy != mutated
-                else:
-                    healthy_ok = len(healthy) == 2 and healthy[0].split("=", 1)[1] == healthy[1].split("=", 1)[1]
-                    mutant_differs = mpanic or len(mutated) < 2 or mutated[0].split("=", 1)[1] != mutated[1].split("=", 1)[1]
-                    differs = healthy_ok and mutant_differs
-                row[5:] = [line, " ; ".join(healthy), " ; ".join(mutated) + (" PANIC" if mpanic else ""),
-                           "REPLAY-DIFFERS" if differs else "REPLAY-SAME"]
-            except Exception as exc:  # noqa: BLE001
-                row[5:] = ["", "", "", f"DECODE-ERROR {exc!r}"]
+            row[5:] = replay_row(harness, work, log)
         with open(results, "a") as f:
             f.write("\t".join(row) + "\n")
         print("\t".join(row), flush=True)
@@ -261,7 +290,9 @@ def kani(results, selected):
 
 def main():
     mode = sys.argv[1]
-    if mode == "host":
+    if mode == "replay":
+        rereplay(sys.argv[2], sys.argv[3])
+    elif mode == "host":
         host(sys.argv[2:])
     elif mode == "kani":
         selected = [tuple(a.split(":", 1)) for a in sys.argv[3:]]
