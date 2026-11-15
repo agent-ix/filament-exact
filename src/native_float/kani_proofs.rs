@@ -163,6 +163,31 @@ macro_rules! width_checks {
                     && is_negative(c) != (is_negative(a) != is_negative(b)))
         }
 
+        /// The fused multiply-add's expected bits for operands whose result is
+        /// not a NaN. The two regions that CBMC's `fma` model gets wrong are
+        /// decided here by the IEEE 754 rule instead of by the model: an
+        /// infinite addend gives the addend, and a zero product gives the
+        /// addend (or the signed zero the sum rule picks when the addend is
+        /// zero too). Everywhere else the host `mul_add` is the oracle.
+        pub(super) fn fused_multiply_add_expected(a: $bits, b: $bits, c: $bits) -> $bits {
+            let product_sign = (a ^ b) & SIGN;
+            if is_infinite(c) {
+                kani::cover!(true, "an infinite addend is decided by rule");
+                c
+            } else if is_zero(a) || is_zero(b) {
+                kani::cover!(!is_zero(c), "a zero product with a nonzero addend");
+                if !is_zero(c) || c & SIGN == product_sign {
+                    c
+                } else {
+                    0
+                }
+            } else {
+                <$float>::from_bits(a)
+                    .mul_add(<$float>::from_bits(b), <$float>::from_bits(c))
+                    .to_bits()
+            }
+        }
+
         /// The significand and exponent of a finite value: `m * 2^e`.
         fn decode(bits: $bits) -> ($wide, i32) {
             let fraction = (bits & FRACTION_MASK) as $wide;
@@ -314,7 +339,7 @@ macro_rules! width_checks {
         /// is a NaN (decided by the predicates above).
         pub(super) fn check(
             rounding: RoundingMode,
-            outcome: Result<
+            outcome: &Result<
                 Outcome<crate::native_float::NativeFloatResult>,
                 crate::comparison::IllTyped,
             >,
@@ -391,7 +416,9 @@ macro_rules! arithmetic_harness {
                 $(let $x = NativeFloat::$carrier($x);)+
                 $operation
             };
-            let outcome = evaluate_native_float(operation, rounding, &mut meter);
+            let outcome = core::mem::ManuallyDrop::new(evaluate_native_float(
+                operation, rounding, &mut meter,
+            ));
             let expected: Option<$bits> = if $module::$nan($($x),+) {
                 None
             } else {
@@ -401,8 +428,51 @@ macro_rules! arithmetic_harness {
                     host.to_bits()
                 })
             };
-            $module::check(rounding, outcome, &meter, &[$($x),+], expected);
+            $module::check(rounding, &*outcome, &meter, &[$($x),+], expected);
         }
+    };
+}
+
+/// The fused multiply-add harness: as `arithmetic_harness`, with the expected
+/// side from `fused_multiply_add_expected`.
+macro_rules! fused_harness {
+    ($name:ident, $module:ident, $bits:ty, $carrier:ident, $rounding:expr) => {
+        #[kani::proof]
+        #[kani::unwind(57)]
+        fn $name() {
+            let (a, b, c): ($bits, $bits, $bits) = (kani::any(), kani::any(), kani::any());
+            let rounding: RoundingMode = $rounding;
+            let mut meter = generous_meter();
+            let outcome = core::mem::ManuallyDrop::new(evaluate_native_float(
+                NativeFloatOperation::FusedMultiplyAdd(
+                    NativeFloat::$carrier(a),
+                    NativeFloat::$carrier(b),
+                    NativeFloat::$carrier(c),
+                ),
+                rounding,
+                &mut meter,
+            ));
+            let expected: Option<$bits> = if $module::nan_fused_multiply_add(a, b, c) {
+                None
+            } else {
+                Some($module::fused_multiply_add_expected(a, b, c))
+            };
+            $module::check(rounding, &*outcome, &meter, &[a, b, c], expected);
+        }
+    };
+}
+
+macro_rules! fused_trio {
+    ($nearest_even:ident, $exact:ident, $directed:ident, $module:ident, $bits:ty, $carrier:ident) => {
+        fused_harness!(
+            $nearest_even,
+            $module,
+            $bits,
+            $carrier,
+            RoundingMode::NearestEven
+        );
+        fused_harness!($exact, $module, $bits, $carrier, RoundingMode::Exact);
+        fused_harness!($directed, $module, $bits, $carrier, any_directed());
     };
 }
 
@@ -417,15 +487,15 @@ macro_rules! square_root_harness {
             let a: $bits = kani::any();
             let rounding: RoundingMode = $rounding;
             let mut meter = generous_meter();
-            let outcome = evaluate_native_float(
+            let outcome = core::mem::ManuallyDrop::new(evaluate_native_float(
                 NativeFloatOperation::SquareRoot(NativeFloat::$carrier(a)),
                 rounding,
                 &mut meter,
-            );
+            ));
             let expected: Option<$bits> = if $module::nan_square_root(a) {
                 None
             } else {
-                Some(match &outcome {
+                Some(match &*outcome {
                     Ok(Outcome::Completed(result)) => {
                         let r = result.value.bits() as $bits;
                         if rounding == RoundingMode::NearestEven || rounding == RoundingMode::Exact
@@ -437,7 +507,7 @@ macro_rules! square_root_harness {
                     _ => 0,
                 })
             };
-            $module::check(rounding, outcome, &meter, &[a], expected);
+            $module::check(rounding, &*outcome, &meter, &[a], expected);
         }
     };
 }
@@ -454,15 +524,15 @@ macro_rules! divide_harness {
             let (a, b): ($bits, $bits) = (kani::any(), kani::any());
             let rounding: RoundingMode = $rounding;
             let mut meter = generous_meter();
-            let outcome = evaluate_native_float(
+            let outcome = core::mem::ManuallyDrop::new(evaluate_native_float(
                 NativeFloatOperation::Divide(NativeFloat::$carrier(a), NativeFloat::$carrier(b)),
                 rounding,
                 &mut meter,
-            );
+            ));
             let expected: Option<$bits> = if $module::nan_divide(a, b) {
                 None
             } else {
-                Some(match &outcome {
+                Some(match &*outcome {
                     Ok(Outcome::Completed(result)) => {
                         let r = result.value.bits() as $bits;
                         if rounding == RoundingMode::NearestEven || rounding == RoundingMode::Exact
@@ -474,7 +544,7 @@ macro_rules! divide_harness {
                     _ => 0,
                 })
             };
-            $module::check(rounding, outcome, &meter, &[a, b], expected);
+            $module::check(rounding, &*outcome, &meter, &[a, b], expected);
         }
     };
 }
@@ -573,17 +643,13 @@ square_root_trio!(
     u32,
     binary32
 );
-arithmetic_trio!(
+fused_trio!(
     float32_fused_multiply_add_nearest_even,
     float32_fused_multiply_add_exact,
     float32_fused_multiply_add_directed,
     w32,
     u32,
-    f32,
-    binary32,
-    nan_fused_multiply_add,
-    |a, b, c| NativeFloatOperation::FusedMultiplyAdd(a, b, c),
-    a.mul_add(b, c)
+    binary32
 );
 arithmetic_trio!(
     float64_add_nearest_even,
@@ -637,17 +703,13 @@ square_root_trio!(
     u64,
     binary64
 );
-arithmetic_trio!(
+fused_trio!(
     float64_fused_multiply_add_nearest_even,
     float64_fused_multiply_add_exact,
     float64_fused_multiply_add_directed,
     w64,
     u64,
-    f64,
-    binary64,
-    nan_fused_multiply_add,
-    |a, b, c| NativeFloatOperation::FusedMultiplyAdd(a, b, c),
-    a.mul_add(b, c)
+    binary64
 );
 
 /// Comparisons. Expected side: the host's `==` for `NumericEqual`, bit
@@ -770,3 +832,27 @@ macro_rules! negate_harness {
 
 negate_harness!(float32_negate, w32, u32, binary32);
 negate_harness!(float64_negate, w64, u64, binary64);
+
+/// Tool-fault reproductions (expected FAILED). These two harnesses run CBMC's
+/// `fma` model alone, with no native body, and show that it is the model and
+/// not the kernel that fails the fused multiply-add rows unless the two
+/// regions are decided by rule.
+///
+/// The model asserts a floating-point exception for any infinite addend, even
+/// where the exact sum is the addend.
+#[kani::proof]
+fn tool_fault_fma_model_infinite_addend_f32() {
+    let (a, b): (f32, f32) = (kani::any(), kani::any());
+    kani::assume(a.is_finite() && b.is_finite());
+    let host = a.mul_add(b, f32::INFINITY);
+    kani::assert(host == f32::INFINITY, "x * y + inf is inf for finite x, y");
+}
+
+/// The model returns a wrong finite value when the product is zero.
+#[kani::proof]
+fn tool_fault_fma_model_zero_product_f32() {
+    let (b, c): (f32, f32) = (kani::any(), kani::any());
+    kani::assume(b.is_finite() && c.is_finite() && c != 0.0);
+    let host = 0.0f32.mul_add(b, c);
+    kani::assert(host.to_bits() == c.to_bits(), "0 * b + c is c");
+}
