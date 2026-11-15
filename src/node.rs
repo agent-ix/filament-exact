@@ -215,7 +215,7 @@ fn node_arc_bytes() -> Result<usize, ()> {
 
 /// A structural node identity from an admitted checked package.
 ///
-/// quire:canonical
+/// filament:canonical
 pub struct NodeKey {
     inner: Arc<NodeData>,
 }

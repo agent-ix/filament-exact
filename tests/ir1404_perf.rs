@@ -48,7 +48,7 @@ fn unmetered_entries_against_num_bigint() {
     let mut seed = 7_u64;
     println!(
         "{:<10}{:>8}{:>14}{:>14}{:>8}",
-        "op", "digits", "quire ns", "bigint ns", "ratio"
+        "op", "digits", "filament ns", "bigint ns", "ratio"
     );
     for count in [300_usize, 3_000, 30_000] {
         let (a_text, b_text) = (digits(&mut seed, count), digits(&mut seed, count));

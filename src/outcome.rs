@@ -42,7 +42,7 @@ use alloc::boxed::Box;
 
 /// Exactly one of a completed value, undefined, refused or incomplete.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[must_use]
 pub enum Outcome<T> {
@@ -93,7 +93,7 @@ impl<T> Outcome<T> {
 
 /// Why an operation is undefined.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Undefined {
     /// A divisor is (normalized) zero.
@@ -209,7 +209,7 @@ pub enum CheckedInvariantCause {
 /// carried by each `UniverseId` are boxed, which keeps `Refusal` small; it is
 /// `Clone`, not `Copy`.
 ///
-/// quire:canonical
+/// filament:canonical
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Refusal {
     /// Strict `exact` rounding would discard a nonzero digit.

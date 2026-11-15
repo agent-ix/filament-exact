@@ -43,7 +43,7 @@ use crate::accounting::length_amount;
 /// cache. The safe `once_cell::race::OnceBox` may construct multiple candidates
 /// concurrently, retains one, and drops every losing candidate.
 ///
-/// quire:canonical
+/// filament:canonical
 pub struct Integer(IntegerRepr);
 
 /// Storage for an owned integer copy could not be reserved.

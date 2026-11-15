@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! `filament-exact`: the exact-value kernel, a `no_std` + `alloc` leaf that
-//! depends on no other crate in the quire ecosystem.
+//! depends on no other crate in the Filament ecosystem.
 //!
 //! The crate holds checked structural identity ([`NodeKey`] and value
 //! identities such as [`EffectiveId`]), provenance ([`Location`]), kernel
