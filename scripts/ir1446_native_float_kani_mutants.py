@@ -13,11 +13,17 @@ Run one harness at a time under the authorized runner, for example:
       -p MemoryMax=24G -p MemorySwapMax=0 \\
       python3 scripts/ir1446_native_float_kani_mutants.py float32_negate
 
-With no argument, every harness in the TC-953 table is run in turn.
+Set KANI_RUNNER to a command prefix (for example the flock and systemd-run
+pair above, plus `timeout 1800`) to wrap each mutant run on its own instead of the whole
+script; the script itself sets no time limit, so a wait for the lock is not counted.
+
+With no argument, every harness in the TC-953 table is run in turn. Each
+mutant copy builds in its own target directory, removed with the copy.
 """
 import importlib.util
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -55,9 +61,10 @@ def run(harness, mutant_id):
         assert text.count(old) == 1, f"{mutant_id}: {text.count(old)} occurrences"
         open(path, "w").write(text.replace(old, new))
         proc = subprocess.run(
-            ["cargo", "kani", "--harness", f"native_float_kani_proofs::{harness}", "--exact",
+            [*shlex.split(os.environ.get("KANI_RUNNER", "")), "cargo", "kani", "--harness", f"native_float_kani_proofs::{harness}", "--exact",
              "--jobs", "1", "--solver", "cadical"],
-            cwd=work, capture_output=True, text=True, timeout=700)
+            cwd=work, capture_output=True, text=True,
+            env={**os.environ, "CARGO_TARGET_DIR": os.path.join(work, "target")})
         verdict = re.search(r"VERIFICATION:- (\w+)", proc.stdout + proc.stderr)
         return verdict.group(1) if verdict else "NO-VERDICT"
     finally:

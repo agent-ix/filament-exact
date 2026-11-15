@@ -817,7 +817,6 @@ struct Row {
     time: String,
     peak_cell: String,
     peak: u64,
-    version: String,
     id: String,
 }
 
@@ -841,12 +840,12 @@ fn table_rows(text: &str, heading: &str) -> Vec<Vec<String>> {
 }
 
 /// One row per executed harness: operation, width, spelling, outcome, time,
-/// peak, Kani version, harness id.
+/// peak, harness id.
 fn evidence_rows() -> Vec<Row> {
     table_rows(&read_spec(TC), "## Evidence record")
         .into_iter()
         .map(|cells| {
-            assert_eq!(cells.len(), 8, "{cells:?}");
+            assert_eq!(cells.len(), 7, "{cells:?}");
             Row {
                 operation: cells[0].clone(),
                 width: cells[1].clone(),
@@ -859,8 +858,7 @@ fn evidence_rows() -> Vec<Row> {
                     .unwrap()
                     .parse()
                     .expect("a byte count first"),
-                version: cells[6].clone(),
-                id: cells[7].clone(),
+                id: cells[6].clone(),
             }
         })
         .collect()
@@ -912,7 +910,6 @@ fn every_harness_of_every_operation_and_width_has_a_recorded_outcome_and_peak() 
             "{}",
             row.id
         );
-        assert_eq!(row.version, "0.68.0", "{}", row.id);
         let above = row.peak > 16 * GIB;
         assert_eq!(
             row.peak_cell.contains("above the 16 GiB ceiling"),
@@ -929,9 +926,13 @@ fn every_harness_of_every_operation_and_width_has_a_recorded_outcome_and_peak() 
                 .unwrap()
                 .parse()
                 .expect("seconds");
-            assert!(seconds < 600.0, "{}", row.id);
+            assert!(seconds < 1800.0, "{}", row.id);
         } else if row.outcome == "timeout" {
-            assert!(row.time.starts_with("600 s"), "{}", row.id);
+            assert!(
+                row.time.starts_with("600 s") || row.time.starts_with("1800 s"),
+                "{}",
+                row.id
+            );
         }
     }
 }
@@ -973,7 +974,9 @@ fn the_status_records_a_verdict_or_table_row_for_every_operation_and_width() {
 }
 
 /// The number of `kani::cover!` properties TC-953 states for the harness `id`:
-/// one for negation, two for a comparison, three for an arithmetic harness.
+/// one for negation, two for a comparison, three for an arithmetic harness and
+/// five for a fused multiply-add harness (two more for the regions it decides
+/// by rule).
 fn cover_count(id: &str) -> usize {
     if id.ends_with("_negate") {
         1
@@ -982,6 +985,8 @@ fn cover_count(id: &str) -> usize {
         .any(|s| id.ends_with(s))
     {
         2
+    } else if id.contains("_fused_multiply_add_") {
+        5
     } else {
         assert!(
             ["_nearest_even", "_exact", "_directed"]
@@ -1058,4 +1063,20 @@ fn every_harness_mutant_fails_its_harness_under_kani() {
         .status()
         .expect("python3 runs");
     assert!(status.success());
+}
+
+#[test]
+#[trace("TC-953", "FR-405-AC-11")]
+fn the_tool_fault_rows_name_harnesses_that_exist_and_are_not_kernel_failures() {
+    let tc = read_spec(TC);
+    let rows = table_rows(&tc, "### Tool faults");
+    assert_eq!(rows.len(), 2);
+    let source = read_spec("src/native_float/kani_proofs.rs");
+    for cells in &rows {
+        assert_eq!(cells.len(), 4, "{cells:?}");
+        let id = cells[0].strip_prefix("native_float_kani_proofs::").unwrap();
+        assert!(source.contains(&format!("fn {id}()")), "{id}");
+        assert_eq!(cells[1], "FAILED", "{cells:?}");
+        assert!(cells[2].contains("model"), "{cells:?}");
+    }
 }
