@@ -13,7 +13,8 @@ fails on it; with `--kani <harness>` the named Kani harness must instead report
       -p MemorySwapMax=0 python3 scripts/ir258_u8_tier_mutants.py \\
       --kani native_fraction_gcd8_matches_euclid_over_u8
 
-`--kani-rows` runs the arithmetic mutants against the Kani CG-domain rows.
+`--kani-rows [mutant-id ...]` runs the arithmetic mutants (all, or the ids named)
+against the Kani CG-domain rows.
 Set KANI_RUNNER to a command prefix (the flock, systemd-run and `timeout 1800`
 of the lines above) to wrap each Kani run on its own.
 """
@@ -50,6 +51,13 @@ ROWS = [
      "fn form", "Operation::Multiply => a.checked_mul(c)", "Operation::Multiply => a.checked_add(c)"),
     ("native_rational_add_cg_domain_matches_reference", "result-not-reduced", RATIONAL,
      "fn arithmetic(", "reduce(unreduced.0, unreduced.1)", "(unreduced.0, unreduced.1)"),
+    ("native_rational_equal_cg_domain_matches_reference", "equality-numerators-only", RATIONAL,
+     "pub fn native_rational_equal(", ".map(|()| left == right)",
+     ".map(|()| left.numerator == right.numerator)"),
+    ("native_rational_order_cg_domain_matches_reference", "order-compares-a-p", RATIONAL,
+     "pub fn native_rational_order(",
+     "left\n        .numerator\n        .checked_mul(right.denominator)",
+     "left\n        .numerator\n        .checked_mul(left.denominator)"),
 ]
 TEST = "the_u8_tier_reduces_every_pair_as_euclid_does_across_its_threshold"
 
@@ -110,7 +118,10 @@ def main():
     args = sys.argv[1:]
     bad = 0
     if args[:1] == ["--kani-rows"]:
+        wanted = set(args[1:])
         for harness, mid, file, anchor, old, new in ROWS:
+            if wanted and mid not in wanted:
+                continue
             got, want = run((mid, anchor, old, new), harness, file)
             print(f"{harness:70} {mid:22} {got}", flush=True)
             bad += got != want

@@ -974,9 +974,10 @@ fn the_status_records_a_verdict_or_table_row_for_every_operation_and_width() {
 }
 
 /// The number of `kani::cover!` properties TC-953 states for the harness `id`:
-/// one for negation, two for a comparison, three for an arithmetic harness and
-/// five for a fused multiply-add harness (two more for the regions it decides
-/// by rule).
+/// one for negation, two for a comparison, four for an arithmetic harness (the
+/// operand NaN, the NaN result, the numeric result and the numeric result that
+/// completes) and six for a fused multiply-add harness (two more for the
+/// regions it decides by rule).
 fn cover_count(id: &str) -> usize {
     if id.ends_with("_negate") {
         1
@@ -986,7 +987,7 @@ fn cover_count(id: &str) -> usize {
     {
         2
     } else if id.contains("_fused_multiply_add_") {
-        5
+        6
     } else {
         assert!(
             ["_nearest_even", "_exact", "_directed"]
@@ -994,7 +995,7 @@ fn cover_count(id: &str) -> usize {
                 .any(|s| id.ends_with(s)),
             "{id}"
         );
-        3
+        4
     }
 }
 
@@ -1031,14 +1032,34 @@ fn every_verified_harness_has_reached_covers_and_a_failing_harness_mutant() {
             "{cells:?}: reached covers"
         );
         assert_eq!(counts[1].parse::<usize>().unwrap(), covers, "{cells:?}");
-        // The mutant is a named, re-runnable edit of the script, and it failed.
-        assert!(script.contains(&format!("m(\"{}\"", cells[2])), "{cells:?}");
+        // Each mutant is a named, re-runnable edit of the script, and it failed.
+        let mutants: Vec<&str> = cells[2].split(',').map(str::trim).collect();
+        for mutant in &mutants {
+            assert!(script.contains(&format!("m(\"{mutant}\"")), "{cells:?}");
+        }
         assert_eq!(cells[3], "FAILED", "{cells:?}");
+        // A strict `Exact` harness also fails the numeric-path mutants (a
+        // kernel that refuses every finite result, one that returns the
+        // rounded value), not only a mutant of the NaN path.
+        if cells[0].ends_with("_exact") {
+            assert!(mutants.contains(&"exact-refuses-everything"), "{cells:?}");
+            // The two rows whose returns-rounded run gave no verdict at the
+            // cap are recorded as such in TC-953 and list only the first.
+            let no_verdict = [
+                "native_float_kani_proofs::float32_square_root_exact",
+                "native_float_kani_proofs::float64_multiply_exact",
+            ];
+            if no_verdict.contains(&cells[0].as_str()) {
+                assert!(!mutants.contains(&"exact-returns-rounded"), "{cells:?}");
+            } else {
+                assert!(mutants.contains(&"exact-returns-rounded"), "{cells:?}");
+            }
+        }
     }
 }
 
 #[test]
-#[ignore = "builds 49 scratch copies of the crate; run explicitly"]
+#[ignore = "builds 50 scratch copies of the crate; run explicitly"]
 #[trace("TC-953", "FR-405-AC-10")]
 fn every_mutant_of_the_native_bodies_fails_the_step_it_names() {
     let status = std::process::Command::new("python3")
@@ -1060,13 +1081,42 @@ fn every_harness_mutant_fails_its_harness_under_kani() {
             env!("CARGO_MANIFEST_DIR"),
             "/scripts/ir1446_native_float_kani_mutants.py"
         ))
+        // The caller's runner, or a bound of its own: a mutant that makes the
+        // solver hang must not run without a limit.
+        .env(
+            "KANI_RUNNER",
+            std::env::var("KANI_RUNNER").unwrap_or_else(|_| "timeout 1800".to_owned()),
+        )
         .status()
         .expect("python3 runs");
     assert!(status.success());
 }
 
 #[test]
-#[trace("TC-953", "FR-405-AC-11")]
+#[trace("TC-953", "FR-405-AC-16")]
+fn every_harness_holds_its_outcome_in_manually_drop_and_reads_it_by_reference() {
+    let source = read_spec("src/native_float/kani_proofs.rs");
+    // Only the Negate harness binds the outcome by value: negation always
+    // completes, so its refusal arm is never built and there is no drop glue
+    // to unwind. Every other harness of an operation holds it in `ManuallyDrop`.
+    assert_eq!(
+        source
+            .matches("let outcome = evaluate_native_float(")
+            .count(),
+        1,
+        "only the Negate harness binds the outcome by value"
+    );
+    // The arithmetic, fused, square root and divide macros hold it in
+    // `ManuallyDrop` and hand `check` a reference.
+    let held = source
+        .matches("let outcome = core::mem::ManuallyDrop::new(evaluate_native_float(")
+        .count();
+    assert_eq!(held, 4, "arithmetic, fused, square root and divide macros");
+    assert_eq!(source.matches("check(rounding, &*outcome,").count(), 4);
+}
+
+#[test]
+#[trace("TC-953", "FR-405-AC-16")]
 fn the_tool_fault_rows_name_harnesses_that_exist_and_are_not_kernel_failures() {
     let tc = read_spec(TC);
     let rows = table_rows(&tc, "### Tool faults");

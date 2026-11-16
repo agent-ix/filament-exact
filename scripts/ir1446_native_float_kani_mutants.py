@@ -15,7 +15,9 @@ Run one harness at a time under the authorized runner, for example:
 
 Set KANI_RUNNER to a command prefix (for example the flock and systemd-run
 pair above, plus `timeout 1800`) to wrap each mutant run on its own instead of the whole
-script; the script itself sets no time limit, so a wait for the lock is not counted.
+script, so a wait for the lock is not counted. With KANI_RUNNER unset, each
+mutant run is bounded by `timeout 1800` alone, so a mutant that makes the
+solver hang cannot run without a limit.
 
 With no argument, every harness in the TC-953 table is run in turn. Each
 mutant copy builds in its own target directory, removed with the copy.
@@ -61,7 +63,7 @@ def run(harness, mutant_id):
         assert text.count(old) == 1, f"{mutant_id}: {text.count(old)} occurrences"
         open(path, "w").write(text.replace(old, new))
         proc = subprocess.run(
-            [*shlex.split(os.environ.get("KANI_RUNNER", "")), "cargo", "kani", "--harness", f"native_float_kani_proofs::{harness}", "--exact",
+            [*shlex.split(os.environ.get("KANI_RUNNER", "timeout 1800")), "cargo", "kani", "--harness", f"native_float_kani_proofs::{harness}", "--exact",
              "--jobs", "1", "--solver", "cadical"],
             cwd=work, capture_output=True, text=True,
             env={**os.environ, "CARGO_TARGET_DIR": os.path.join(work, "target")})
@@ -74,12 +76,14 @@ def run(harness, mutant_id):
 def main():
     only = set(sys.argv[1:])
     bad = 0
-    for harness, _covers, mutant_id, _verdict in table():
+    for harness, _covers, mutant_ids, _verdict in table():
         if only and harness.removeprefix("native_float_kani_proofs::") not in only:
             continue
-        verdict = run(harness, mutant_id)
-        print(f"{harness:48} {mutant_id:28} {verdict}", flush=True)
-        bad += verdict != "FAILED"
+        for mutant_id in mutant_ids.split(","):
+            mutant_id = mutant_id.strip()
+            verdict = run(harness, mutant_id)
+            print(f"{harness:48} {mutant_id:28} {verdict}", flush=True)
+            bad += verdict != "FAILED"
     sys.exit(1 if bad else 0)
 
 

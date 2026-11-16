@@ -25,8 +25,11 @@
 //! every spelling that a numeric (non-NaN) host result gives a non-NaN native
 //! result with no `invalid` flag, and a NaN host result gives the NaN above
 //! (sign, quietness, payload) with `invalid` raised exactly when an operand is
-//! signalling or no operand is a NaN; that only `Exact` refuses; the width and
-//! rounding provenance; the result-unit charge.
+//! signalling or no operand is a NaN; that only `Exact` refuses, that a
+//! completed `Exact` raises no flag, and that an `Exact` refusal names a
+//! non-empty would-be flag set without `invalid`; that a numeric result
+//! completes (a cover, so a kernel that refuses every input does not verify);
+//! the width and rounding provenance; the result-unit charge.
 //!
 //! Square root and divide. Kani's model of the host `sqrt` and `/` is not
 //! bit-exact, so their expected sides are exact-integer brackets of the
@@ -34,7 +37,8 @@
 //!
 //! Left to the host differential: result bits under the four directed and
 //! nearest-away spellings, the `overflow`, `underflow`, `inexact` and
-//! `divide_by_zero` flags, the `Exact` refusal's would-be flags, charge
+//! `divide_by_zero` flags, the `Exact` refusal's would-be flag values (the harness checks only that
+//! they are non-empty and not `invalid`), charge
 //! amounts and meter limits (the harness runs a generous meter).
 use crate::accounting::{LimitKind, Meter, ScalarLimits};
 use crate::decimal::RoundingMode;
@@ -42,7 +46,7 @@ use crate::ieee::{IeeeComparison, IeeeFlag, IeeeWidth};
 use crate::native_float::{
     compare_native_float, evaluate_native_float, NativeFloat, NativeFloatOperation,
 };
-use crate::outcome::Outcome;
+use crate::outcome::{Outcome, Refusal};
 
 fn generous_meter() -> Meter {
     Meter::new(ScalarLimits {
@@ -167,8 +171,11 @@ macro_rules! width_checks {
         /// not a NaN. The two regions that CBMC's `fma` model gets wrong are
         /// decided here by the IEEE 754 rule instead of by the model: an
         /// infinite addend gives the addend, and a zero product gives the
-        /// addend (or the signed zero the sum rule picks when the addend is
-        /// zero too). Everywhere else the host `mul_add` is the oracle.
+        /// addend; when the addend is a zero of the other sign the result is
+        /// +0, which is the sum rule's zero under round-to-nearest only (a
+        /// directed rounding toward negative gives -0, so `check` compares
+        /// bits for `NearestEven` and `Exact` alone). Everywhere else the host
+        /// `mul_add` is the oracle.
         pub(super) fn fused_multiply_add_expected(a: $bits, b: $bits, c: $bits) -> $bits {
             let product_sign = (a ^ b) & SIGN;
             if is_infinite(c) {
@@ -358,6 +365,10 @@ macro_rules! width_checks {
             kani::cover!(any_nan, "an operand is a NaN");
             kani::cover!(expected.is_none(), "a NaN result is reached");
             kani::cover!(expected.is_some(), "a numeric result is reached");
+            kani::cover!(
+                matches!(outcome, Ok(Outcome::Completed(_))) && expected.is_some(),
+                "a numeric result completes"
+            );
             match outcome {
                 Ok(Outcome::Completed(result)) => {
                     assert_eq!(result.value.width(), $width);
@@ -374,6 +385,9 @@ macro_rules! width_checks {
                         Some(host) => {
                             assert!(!is_nan(bits));
                             assert!(!result.flags.contains(IeeeFlag::Invalid));
+                            if rounding == RoundingMode::Exact {
+                                assert!(result.flags.is_empty());
+                            }
                             if rounding == RoundingMode::NearestEven
                                 || rounding == RoundingMode::Exact
                             {
@@ -383,9 +397,16 @@ macro_rules! width_checks {
                     }
                     assert_eq!(meter.consumed(LimitKind::ResultUnits), 1);
                 }
-                Ok(Outcome::Refused(_)) => {
+                Ok(Outcome::Refused(refusal)) => {
                     assert_eq!(rounding, RoundingMode::Exact);
                     assert!(expected.is_some());
+                    match refusal {
+                        Refusal::IeeeNotExact { would_be, .. } => {
+                            assert!(!would_be.is_empty());
+                            assert!(!would_be.contains(IeeeFlag::Invalid));
+                        }
+                        _ => panic!("strict Exact refuses only as not exact"),
+                    }
                 }
                 _ => panic!("a generous meter reports neither incomplete nor undefined"),
             }
