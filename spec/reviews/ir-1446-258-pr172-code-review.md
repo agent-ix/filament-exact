@@ -59,3 +59,13 @@ No kernel defect was found. The drop-glue fix, the fused rule and the u8 tier ar
 | tier Kani harnesses and commutative_from_i64_parts | examined | src/native_rational/kani_proofs.rs:515-560 | native_fraction_gcd8_matches_euclid_over_u8, native_fraction_reduce_u8_tier_matches_euclid |
 | host sweep and evidence tests | examined | tests/ir258_native_rational.rs:1015-1045, tests/ir1446_native_float.rs:815-1082 | the_u8_tier_reduces_every_pair_as_euclid_does_across_its_threshold |
 | mutant scripts | examined | scripts/ir258_u8_tier_mutants.py, scripts/ir1446_native_float_kani_mutants.py | MUTANTS, ROWS, KANI_RUNNER |
+
+## Dispositions
+
+Round 1, verified against fix commit cd71d77b (`git diff 5098e906..cd71d77b`).
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | `check` gains the cover 'a numeric result completes' (`Ok(Completed)` with `expected.is_some()`); under `Exact`, a completed numeric result must have empty flags; a refusal must be `IeeeNotExact` with a non-empty would-be set that does not contain `invalid`. So a kernel that refuses exact results fails on the empty would-be set, and returning the rounded value fails the no-flag check. New host mutant `exact-refuses-everything` (50 host mutants). It is listed against all 8 `Exact` rows. `exact-returns-rounded` is listed against 6 of them. The other 2 (`float32_square_root_exact`, `float64_multiply_exact`) returned NO-VERDICT at the 1800 s cap, and TC-953 and Behavior 20 (SHOULD) record that honestly. Those 2 rows keep non-NaN mutant credit through `exact-refuses-everything`, which drives the numeric refusal path. The evidence test enforces the per-row mutant lists. |
+| FND-002 | fixed | The docstring now says +0 is the sum rule's zero under round-to-nearest only, that TowardNegative gives -0, and that `check` compares bits for NearestEven and Exact alone. |
+| FND-003 | fixed | The script defaults `KANI_RUNNER` to `timeout 1800`, and the ignored test passes the caller's runner or `timeout 1800`. |

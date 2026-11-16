@@ -62,3 +62,17 @@ Not mergeable as is. Four medium evidence-record findings must be fixed in this 
 | FR-408-AC-12 | examined | spec/functional/FR-408-kani-tractable-native-rational-carrier.md:114 | The `u8` tier of the reduction (Behavior 17b) agrees with Euclid's algorithm on every pair ... |
 | TC-956 step 11, Evidence record, Mutants, Status | examined | spec/test-cases/TC-956-kani-tractable-native-rational-carrier.md:28-103 | 11. For AC-12, run the host sweep over every numerator in `[-600, 600]` ... |
 | FR-408 Behavior 18 | context_only | spec/functional/FR-408-kani-tractable-native-rational-carrier.md:92 | Each harness SHALL fail on a mutant of the operation ... |
+
+## Dispositions
+
+Round 1, verified against fix commit cd71d77b.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | Behavior 21 now reads: a 10-minute probe; a harness that has not returned MAY be run again under a 30-minute cap; the record SHALL state the last limit and whether the harness was extended. The seven NearestEven rows read '600 s (probe limit, not extended; ...)'. This matches the lead's probe/cap ruling. |
+| FND-002 | fixed | Extended timeout rows read '1800 s (limit, after a 600 s probe that timed out; ...)'. Step 8 and the runner paragraph state the probe and the cap. The Limits paragraph says that FusedMultiplyAdd Binary32 `Exact`'s probe timed out and was extended (722.9 s), and that its final-text rerun (664.4 s) ran directly under the cap. |
+| FND-003 | fixed | The AC-12 paragraph now gives 32 harnesses, 4 covers per arithmetic harness and 6 per fused harness, the full mutant list, and the two Exact rows with no verdict. |
+| FND-004 | fixed | `equality-numerators-only` and `order-compares-a-p` were added to the script and recorded FAILED against the equality and order CG rows on the tiered kernel, in TC-956's new Kani mutant record. The test checks every pair. |
+| FND-005 | fixed | TC-956 and the FR-408 Status name IR-1544 for the six full-i64 rows. FR-405 and TC-953 say 'no float Verus ticket exists yet; planner to assign'. |
+| FND-006 | fixed | The TC-953 Status now says the unverified rows are solver hangs waiting on a deductive prover; the fma-model wording is gone. The Fused paragraph limits the claim that the kernel agrees with the rule to the three VERIFIED fused rows, and says nothing is claimed for the timeouts. |
+| FND-007 | fixed | FR-408 now orders the behaviours 17, 17a, 17b, 18. |

@@ -44,3 +44,12 @@ No AC claims credit beyond its executed evidence at the matrix level. Two low tr
 | FR-408-AC-11 | examined | spec/functional/FR-408-kani-tractable-native-rational-carrier.md:113 | PLANNED: the Kani harnesses of Behavior 18 (a, b over the CG domain, c) return an executed terminal VERIFIED verdict ... |
 | FR-408-AC-12 | examined | spec/functional/FR-408-kani-tractable-native-rational-carrier.md:114 | The `u8` tier of the reduction (Behavior 17b) agrees with Euclid's algorithm on every pair ... |
 | FR-405-AC-1..AC-10, AC-14, AC-15; FR-408-AC-1..AC-9 | context_only | spec/functional/ | matrix rows unchanged by this PR |
+
+## Dispositions
+
+Round 1, verified against fix commit cd71d77b.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | New FR-405-AC-16 carries the Behavior 19 shape: ManuallyDrop and read by reference, with rule-decided regions recorded as tool faults. New test `every_harness_holds_its_outcome_in_manually_drop_and_reads_it_by_reference` and the tool-fault test are both tagged FR-405-AC-16; the wrong FR-405-AC-11 tag is gone. |
+| FND-002 | fixed | New test `the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded_failing` (TC-956, FR-408-AC-12) checks the two tier rows VERIFIED with k of k covers. It also checks that every `KANI_TIER` id and every `ROWS` pair (14 in total) is recorded FAILED in TC-956's new Kani mutant record. |
