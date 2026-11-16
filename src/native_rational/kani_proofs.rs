@@ -344,10 +344,8 @@ fn native_rational_add_denies_the_result_unit() {
     );
 }
 
-/// The composed predicate `add(a, b) == add(b, a)` over the CG domain.
-#[kani::proof]
-fn native_rational_add_is_commutative_over_cg_domain() {
-    let (left, right) = (cg_reference_carrier(), cg_reference_carrier());
+/// The composed predicate `add(a, b) == add(b, a)`.
+fn commutative(left: NativeRational, right: NativeRational) {
     let mut meter = sufficient();
     let forward = ManuallyDrop::new(native_rational_add(&left, &right, &mut meter));
     let backward = ManuallyDrop::new(native_rational_add(&right, &left, &mut meter));
@@ -364,6 +362,12 @@ fn native_rational_add_is_commutative_over_cg_domain() {
         }
         _ => panic!("a sufficient meter completes"),
     }
+}
+
+/// The composed predicate over the CG domain with carriers built by field.
+#[kani::proof]
+fn native_rational_add_is_commutative_over_cg_domain() {
+    commutative(cg_reference_carrier(), cg_reference_carrier());
 }
 
 /// One denied charge of `op` over the CG domain, with carriers built by field.
@@ -520,4 +524,37 @@ fn native_rational_subtract_full_i64_matches_reference() {
 #[kani::proof]
 fn native_rational_subtract_cg_domain_from_i64_parts_matches_reference() {
     arithmetic_completes(Op::Subtract, cg_carrier(), cg_carrier(), false);
+}
+
+/// The composed predicate (c) with both operands built by `from_i64_parts`,
+/// the CG row's own construction.
+#[kani::proof]
+fn native_rational_add_is_commutative_from_i64_parts_over_cg_domain() {
+    commutative(cg_carrier(), cg_carrier());
+}
+
+/// The `u8` tier of the reduction equals Euclid's algorithm over `u8` for
+/// every pair of magnitudes, zero included.
+#[kani::proof]
+fn native_fraction_gcd8_matches_euclid_over_u8() {
+    let (left, right): (u8, u8) = (kani::any(), kani::any());
+    kani::assume(left != 0 || right != 0);
+    let divisor = crate::native_fraction::gcd8(left, right);
+    kani::cover!(divisor > 1, "a common factor above one");
+    kani::cover!(left == 0 || right == 0, "a zero operand");
+    assert_eq!(divisor, reference::gcd_narrow(left, right));
+}
+
+/// The shipped reduction equals `u8` Euclid for every numerator magnitude up
+/// to 255 and every denominator in `[1, 255]`, so the whole `u8` tier is
+/// proved, not only the CG domain.
+#[kani::proof]
+fn native_fraction_reduce_u8_tier_matches_euclid() {
+    let n: i16 = kani::any();
+    let d: i16 = kani::any();
+    kani::assume((-255..=255).contains(&n) && (1..=255).contains(&d));
+    let got = crate::native_fraction::reduce(i128::from(n), i128::from(d));
+    let expected = reference::reduce_narrow(i128::from(n), i128::from(d));
+    kani::cover!(got.1 != i128::from(d), "a common factor is removed");
+    assert_eq!(got, expected);
 }

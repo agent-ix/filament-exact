@@ -67,6 +67,8 @@ m("inexact-ignores-sticky", "inexact is not raised when only the sticky bit is s
   "let inexact = remainder != 0 || sticky;", "let inexact = remainder != 0;", S3)
 m("exact-returns-rounded", "Exact returns the rounded value",
   "if rounding == RoundingMode::Exact && !flags.is_empty() {", "if rounding == RoundingMode::Exact && !flags.is_empty() && false {", S3)
+m("exact-refuses-everything", "Exact refuses every finite result, exact or not",
+  "if rounding == RoundingMode::Exact && !flags.is_empty() {", "if rounding == RoundingMode::Exact {", S3)
 m("exact-refusal-drops-flags", "the Exact refusal drops the would-be flags",
   "would_be: flags,", "would_be: IeeeFlags::EMPTY,", S3)
 m("sqrt-negative-not-invalid", "square root of a negative nonzero does not raise invalid",

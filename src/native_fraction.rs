@@ -2,7 +2,7 @@
 //! The fixed-width canonical-fraction helpers shared by the native Decimal
 //! (FR-403), carried-quantity (FR-398) and Rational (FR-408) carriers: the
 //! canonical-pair rule, the 128-step coprimality test, the 256-step gcd and the
-//! width-tiered reduction.
+//! width-tiered reduction (16-step `u8`, 128-step `u64`, 256-step `u128`).
 //!
 //! Everything here is fixed-width native arithmetic: no loop, iterator adapter
 //! or recursion, no allocation, and one body for host and `cfg(kani)` builds.
@@ -53,19 +53,26 @@ pub(crate) fn gcd64(left: u64, right: u64) -> u64 {
 }
 
 /// Reduce `numerator / denominator` for a positive `denominator` to lowest
-/// terms with zero as `0/1`, in the width the magnitudes need: `u64` gcd and
-/// division when both fit `u64`, else the 256-step `u128` gcd.
+/// terms with zero as `0/1`, in the width the magnitudes need: the 16-step
+/// `u8` gcd when both fit `u8`, the `u64` gcd and division when both fit
+/// `u64`, else the 256-step `u128` gcd.
 pub(crate) fn reduce(numerator: i128, denominator: i128) -> (i128, i128) {
     let (n, d) = (numerator.unsigned_abs(), denominator.unsigned_abs());
-    let (n, d) = match (u64::try_from(n), u64::try_from(d)) {
+    let (n, d) = match (u8::try_from(n), u8::try_from(d)) {
         (Ok(n), Ok(d)) => {
-            let gcd = gcd64(n, d);
+            let gcd = gcd8(n, d);
             (u128::from(n / gcd), u128::from(d / gcd))
         }
-        _ => {
-            let gcd = gcd256(n, d);
-            (n / gcd, d / gcd)
-        }
+        _ => match (u64::try_from(n), u64::try_from(d)) {
+            (Ok(n), Ok(d)) => {
+                let gcd = gcd64(n, d);
+                (u128::from(n / gcd), u128::from(d / gcd))
+            }
+            _ => {
+                let gcd = gcd256(n, d);
+                (n / gcd, d / gcd)
+            }
+        },
     };
     // `n` is at most `2^127`, so the negation wraps only for `i128::MIN`,
     // which is the intended value.
@@ -118,6 +125,49 @@ fn steps_64(state: (u64, u64)) -> (u64, u64) {
 }
 fn steps_128(state: (u64, u64)) -> (u64, u64) {
     steps_64(steps_64(state))
+}
+
+/// One step of the `u8` ladder, as [`step`] over `u8`.
+fn step8((left, right): (u8, u8)) -> (u8, u8) {
+    if right == 0 {
+        return (left, right);
+    }
+    let (small, large) = if left > right {
+        (right, left)
+    } else {
+        (left, right)
+    };
+    let difference = large - small;
+    if difference == 0 {
+        (small, 0)
+    } else {
+        (small, difference >> difference.trailing_zeros())
+    }
+}
+
+fn steps8_4(state: (u8, u8)) -> (u8, u8) {
+    step8(step8(step8(step8(state))))
+}
+fn steps8_16(state: (u8, u8)) -> (u8, u8) {
+    steps8_4(steps8_4(steps8_4(steps8_4(state))))
+}
+
+/// The gcd of two `u8` magnitudes, not both zero, by 16 unrolled steps on the
+/// odd parts, with the common power of two restored. The product of the two
+/// odd parts is below `2^16` and every step at least halves it.
+pub(crate) fn gcd8(left: u8, right: u8) -> u8 {
+    if left == 0 {
+        return right;
+    }
+    if right == 0 {
+        return left;
+    }
+    let shift = (left | right).trailing_zeros();
+    let (divisor, _) = steps8_16((
+        left >> left.trailing_zeros(),
+        right >> right.trailing_zeros(),
+    ));
+    divisor << shift
 }
 
 pub(crate) type GcdState = (u128, u128, u128);

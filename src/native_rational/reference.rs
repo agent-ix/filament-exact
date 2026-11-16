@@ -41,6 +41,7 @@ macro_rules! euclid_ladder {
 }
 
 euclid_ladder!(u64, small_1, small_2, small_4, small_8, small_16);
+euclid_ladder!(u8, tiny_1, tiny_2, tiny_4, tiny_8, tiny_16);
 euclid_ladder!(u128, wide_1, wide_2, wide_4, wide_8, wide_16);
 
 fn wide_64(state: (u128, u128)) -> (u128, u128) {
@@ -52,17 +53,37 @@ fn wide_256(state: (u128, u128)) -> (u128, u128) {
 }
 
 /// The canonical pair of `n / d` for a positive `d`. `wide` takes 256 Euclid
-/// steps over `u128`, enough for any 128-bit magnitudes; otherwise the
-/// magnitudes are below `2^63` and 16 steps over `u64` end the algorithm for
-/// values below `F(17) = 1597`, which covers the CG domain.
+/// steps over `u128`, enough for any 128-bit magnitudes; otherwise both
+/// magnitudes are at most 255 (asserted, not assumed) and 16 steps over `u8`
+/// end the algorithm, which covers the CG domain (its results have numerators
+/// of magnitude at most 162 and denominators at most 81).
 pub(super) fn reduce(n: i128, d: i128, wide: bool) -> (i128, i128) {
     if wide {
         let g = wide_256((n.unsigned_abs(), d.unsigned_abs())).0 as i128;
         (n / g, d / g)
     } else {
-        let g = small_16((n.unsigned_abs() as u64, d.unsigned_abs() as u64)).0 as i64;
-        ((n as i64 / g).into(), (d as i64 / g).into())
+        reduce_narrow(n, d)
     }
+}
+
+/// [`reduce`] below 256, by `u8` Euclid.
+pub(super) fn reduce_narrow(n: i128, d: i128) -> (i128, i128) {
+    assert!(
+        n.unsigned_abs() <= 255 && d > 0 && d <= 255,
+        "inside the narrow reference domain"
+    );
+    let (a, b) = (n.unsigned_abs() as u8, d as u8);
+    let g = tiny_16((a, b)).0;
+    let magnitude = i128::from(a / g);
+    (
+        if n < 0 { -magnitude } else { magnitude },
+        i128::from(b / g),
+    )
+}
+
+/// The gcd of two `u8` values by 16 Euclid steps (`gcd(0, m)` is `m`).
+pub(super) fn gcd_narrow(a: u8, b: u8) -> u8 {
+    tiny_16((a, b)).0
 }
 
 /// Whether `n / d` is canonical for `|n| <= 9`-sized magnitudes, where 16

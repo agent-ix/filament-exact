@@ -1012,3 +1012,136 @@ fn the_two_hundred_fifty_two_step_gcd_pair_reduces_like_the_owner() {
         (1, 1)
     );
 }
+
+fn euclid(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        (a, b) = (b, a % b);
+    }
+    a
+}
+
+/// `n/1 * 1/d` forms the unreduced pair `n/d` and so drives the reduction of
+/// one chosen pair; the expected side is Euclid's algorithm.
+#[test]
+#[trace("TC-956", "FR-408-AC-12")]
+fn the_u8_tier_reduces_every_pair_as_euclid_does_across_its_threshold() {
+    for numerator in -600i64..=600 {
+        for denominator in 1i64..=600 {
+            let mut meter = generous();
+            let product = completed(native_rational_multiply(
+                &nat(numerator, 1),
+                &nat(1, denominator),
+                &mut meter,
+            ));
+            let gcd = euclid(numerator.unsigned_abs(), denominator as u64) as i64;
+            let expected = if numerator == 0 {
+                (0, 1)
+            } else {
+                (i128::from(numerator / gcd), i128::from(denominator / gcd))
+            };
+            assert_eq!(parts(&product), expected, "{numerator}/{denominator}");
+        }
+    }
+}
+
+fn read_repo_file(path: &str) -> String {
+    std::fs::read_to_string(format!("{}/{path}", env!("CARGO_MANIFEST_DIR")))
+        .unwrap_or_else(|error| panic!("{path}: {error}"))
+}
+
+/// The cells of the rows of the table that follows `heading` in TC-956.
+fn tc956_table(text: &str, heading: &str) -> Vec<Vec<String>> {
+    let section = text.split(heading).nth(1).expect("heading present");
+    let section = section.split("\n## ").next().unwrap();
+    let section = section.split("\n### ").next().unwrap();
+    section
+        .lines()
+        .filter(|line| line.starts_with("| `"))
+        .map(|line| {
+            line.trim_matches('|')
+                .split('|')
+                .map(|cell| cell.trim().trim_matches('`').to_owned())
+                .collect()
+        })
+        .collect()
+}
+
+/// The Kani half of FR-408-AC-12: the tier rows are VERIFIED with every cover
+/// reached, and every Kani mutant of the script is recorded as failing the
+/// harness it is run against (the script's `KANI_TIER` ids against the gcd8
+/// harness and each `ROWS` pair against its CG row).
+#[test]
+#[trace("TC-956", "FR-408-AC-12")]
+fn the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded_failing() {
+    let tc = read_repo_file("spec/test-cases/TC-956-kani-tractable-native-rational-carrier.md");
+    let script = read_repo_file("scripts/ir258_u8_tier_mutants.py");
+    let evidence = tc_evidence_rows(&tc);
+    for tier in [
+        "native_fraction_gcd8_matches_euclid_over_u8",
+        "native_fraction_reduce_u8_tier_matches_euclid",
+    ] {
+        let row = evidence
+            .iter()
+            .find(|cells| cells[0].starts_with(tier))
+            .unwrap_or_else(|| panic!("{tier} has an evidence row"));
+        assert!(row[1].starts_with("VERIFIED, covers reached ("), "{row:?}");
+        let counts = row[1]
+            .split('(')
+            .nth(1)
+            .and_then(|rest| rest.split(')').next())
+            .and_then(|inner| inner.split_once(" of "))
+            .expect("k of k");
+        assert_eq!(counts.0, counts.1, "{row:?}: every cover reached");
+    }
+
+    let recorded = tc956_table(&tc, "### Kani mutant record");
+    for cells in &recorded {
+        assert_eq!(cells.len(), 3, "{cells:?}");
+        assert_eq!(cells[2], "FAILED", "{cells:?}");
+        assert!(script.contains(&format!("\"{}\"", cells[1])), "{cells:?}");
+        let verified = evidence.iter().any(|row| {
+            row[0].starts_with(&cells[0]) && row[1].starts_with("VERIFIED, covers reached")
+        });
+        assert!(verified, "{cells:?}: the mutated harness is a VERIFIED row");
+    }
+    let has = |harness: &str, mutant: &str| {
+        recorded
+            .iter()
+            .any(|cells| cells[0] == harness && cells[1] == mutant)
+    };
+    // Every id of KANI_TIER is recorded against the gcd8 harness.
+    let tier_set = script
+        .split("KANI_TIER = {")
+        .nth(1)
+        .and_then(|rest| rest.split('}').next())
+        .expect("KANI_TIER");
+    let tier_ids: Vec<&str> = tier_set.split('"').skip(1).step_by(2).collect();
+    assert_eq!(tier_ids.len(), 5);
+    for id in tier_ids {
+        assert!(
+            has("native_fraction_gcd8_matches_euclid_over_u8", id),
+            "{id}"
+        );
+    }
+    // Every (harness, mutant) pair of ROWS is recorded.
+    let rows = script
+        .split("ROWS = [")
+        .nth(1)
+        .unwrap()
+        .split("\n]")
+        .next()
+        .unwrap();
+    let mut pairs = 0;
+    for line in rows.lines() {
+        let quoted: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
+        if line.trim_start().starts_with("(\"native_rational_") {
+            assert!(has(quoted[0], quoted[1]), "{line}");
+            pairs += 1;
+        }
+    }
+    assert_eq!(pairs, 9);
+}
+
+fn tc_evidence_rows(tc: &str) -> Vec<Vec<String>> {
+    tc956_table(tc, "## Evidence record")
+}
