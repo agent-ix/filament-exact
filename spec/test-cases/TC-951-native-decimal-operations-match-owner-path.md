@@ -106,8 +106,8 @@ Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proof
 
 | Run | Outcome | Time |
 | --- | --- | --- |
-| `make verus` (the whole crate) | `630 verified, 0 errors` | VTIME s wall |
-| `scripts/ir1555_verus_mutants.py` | unmutated copy verified; 53 of 53 mutants killed by a failed proof obligation, none UNRELIABLE | MTIME s wall for the 54 runs |
+| `make verus` (the whole crate) | `630 verified, 0 errors` | 14 s wall |
+| `scripts/ir1555_verus_mutants.py` | unmutated copy verified; 53 of 53 mutants killed by a failed proof obligation, none UNRELIABLE | 649 s wall for the 55 runs, in two batches (27 and 26 mutants, each after its own unmutated run) |
 
 What each claim of Behavior 41 rests on. Every statement holds for every signed 128-bit coefficient, every `u32` scale, every type and every rounding spelling.
 
