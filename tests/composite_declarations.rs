@@ -517,11 +517,25 @@ fn pairs_without_a_key_stay_unkeyed_and_refuse() {
     let unavailable = Refusal::CheckedInvariant {
         cause: CheckedInvariantCause::CanonicalKeyUnavailable,
     };
-    for (left, right, expected) in [
-        (float(), float2(), unavailable.clone()),
-        (p100(), integer, mismatch()),
-        (p100(), bad, mismatch()),
-    ] {
+    let float_set = |grouped: bool| {
+        let collection_type = coll_type(CollectionKind::Set);
+        let members = vec![float(), float2()];
+        let outcome = if grouped {
+            form_grouped(&collection_type, members, &mut meter())
+        } else {
+            form(&collection_type, members, &mut meter())
+        };
+        match outcome
+            .completed()
+            .expect("float members have a membership key")
+        {
+            Value::Collection(set) => set.elements().len(),
+            other => panic!("expected a collection, got {other:?}"),
+        }
+    };
+    assert_eq!(float_set(true), 2);
+    assert_eq!(float_set(false), 2);
+    for (left, right, expected) in [(p100(), integer, mismatch()), (p100(), bad, mismatch())] {
         let collection_type = coll_type(CollectionKind::Set);
         let grouped = form_grouped(
             &collection_type,

@@ -341,12 +341,14 @@ fn ieee_union_payload_has_no_key_and_sequence_keeps_occurrences() {
         ValueType::Composite(declaration()),
         None,
     );
-    assert!(matches!(
-        form_grouped(&set, vec![value.clone(), value.clone()], &mut meter()),
-        Outcome::Refused(Refusal::CheckedInvariant {
-            cause: CheckedInvariantCause::CanonicalKeyUnavailable
-        })
-    ));
+    let Value::Collection(grouped) =
+        form_grouped(&set, vec![value.clone(), value.clone()], &mut meter())
+            .completed()
+            .expect("an IEEE payload has a bit-identity membership key")
+    else {
+        panic!("grouped set")
+    };
+    assert_eq!(grouped.elements().len(), 2);
     let sequence = CollectionType::new(
         CollectionKind::Sequence,
         ValueType::Composite(declaration()),

@@ -237,8 +237,12 @@ fn plan_pairs_with_relation(
                 (left, right, relation)
             }
             Pair::Slots(FieldValue::Absent, FieldValue::Absent, _)
-            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => continue,
+            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => {
+                pairs = pairs.add(&Integer::one());
+                continue;
+            }
             Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _, _) => {
+                pairs = pairs.add(&Integer::one());
                 equal = false;
                 continue;
             }
