@@ -35,6 +35,8 @@ impl ValueType {
             | Self::Uuid
             | Self::String
             | Self::Timestamp
+            | Self::Bytes
+            | Self::JsonObject
             | Self::Int(_)
             | Self::Rational(_)
             | Self::Decimal(_)
@@ -72,6 +74,8 @@ impl ValueType {
             | Self::Uuid
             | Self::String
             | Self::Timestamp
+            | Self::Bytes
+            | Self::JsonObject
             | Self::Int(_)
             | Self::Rational(_)
             | Self::Decimal(_)
@@ -96,6 +100,8 @@ impl ValueType {
             | (Self::Uuid, Self::Uuid)
             | (Self::String, Self::String)
             | (Self::Timestamp, Self::Timestamp)
+            | (Self::Bytes, Self::Bytes)
+            | (Self::JsonObject, Self::JsonObject)
             | (Self::Option(_), Self::Option(_)) => true,
             (Self::Int(left), Self::Int(right)) => left == right,
             (Self::Rational(left), Self::Rational(right)) => left == right,
@@ -130,6 +136,8 @@ impl ValueType {
                 | Self::Text(_)
                 | Self::String
                 | Self::Enum(_)
+                | Self::Bytes
+                | Self::JsonObject
                 | Self::Option(_)
                 | Self::Composite(_)
                 | Self::Collection(_)
@@ -151,6 +159,8 @@ impl ValueType {
             | Self::Uuid
             | Self::String
             | Self::Timestamp
+            | Self::Bytes
+            | Self::JsonObject
             | Self::Option(_) => {}
             Self::Int(interval) => interval.hash(state),
             Self::Rational(domain) => domain.hash(state),
@@ -186,6 +196,8 @@ impl Clone for ValueType {
             Self::Uuid => Self::Uuid,
             Self::String => Self::String,
             Self::Timestamp => Self::Timestamp,
+            Self::Bytes => Self::Bytes,
+            Self::JsonObject => Self::JsonObject,
             Self::Int(interval) => Self::Int(interval.clone()),
             Self::Rational(domain) => Self::Rational(domain.clone()),
             Self::Decimal(declared) => Self::Decimal(declared.clone()),
@@ -279,6 +291,8 @@ pub(super) fn schedule_type<'a>(stack: &mut Vec<Step<'a>>, value_type: &'a Value
         ValueType::Uuid => return stack.push(Step::Text("Uuid")),
         ValueType::String => return stack.push(Step::Text("String")),
         ValueType::Timestamp => return stack.push(Step::Text("Timestamp")),
+        ValueType::Bytes => return stack.push(Step::Text("Bytes")),
+        ValueType::JsonObject => return stack.push(Step::Text("JsonObject")),
         ValueType::Option(payload) => {
             return schedule(stack, tuple_steps("Option", Step::Type(payload)));
         }
