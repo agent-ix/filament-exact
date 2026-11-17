@@ -970,7 +970,7 @@ fn the_status_records_a_verdict_or_table_row_for_every_operation_and_width() {
             assert_eq!(*cell, expected, "{name} {width}");
         }
     }
-    assert!(status.contains("No proof is claimed for a table-row combination"));
+    assert!(status.contains("No Kani proof is claimed for a table-row combination"));
 }
 
 /// The number of `kani::cover!` properties TC-953 states for the harness `id`:
