@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The type-owned total canonical key.
 //!
-//! Every type that admits `=` has a key, and two values of one type have
-//! equal keys exactly when they are equal under [`crate::equality`]. The key
-//! fixes set and bag canonical order and visiting order; it is not an
-//! ordering operator. Comparison is iterative, so value depth never reaches
-//! the host stack.
+//! Keys provide canonical ordering for values whose relation supports one;
+//! they are not an ordering operator. A key exists only when equal values
+//! under that relation share a key. Comparison is iterative, so value depth
+//! never reaches the host stack. This API is for canonical collection order,
+//! not a general-purpose map-key encoding.
 //!
 //! Two composites of different declarations are unequal under the equality
 //! plan, so their keys differ: they order by the ascending bytes of the two
@@ -13,17 +13,12 @@
 //! relation to ancestry, declaration names or slot contents. Two composites of
 //! one declaration continue by slots in declaration order.
 //!
-//! **`Value::Float` has no key, matching its exclusion from `=`.**
-//! [`crate::equality`]'s ordinary leaf relation excludes `Value::Float` the same
-//! way this module's `leaf` function does -- both fall through to their
-//! catch-all refusal arm. IEEE equality (`NaN != NaN`, `-0.0 == 0.0`) is not
-//! the total-order `=` this key and the generic equality plan give every
-//! other leaf type, so IEEE comparison stays [`crate::compare_ieee`]'s own
-//! `IeeeComparison` (`NumericEqual`/`TotalOrder`/`BitIdentical`), never this
-//! key or `=`. Collection membership separately compares float leaves by
-//! bit identity, but this key still has no float ordering. Thus ordered-set
-//! coalescing can use that membership relation; set/bag formation still
-//! refuses when canonical ordering requires a float key.
+//! Float equality is IEEE `numericEqual`, so NaN is unequal to itself and
+//! ordinary float values have no key. Collection membership has a separate
+//! bit-identity relation. Its float leaves are ordered by IEEE `totalOrder`,
+//! which gives each distinct bit pattern a distinct position for set, bag and
+//! ordered-set canonicalization. That membership key does not define ordinary
+//! float equality or a map key.
 //!
 //! `Value::Enum` is [`crate::value::EnumMember`] here -- a bare
 //! [`crate::identity::VariantId`] paired with its zero-based canonical rank --
@@ -43,11 +38,17 @@ use crate::value::{FieldValue, Value};
 
 /// One pending key comparison.
 enum Task<'a> {
-    Values(&'a Value, &'a Value),
-    Slots(&'a FieldValue, &'a FieldValue),
+    Values(&'a Value, &'a Value, KeyRelation),
+    Slots(&'a FieldValue, &'a FieldValue, KeyRelation),
     /// The proper-prefix tiebreak of two element lists whose common prefix
     /// has equal keys.
     Lengths(usize, usize),
+}
+
+#[derive(Clone, Copy)]
+enum KeyRelation {
+    Equality,
+    Membership,
 }
 
 /// Compare the canonical keys of two values of one declared type. Two
@@ -61,18 +62,32 @@ enum Task<'a> {
 /// [`crate::form_grouped`] and in `Contains`, so it must order exactly as
 /// [`crate::form`]'s canonical sort does.
 pub fn compare_keys(left: &Value, right: &Value) -> Option<Ordering> {
-    let mut tasks = vec![Task::Values(left, right)];
+    compare_keys_with_relation(left, right, KeyRelation::Equality)
+}
+
+/// Compare canonical keys under the collection-membership relation, where
+/// float leaves use bit identity rather than numeric equality.
+pub(crate) fn compare_membership_keys(left: &Value, right: &Value) -> Option<Ordering> {
+    compare_keys_with_relation(left, right, KeyRelation::Membership)
+}
+
+fn compare_keys_with_relation(
+    left: &Value,
+    right: &Value,
+    relation: KeyRelation,
+) -> Option<Ordering> {
+    let mut tasks = vec![Task::Values(left, right, relation)];
     while let Some(task) = tasks.pop() {
         let ordering = match task {
             Task::Lengths(left, right) => left.cmp(&right),
-            Task::Slots(left, right) => match (left, right) {
+            Task::Slots(left, right, relation) => match (left, right) {
                 (FieldValue::Present(left), FieldValue::Present(right)) => {
-                    tasks.push(Task::Values(left, right));
+                    tasks.push(Task::Values(left, right, relation));
                     continue;
                 }
                 (left, right) => slot_rank(left).cmp(&slot_rank(right)),
             },
-            Task::Values(left, right) => match leaf(left, right, &mut tasks)? {
+            Task::Values(left, right, relation) => match leaf(left, right, relation, &mut tasks)? {
                 Some(ordering) => ordering,
                 None => continue,
             },
@@ -98,9 +113,15 @@ fn slot_rank(slot: &FieldValue) -> u8 {
 fn leaf<'a>(
     left: &'a Value,
     right: &'a Value,
+    relation: KeyRelation,
     tasks: &mut Vec<Task<'a>>,
 ) -> Option<Option<Ordering>> {
     let ordering = match (left, right) {
+        (Value::Float(left), Value::Float(right))
+            if matches!(relation, KeyRelation::Membership) && left.width() == right.width() =>
+        {
+            left.total_order_key().cmp(&right.total_order_key())
+        }
         (Value::Boolean(left), Value::Boolean(right)) => left.cmp(right),
         (Value::Integer(left), Value::Integer(right)) => left.cmp(right),
         (Value::Rational(left), Value::Rational(right)) => left.cmp(right),
@@ -137,7 +158,7 @@ fn leaf<'a>(
         (Value::Reference(left), Value::Reference(right)) => left.cmp(right),
         (Value::Option(left), Value::Option(right)) => match (left.payload(), right.payload()) {
             (Some(left), Some(right)) => {
-                tasks.push(Task::Values(left, right));
+                tasks.push(Task::Values(left, right, relation));
                 return Some(None);
             }
             (left, right) => left.is_some().cmp(&right.is_some()),
@@ -153,7 +174,7 @@ fn leaf<'a>(
             if left.slots().len() == right.slots().len() =>
         {
             let slots = left.slots().iter().zip(right.slots()).rev();
-            tasks.extend(slots.map(|(left, right)| Task::Slots(left, right)));
+            tasks.extend(slots.map(|(left, right)| Task::Slots(left, right, relation)));
             return Some(None);
         }
         (Value::Union(left), Value::Union(right)) if left.declaration() == right.declaration() => {
@@ -173,7 +194,7 @@ fn leaf<'a>(
                         .iter()
                         .zip(right.payload())
                         .rev()
-                        .map(|(left, right)| Task::Values(left, right)),
+                        .map(|(left, right)| Task::Values(left, right, relation)),
                 );
                 return Some(None);
             }
@@ -183,10 +204,26 @@ fn leaf<'a>(
             ordering
         }
         (Value::Collection(left), Value::Collection(right)) => {
+            let relation =
+                if left.collection_type().kind() == crate::collection::CollectionKind::Sequence {
+                    relation
+                } else {
+                    KeyRelation::Membership
+                };
             let (left, right) = (left.elements(), right.elements());
             tasks.push(Task::Lengths(left.len(), right.len()));
             let elements = left.iter().zip(right).rev();
-            tasks.extend(elements.map(|(left, right)| Task::Values(left, right)));
+            tasks.extend(elements.map(|(left, right)| Task::Values(left, right, relation)));
+            return Some(None);
+        }
+        (Value::Map(left), Value::Map(right)) => {
+            let left_entries = ordered_map_entries(left.entries())?;
+            let right_entries = ordered_map_entries(right.entries())?;
+            tasks.push(Task::Lengths(left_entries.len(), right_entries.len()));
+            for (left, right) in left_entries.iter().zip(&right_entries).rev() {
+                tasks.push(Task::Values(&left.1, &right.1, relation));
+                tasks.push(Task::Values(&left.0, &right.0, KeyRelation::Membership));
+            }
             return Some(None);
         }
         (
@@ -206,11 +243,29 @@ fn leaf<'a>(
             | Value::Option(_)
             | Value::Composite(_)
             | Value::Union(_)
-            | Value::Collection(_),
+            | Value::Collection(_)
+            | Value::Map(_),
             _,
         ) => return None,
     };
     Some(Some(ordering))
+}
+
+/// Return map entries in ascending canonical key order. Map keys use the
+/// membership key so float keys retain their total-order identity.
+fn ordered_map_entries(entries: &[(Value, Value)]) -> Option<Vec<&(Value, Value)>> {
+    let mut ordered: Vec<_> = entries.iter().collect();
+    let mut incomparable = false;
+    ordered.sort_unstable_by(
+        |left, right| match compare_membership_keys(&left.0, &right.0) {
+            Some(ordering) => ordering,
+            None => {
+                incomparable = true;
+                Ordering::Equal
+            }
+        },
+    );
+    (!incomparable).then_some(ordered)
 }
 
 #[cfg(test)]
@@ -220,6 +275,7 @@ mod tests {
     use ix_trace_rs::trace;
 
     use super::*;
+    use crate::collection::{from_admitted_map, MapType};
     use crate::integer::Integer;
 
     /// two equal integers key-compare equal; unequal integers key
@@ -230,6 +286,56 @@ mod tests {
         let two = Value::Integer(Integer::one().add(&Integer::one()));
         assert_eq!(compare_keys(&one, &one), Some(Ordering::Equal));
         assert_eq!(compare_keys(&one, &two), Some(Ordering::Less));
+    }
+
+    /// TC-958: maps receive canonical keys independent of retained entry order.
+    #[trace("TC-958", "FR-410-AC-7")]
+    #[test]
+    fn map_keys_sort_entries_by_key_and_compare_values() {
+        let map_type = MapType::new(
+            crate::value::ValueType::String,
+            crate::value::ValueType::Integer,
+            None,
+        )
+        .expect("leaf key type");
+        let map = |entries: &[(&str, i64)]| {
+            from_admitted_map(
+                map_type.clone(),
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            Value::String((*key).to_owned()),
+                            Value::Integer(Integer::from(*value)),
+                        )
+                    })
+                    .collect(),
+            )
+            .expect("unique map keys")
+        };
+
+        let first = map(&[("b", 2), ("a", 1)]);
+        let reordered = map(&[("a", 1), ("b", 2)]);
+        let changed = map(&[("a", 1), ("b", 3)]);
+        assert_eq!(compare_keys(&first, &reordered), Some(Ordering::Equal));
+        assert_eq!(compare_keys(&first, &changed), Some(Ordering::Less));
+        assert_eq!(
+            compare_keys(&map(&[("a", 9)]), &map(&[("b", 0)])),
+            Some(Ordering::Less)
+        );
+        assert_eq!(
+            compare_keys(&map(&[("a", 1)]), &map(&[("a", 1), ("b", 0)])),
+            Some(Ordering::Less)
+        );
+        let sequence = crate::collection::from_admitted(
+            crate::collection::CollectionType::new(
+                crate::collection::CollectionKind::Sequence,
+                crate::value::ValueType::String,
+                None,
+            ),
+            vec![Value::String("a".to_owned())],
+        );
+        assert_eq!(compare_keys(&first, &sequence), None);
     }
 
     /// TC-992: native String keys preserve exact UTF-8 scalar order and do
