@@ -233,7 +233,8 @@ fn leaf<'a>(
             | Value::Option(_)
             | Value::Composite(_)
             | Value::Union(_)
-            | Value::Collection(_),
+            | Value::Collection(_)
+            | Value::Map(_),
             _,
         ) => return None,
     };

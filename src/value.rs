@@ -47,7 +47,7 @@ use alloc::{boxed::Box, string::String, vec, vec::Vec};
 use core::fmt;
 
 use crate::accounting::{Charge, ChargePoint, LimitKind, Meter};
-use crate::collection::{CollectionType, CollectionValue, MapType};
+use crate::collection::{CollectionType, CollectionValue, MapType, MapValue};
 use crate::decimal::{Decimal, DecimalType};
 use crate::identity::{EffectiveId, EmptyVariantName, MemberId, PopulationId, UnitId, VariantId};
 use crate::ieee::{FloatType, IeeeValue};
@@ -431,8 +431,7 @@ impl ValueType {
     /// admits a `Value::Enum` exactly when the shape's own ranked list agrees
     /// with the member's claimed rank for its variant: a
     /// pure lookup against the shape, no declaration lookup needed. A
-    /// [`ValueType::Map`] admits no value: the kernel has no map value, so
-    /// the map type is type identity only (FR-386).
+    /// A map value is admitted by its exact declared `MapType`.
     pub fn admits(&self, value: &Value) -> bool {
         match (self, value) {
             (Self::Boolean, Value::Boolean(_)) | (Self::Integer, Value::Integer(_)) => true,
@@ -458,6 +457,7 @@ impl ValueType {
             (Self::Collection(declared), Value::Collection(collection)) => {
                 collection.collection_type() == &**declared
             }
+            (Self::Map(declared), Value::Map(map)) => map.map_type() == &**declared,
             (Self::Reference(object_type), Value::Reference(reference)) => {
                 reference.object_type() == object_type
             }
@@ -504,6 +504,7 @@ impl ValueType {
                 | Value::Composite(_)
                 | Value::Union(_)
                 | Value::Collection(_)
+                | Value::Map(_)
                 | Value::Reference(_),
             ) => false,
         }
@@ -564,6 +565,8 @@ pub enum Value {
     Union(Arc<UnionValue>),
     /// A collection value.
     Collection(Arc<CollectionValue>),
+    /// A map value.
+    Map(Arc<MapValue>),
     /// A terminal object reference.
     Reference(ObjectReference),
 }
@@ -578,6 +581,7 @@ impl Value {
             Self::Composite(composite) => composite.occ.clone(),
             Self::Union(union) => union.occ.clone(),
             Self::Collection(collection) => collection.occ().clone(),
+            Self::Map(map) => map.occ().clone(),
             Self::Boolean(_)
             | Self::Integer(_)
             | Self::Rational(_)
@@ -597,7 +601,8 @@ impl Value {
 
 /// Drop `children`, and everything nested in them, from a worklist instead
 /// of the compiler's recursive drop glue: the `Drop` of each node struct
-/// ([`OptionValue`], [`CompositeValue`], [`UnionValue`], `CollectionValue`) hands its
+/// ([`OptionValue`], [`CompositeValue`], [`UnionValue`], `CollectionValue`,
+/// `MapValue`) hands its
 /// children here. Before a node popped off the worklist drops, its own
 /// children are moved onto the worklist, so its `Drop` finds nothing left
 /// and the stack stays a fixed few frames deep at any value depth.
@@ -620,9 +625,11 @@ pub(crate) fn drop_nested(children: impl IntoIterator<Item = Value>) {
 /// at once, which recurses nowhere.
 fn defer_node(pending: &mut Vec<Value>, value: Value) {
     match value {
-        Value::Option(_) | Value::Composite(_) | Value::Union(_) | Value::Collection(_) => {
-            pending.push(value)
-        }
+        Value::Option(_)
+        | Value::Composite(_)
+        | Value::Union(_)
+        | Value::Collection(_)
+        | Value::Map(_) => pending.push(value),
         Value::Boolean(_)
         | Value::Integer(_)
         | Value::Rational(_)
@@ -664,6 +671,15 @@ fn release_children(node: Value, pending: &mut Vec<Value>) {
                     .into_vec()
                     .into_iter()
                     .for_each(|element| defer_node(pending, element));
+            }
+        }
+        Value::Map(map) => {
+            if let Some(mut map) = Arc::into_inner(map) {
+                map.take_entries()
+                    .into_vec()
+                    .into_iter()
+                    .flat_map(|(key, value)| [key, value])
+                    .for_each(|child| defer_node(pending, child));
             }
         }
         Value::Union(union) => {
@@ -728,6 +744,7 @@ enum Bracket {
 enum Items<'a> {
     Slots(&'a [FieldValue]),
     Elements(&'a [Value]),
+    Entries(&'a [(Value, Value)]),
 }
 
 impl<'a> Items<'a> {
@@ -735,6 +752,7 @@ impl<'a> Items<'a> {
         match self {
             Self::Slots(slots) => slots.is_empty(),
             Self::Elements(elements) => elements.is_empty(),
+            Self::Entries(entries) => entries.is_empty(),
         }
     }
 
@@ -747,6 +765,9 @@ impl<'a> Items<'a> {
             Self::Elements(elements) => elements
                 .split_first()
                 .map(|(first, rest)| (Step::Value(first), Self::Elements(rest))),
+            Self::Entries(entries) => entries
+                .split_first()
+                .map(|((key, value), rest)| (Step::MapEntry(key, value), Self::Entries(rest))),
         }
     }
 }
@@ -758,6 +779,7 @@ impl<'a> Items<'a> {
 enum Step<'a> {
     Value(&'a Value),
     Union(&'a UnionValue),
+    MapEntry(&'a Value, &'a Value),
     Type(&'a ValueType),
     CollectionType(&'a CollectionType),
     MapType(&'a MapType),
@@ -801,6 +823,10 @@ impl<'f, 'g> DebugWriter<'f, 'g> {
             match step {
                 Step::Value(value) => schedule_value(&mut steps, value),
                 Step::Union(union) => schedule_union(&mut steps, union),
+                Step::MapEntry(key, value) => schedule(
+                    &mut steps,
+                    tuple_steps("MapEntry", Step::Value(key), Step::Value(value)),
+                ),
                 Step::Type(value_type) => value_type::schedule_type(&mut steps, value_type),
                 Step::CollectionType(collection_type) => {
                     value_type::schedule_collection_type(&mut steps, collection_type)
@@ -969,6 +995,16 @@ fn schedule_value<'a>(stack: &mut Vec<Step<'a>>, value: &'a Value) {
                 ],
                 Step::CollectionType(collection_type),
                 Step::List(Items::Elements(elements)),
+                occ,
+            );
+        }
+        Value::Map(map) => {
+            let (map_type, entries, occ) = map.debug_fields();
+            return schedule_node(
+                stack,
+                ["Map", "MapValue", "map_type: ", "entries: "],
+                Step::MapType(map_type),
+                Step::List(Items::Entries(entries)),
                 occ,
             );
         }

@@ -180,7 +180,9 @@ pub(crate) struct PlannedPairs {
 }
 
 /// One node of the occurrence-pair tree still to be formed.
+#[derive(Clone, Copy)]
 enum Pair<'a> {
+    MapKeys(&'a Value, &'a Value),
     Values(&'a Value, &'a Value, LeafRelation),
     Slots(&'a FieldValue, &'a FieldValue, LeafRelation),
 }
@@ -216,8 +218,13 @@ fn plan_pairs_with_relation(
     let mut equal = true;
     let mut pending = vec![Pair::Values(left, right, relation)];
     while let Some(pair) = pending.pop() {
-        pairs = pairs.add(&Integer::one());
         let (left, right, relation) = match pair {
+            Pair::MapKeys(left, right) => {
+                let key_plan = plan_membership_pairs(left, right)?;
+                pairs = pairs.add(&key_plan.pairs);
+                equal &= key_plan.equal;
+                continue;
+            }
             Pair::Slots(FieldValue::Present(left), FieldValue::Present(right), relation) => {
                 (left, right, relation)
             }
@@ -229,6 +236,8 @@ fn plan_pairs_with_relation(
             }
             Pair::Values(left, right, relation) => (left, right, relation),
         };
+        pairs = pairs.add(&Integer::one());
+        pairs = pairs.add(&Integer::one());
         let leaf = match (left, right) {
             (Value::Float(l), Value::Float(r)) if l.width() == r.width() => match relation {
                 LeafRelation::Ordinary => l.numeric_equal(*r),
@@ -319,6 +328,40 @@ fn plan_pairs_with_relation(
                     continue;
                 }
             }
+            (Value::Map(l), Value::Map(r)) => {
+                if l.map_type() != r.map_type() || l.entries().len() != r.entries().len() {
+                    false
+                } else {
+                    let mut matches = Vec::with_capacity(l.entries().len());
+                    for (left_key, left_value) in l.entries() {
+                        let mut found = None;
+                        for (right_key, right_value) in r.entries() {
+                            if plan_membership_pairs(left_key, right_key)?.equal {
+                                found = Some((right_key, right_value));
+                                break;
+                            }
+                        }
+                        if let Some((right_key, right_value)) = found {
+                            matches.push((left_key, left_value, right_key, right_value));
+                        } else {
+                            equal = false;
+                            break;
+                        }
+                    }
+                    if equal {
+                        pending.extend(matches.into_iter().rev().flat_map(
+                            |(left_key, left_value, right_key, right_value)| {
+                                [
+                                    Pair::MapKeys(left_key, right_key),
+                                    Pair::Values(left_value, right_value),
+                                ]
+                            },
+                        ));
+                        continue;
+                    }
+                    false
+                }
+            }
             (Value::Population(_), Value::Population(_)) => {
                 return Err(Refusal::CheckedInvariant {
                     cause: CheckedInvariantCause::PopulationPair,
@@ -341,7 +384,8 @@ fn plan_pairs_with_relation(
                 | Value::Option(_)
                 | Value::Composite(_)
                 | Value::Union(_)
-                | Value::Collection(_),
+                | Value::Collection(_)
+                | Value::Map(_),
                 _,
             ) => {
                 return Err(Refusal::CheckedInvariant {
@@ -365,6 +409,50 @@ mod tests {
 
     use super::*;
     use crate::accounting::{InjectedDenial, ScalarLimits};
+    use crate::collection::{from_admitted_map, MapType};
+    use crate::value::ValueType;
+
+    /// FR-650-AC-11: Map equality is independent of supplied entry order, and
+    /// ValueType admits a map value only under its exact declared map type.
+    #[ix_trace_rs::trace("TC-2372", "FR-650-AC-11")]
+    #[test]
+    fn map_equality_matches_entries_by_key_and_checks_map_type_admission() {
+        let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
+        let make_map = |entries: &[(&str, i64)]| {
+            from_admitted_map(
+                map_type.clone(),
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            Value::String((*key).to_owned()),
+                            Value::Integer((*value).into()),
+                        )
+                    })
+                    .collect(),
+            )
+        };
+        let first = make_map(&[("b", 2), ("a", 1)]);
+        let reordered = make_map(&[("a", 1), ("b", 2)]);
+        let changed = make_map(&[("a", 1), ("b", 3)]);
+
+        assert_eq!(
+            plan_equality(&first, &reordered).unwrap().pair_events(),
+            &Integer::from(5)
+        );
+        assert!(plan_pairs(&first, &reordered).unwrap().equal);
+        assert!(!plan_pairs(&first, &changed).unwrap().equal);
+        assert!(ValueType::map(map_type.clone()).admits(&first));
+        assert!(!ValueType::map(
+            MapType::new(ValueType::String, ValueType::Boolean, None).unwrap()
+        )
+        .admits(&first));
+        let Value::Map(first_map) = first else {
+            panic!("map constructor returns Value::Map");
+        };
+        assert_eq!(first_map.entries().len(), 2);
+        assert!(matches!(&first_map.entries()[0].0, Value::String(key) if key == "b"));
+    }
 
     fn generous_limits() -> ScalarLimits {
         ScalarLimits {

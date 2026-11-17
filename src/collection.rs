@@ -207,6 +207,59 @@ pub struct MapType {
     bound: Option<CardinalityBound>,
 }
 
+/// A completed map value whose entries are in canonical run-key byte order.
+#[derive(Clone, Debug)]
+pub struct MapValue {
+    map_type: MapType,
+    entries: Box<[(Value, Value)]>,
+    occ: Integer,
+}
+
+impl MapValue {
+    /// The declared map type.
+    pub fn map_type(&self) -> &MapType {
+        &self.map_type
+    }
+
+    /// Entries in ascending order of their keys' canonical run-form bytes.
+    pub fn entries(&self) -> &[(Value, Value)] {
+        &self.entries
+    }
+
+    /// `occ` of the map.
+    pub(crate) fn occ(&self) -> &Integer {
+        &self.occ
+    }
+
+    /// Every field, for `Value`'s iterative `Debug` implementation.
+    pub(crate) fn debug_fields(&self) -> (&MapType, &[(Value, Value)], &Integer) {
+        let Self {
+            map_type,
+            entries,
+            occ,
+        } = self;
+        (map_type, entries, occ)
+    }
+
+    /// Move all keys and values out so a uniquely owned map can be taken
+    /// apart without recursive drop glue.
+    pub(crate) fn take_entries(&mut self) -> Box<[(Value, Value)]> {
+        core::mem::take(&mut self.entries)
+    }
+}
+
+impl Drop for MapValue {
+    fn drop(&mut self) {
+        let entries = self.take_entries();
+        drop_nested(
+            entries
+                .into_vec()
+                .into_iter()
+                .flat_map(|(key, value)| [key, value]),
+        );
+    }
+}
+
 /// A map key type that nests another type (`Option`, a collection or a map).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, thiserror::Error)]
 #[error("a map key type must not nest another type")]
@@ -254,6 +307,21 @@ impl MapType {
     pub fn bound(&self) -> Option<CardinalityBound> {
         self.bound
     }
+}
+
+/// Materialize an already-admitted map without changing its entry order.
+/// The caller owns bound checks, duplicate-key refusal and any canonical
+/// output ordering required by its wire format.
+pub fn from_admitted_map(map_type: MapType, entries: Vec<(Value, Value)>) -> Value {
+    let occ = entries.iter().fold(Integer::one(), |occ, (key, value)| {
+        occ.add(&key.occ()).add(&value.occ())
+    });
+    let entries = entries.into_boxed_slice();
+    Value::Map(Arc::new(MapValue {
+        map_type,
+        entries,
+        occ,
+    }))
 }
 
 /// A completed collection value.
