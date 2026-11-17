@@ -477,6 +477,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .expect("unique map keys")
         };
         let first = make_map(&[("b", 2), ("a", 1)]);
         let reordered = make_map(&[("a", 1), ("b", 2)]);
@@ -498,6 +499,36 @@ mod tests {
         };
         assert_eq!(first_map.entries().len(), 2);
         assert!(matches!(&first_map.entries()[0].0, Value::String(key) if key == "b"));
+    }
+
+    /// A repeated admitted key is refused at the later source entry.
+    #[test]
+    fn map_construction_refuses_duplicate_keys_deterministically() {
+        let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
+        let refusal = from_admitted_map(
+            map_type,
+            vec![
+                (
+                    Value::String("same".to_owned()),
+                    Value::Integer(1_i64.into()),
+                ),
+                (
+                    Value::String("other".to_owned()),
+                    Value::Integer(2_i64.into()),
+                ),
+                (
+                    Value::String("same".to_owned()),
+                    Value::Integer(3_i64.into()),
+                ),
+            ],
+        )
+        .expect_err("duplicate map key must be rejected");
+
+        assert_eq!(refusal.component, crate::value::Component::Element(2));
+        assert_eq!(
+            refusal.cause,
+            crate::value::ConstructionCause::DuplicateMember
+        );
     }
 
     /// The map matcher uses a sort-and-merge key comparison budget, not a

@@ -309,20 +309,77 @@ impl MapType {
     }
 }
 
-/// Materialize a map whose entry count, unique keys and admitted key/value
-/// types the caller has already checked. Retains entry order; the caller
-/// owns bound checks, duplicate-key refusal and any canonical output ordering
-/// required by its wire format.
-pub fn from_admitted_map(map_type: MapType, entries: Vec<(Value, Value)>) -> Value {
+/// Materialize a map from entries whose count and key/value types the caller
+/// has already checked. Refuses duplicate keys under the canonical key
+/// relation and retains the supplied entry order.
+pub fn from_admitted_map(
+    map_type: MapType,
+    entries: Vec<(Value, Value)>,
+) -> Result<Value, ConstructionRefusal> {
+    if let Some((index, _)) = entries
+        .iter()
+        .enumerate()
+        .find(|(_, (key, _))| !map_type.key().admits(key))
+    {
+        return Err(ConstructionRefusal {
+            component: Component::Element(index),
+            cause: ConstructionCause::TypeMismatch,
+        });
+    }
+    let mut ordered: Vec<_> = entries.iter().enumerate().collect();
+    let mut incomparable = false;
+    ordered.sort_unstable_by(|(left_index, left), (right_index, right)| {
+        match compare_membership_keys(&left.0, &right.0) {
+            Some(Ordering::Equal) => left_index.cmp(right_index),
+            Some(ordering) => ordering,
+            None => {
+                incomparable = true;
+                left_index.cmp(right_index)
+            }
+        }
+    });
+    if incomparable {
+        return Err(ConstructionRefusal {
+            component: Component::Element(0),
+            cause: ConstructionCause::TypeMismatch,
+        });
+    }
+    let mut duplicate_index = None;
+    let mut start = 0;
+    while start < ordered.len() {
+        let mut end = start + 1;
+        while end < ordered.len()
+            && compare_membership_keys(&ordered[start].1 .0, &ordered[end].1 .0)
+                == Some(Ordering::Equal)
+        {
+            end += 1;
+        }
+        if end - start > 1 {
+            let mut indexes: Vec<_> = ordered[start..end]
+                .iter()
+                .map(|(index, _)| *index)
+                .collect();
+            indexes.sort_unstable();
+            duplicate_index =
+                Some(duplicate_index.map_or(indexes[1], |current: usize| current.min(indexes[1])));
+        }
+        start = end;
+    }
+    if let Some(index) = duplicate_index {
+        return Err(ConstructionRefusal {
+            component: Component::Element(index),
+            cause: ConstructionCause::DuplicateMember,
+        });
+    }
     let occ = entries.iter().fold(Integer::one(), |occ, (key, value)| {
         occ.add(&key.occ()).add(&value.occ())
     });
     let entries = entries.into_boxed_slice();
-    Value::Map(Arc::new(MapValue {
+    Ok(Value::Map(Arc::new(MapValue {
         map_type,
         entries,
         occ,
-    }))
+    })))
 }
 
 /// A completed collection value.
@@ -1074,7 +1131,14 @@ mod float_membership_tests {
                 CollectionKind::Sequence => assert_eq!(observed, patterns),
                 CollectionKind::OrderedSet => assert_eq!(
                     observed,
-                    [patterns[0], patterns[2], patterns[3], patterns[4], patterns[5], patterns[6]]
+                    [
+                        patterns[0],
+                        patterns[2],
+                        patterns[3],
+                        patterns[4],
+                        patterns[5],
+                        patterns[6]
+                    ]
                 ),
                 CollectionKind::Set => assert_eq!(
                     observed,
