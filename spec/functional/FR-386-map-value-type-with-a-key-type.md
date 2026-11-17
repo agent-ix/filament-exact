@@ -4,6 +4,8 @@ title: "A Map value type with a key type"
 type: FR
 org: agent-ix
 relationships:
+  - target: ix://agent-ix/filament-exact/FR-410
+    type: references
   - target: ix://agent-ix/filament-exact/FR-097
     type: references
   - target: ix://agent-ix/filament-exact/FR-262
@@ -15,7 +17,7 @@ relationships:
 
 ## Description
 
-The `filament-exact` kernel SHALL provide a value type `Map<K, V>[min, max]`, and the unbounded `Map<K, V>`, as the variant `ValueType::Map` holding a `MapType`. The type carries its key type `K`, its value type `V` and an optional `CardinalityBound`, and `MapType::key()` returns `K` so a caller can check a key against its own eligibility rule (FSL FR-230-AC-19 refuses `Map<Timer, Int>` at the key type). The kernel decides no key eligibility beyond the shape rule in Behavior 8. The kernel SHALL provide no map value in this requirement: the map type is type identity, so that a caller can declare, compare, hash and nest a package map (QSpec FR-154 "a map `values`") and read it as a clock collection of its kind (QSpec FR-154-AC-27) without a kernel value that inhabits it.
+The `filament-exact` kernel SHALL provide a value type `Map<K, V>[min, max]`, and the unbounded `Map<K, V>`, as the variant `ValueType::Map` holding a `MapType`. The type carries its key type `K`, its value type `V` and an optional `CardinalityBound`, and `MapType::key()` returns `K` so a caller can check a key against its own eligibility rule (FSL FR-230-AC-19 refuses `Map<Timer, Int>` at the key type). The kernel decides no key eligibility beyond the shape rule in Behavior 8. The map type is type identity, so that a caller can declare, compare, hash and nest a package map (QSpec FR-154 "a map `values`") and read it as a clock collection of its kind (QSpec FR-154-AC-27). The map value that inhabits it, with its construction, admission, equality and canonical key, is [FR-410](./FR-410-map-values.md).
 
 ## Use case
 
@@ -37,7 +39,7 @@ A package map type `Map<String, Timer>[0, 2]` is a field of an object type. The 
 4. **Nesting.** A map type nests any value type, and any type nests a map type, including `Option`, `Collection` and `Map` links in any order. A map link shares its `MapType` by reference count, as `Option` and `Collection` links do (FR-262): `Clone` costs one increment, and a type nested N levels deep holds O(N) type nodes.
 5. **Deep types.** Clone, equality, hash, `Debug` and drop of a `ValueType` nested 100,000 levels deep through `Map` links, and through `Map`, `Option` and `Collection` links mixed, run on a 512 KiB stack with no recursion proportional to depth.
 6. **Debug.** `Debug` prints a map type as `Map(MapType { key: .., values: .., bound: .. })` in compact and alternate mode.
-7. **Admission.** `ValueType::admits` returns `false` for every `Value` at a `Map` type, because the kernel has no map value. A `Value` whose declared type contains a `Map` type is formed only through the types the value is built from, which this requirement does not change.
+7. **Admission.** `ValueType::admits` at a `Map` type returns `false` for every value that is not a map value. Which map values a `Map` type admits is FR-410 Behavior 6.
 8. **Refusal.** `MapType::new` refuses a key type that nests another type (`Option`, a collection or a map) with `NestedMapKey`, so that the type chain the deep-type walks follow (Behavior 5) stays a chain with one nested value link. Every other key type, including `Text`, `String`, `Integer`, `Int` and `Composite`, is kept as declared.
 
 ## Acceptance Criteria
@@ -49,17 +51,18 @@ A package map type `Map<String, Timer>[0, 2]` is a field of an object type. The 
 | FR-386-AC-3 | A map whose value type is a map, an `Option` or a `Collection` compares by its whole nested chain: two such types differing only at the innermost link are unequal, and equal chains hash equal. | Test (TC-935) |
 | FR-386-AC-4 | On a thread with a 512 KiB stack, a `ValueType` of 100,000 nested `Map` links around `Boolean`, and one of 100,000 links cycling `Map`, `Option` and `Sequence`, clone, compare equal to their clones, hash equal to their clones, format for debug with balanced brackets, and drop. Two chains differing only at the innermost link are unequal. | Test (TC-935) |
 | FR-386-AC-5 | `Debug` of `Map<String, Boolean>` and of a bounded `Map<String, Option<Boolean>>[1, 3]` prints exactly `Map(MapType { key: String, values: Boolean, bound: None })` and `Map(MapType { key: String, values: Option(Boolean), bound: Some(CardinalityBound { minimum: 1, maximum: 3 }) })`. | Test (TC-935) |
-| FR-386-AC-6 | `ValueType::admits` on a `Map` type returns `false` for a collection value, a text value and an option value. | Test (TC-935) |
+| FR-386-AC-6 | `ValueType::admits` on a `Map` type returns `false` for a collection value, a text value and an option value (map values: FR-410-AC-4). | Test (TC-935) |
 | FR-386-AC-7 | `Debug` in alternate mode (`{:#?}`) of `Map<String, Boolean>` and of the bounded `Map<String, Option<Boolean>>[1, 3]` prints exactly what `#[derive(Debug)]` pretty-printing prints: `Map(\n    MapType {\n        key: String,\n        values: Boolean,\n        bound: None,\n    },\n)` and the same nesting, four spaces per level with a trailing comma on every field, for the bounded type. | Test (TC-935) |
 | FR-386-AC-8 | `MapType::key()` returns the declared key type. Two maps differing only in key type (`String` against `Integer`) are unequal and equal maps hash equal. | Test (TC-935) |
 | FR-386-AC-9 | `MapType::new` returns `NestedMapKey` for a key type that is an `Option`, a `Collection` or a `Map`, and builds a map, keeping the key as declared, for each leaf key type: `String`, `Integer`, `Composite`, `Enum`, `Text` and `Reference`. | Test (TC-935) |
 
 ## Status
 
-Implemented. The kernel gives a type-level key only: it does not enumerate a key domain, and domain enumeration (FR-120) lives in the consumer. Map values (construction, key uniqueness, canonical order, metered charges) are not part of this requirement; a later requirement adds them if a caller needs a kernel map value.
+Implemented. The kernel gives a type-level key only: it does not enumerate a key domain, and domain enumeration (FR-120) lives in the consumer. Map values (construction, key uniqueness, admission, equality and canonical key) are [FR-410](./FR-410-map-values.md).
 
 ## Dependencies
 
 - Collection kinds and bounds: [FR-097](./FR-097-unbounded-collection-in-the-kernel.md). Deep types: [FR-262](./FR-262-deep-values-and-types-in-the-kernel.md).
 - The package map this type represents is QSpec FR-154 (a map `values`, FR-154-AC-24 and FR-154-AC-27). A map of `Clock` or unit-typed values is a clock collection of its kind by QSpec FR-415; the kernel holds no unit or clock semantics here beyond the value type's own identity.
+- Map values: [FR-410](./FR-410-map-values.md).
 - The falsifying controls are [TC-935](../test-cases/TC-935-map-value-type-with-a-key-type.md).

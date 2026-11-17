@@ -30,9 +30,12 @@
 
 use crate::accounting::{Charge, ChargePoint, Incomplete, LimitKind, Meter};
 use crate::integer::Integer;
+use crate::key::compare_membership_keys;
 use crate::outcome::{CheckedInvariantCause, Outcome, Refusal, Stop};
 use crate::value::{FieldValue, Value};
 use alloc::vec;
+use alloc::vec::Vec;
+use core::cmp::Ordering;
 
 /// The complete occurrence-pair plan of one planned equality.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -180,10 +183,14 @@ pub(crate) struct PlannedPairs {
 }
 
 /// One node of the occurrence-pair tree still to be formed.
+#[derive(Clone, Copy)]
 enum Pair<'a> {
-    Values(&'a Value, &'a Value),
-    Slots(&'a FieldValue, &'a FieldValue),
+    MapKeys(&'a Value, &'a Value, LeafRelation),
+    Values(&'a Value, &'a Value, LeafRelation),
+    Slots(&'a FieldValue, &'a FieldValue, LeafRelation),
 }
+
+type MapEntryMatch<'a> = (&'a Value, &'a Value, &'a Value, &'a Value);
 
 /// Walk the occurrence-pair tree of two values of one static type. Two
 /// composites of different declarations are one pair and unequal: a caller
@@ -214,25 +221,35 @@ fn plan_pairs_with_relation(
 ) -> Result<PlannedPairs, Refusal> {
     let mut pairs = Integer::zero();
     let mut equal = true;
-    let mut pending = vec![Pair::Values(left, right)];
+    let mut pending = vec![Pair::Values(left, right, relation)];
     while let Some(pair) = pending.pop() {
-        pairs = pairs.add(&Integer::one());
-        let (left, right) = match pair {
-            Pair::Slots(FieldValue::Present(left), FieldValue::Present(right)) => (left, right),
-            Pair::Slots(FieldValue::Absent, FieldValue::Absent)
-            | Pair::Slots(FieldValue::Null, FieldValue::Null) => continue,
-            Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _) => {
+        let (left, right, relation) = match pair {
+            Pair::MapKeys(left, right, relation) => {
+                let key_plan = match relation {
+                    LeafRelation::Ordinary => plan_pairs(left, right)?,
+                    LeafRelation::Membership => plan_membership_pairs(left, right)?,
+                };
+                pairs = pairs.add(&key_plan.pairs);
+                equal &= key_plan.equal;
+                continue;
+            }
+            Pair::Slots(FieldValue::Present(left), FieldValue::Present(right), relation) => {
+                (left, right, relation)
+            }
+            Pair::Slots(FieldValue::Absent, FieldValue::Absent, _)
+            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => continue,
+            Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _, _) => {
                 equal = false;
                 continue;
             }
-            Pair::Values(left, right) => (left, right),
+            Pair::Values(left, right, relation) => (left, right, relation),
         };
+        pairs = pairs.add(&Integer::one());
         let leaf = match (left, right) {
-            (Value::Float(l), Value::Float(r))
-                if matches!(relation, LeafRelation::Membership) && l.width() == r.width() =>
-            {
-                l == r
-            }
+            (Value::Float(l), Value::Float(r)) if l.width() == r.width() => match relation {
+                LeafRelation::Ordinary => l.numeric_equal(*r),
+                LeafRelation::Membership => l.bits() == r.bits(),
+            },
             (Value::Boolean(l), Value::Boolean(r)) => l == r,
             (Value::Integer(l), Value::Integer(r)) => l == r,
             (Value::Rational(l), Value::Rational(r)) => l == r,
@@ -263,7 +280,7 @@ fn plan_pairs_with_relation(
             }
             (Value::Option(l), Value::Option(r)) => match (l.payload(), r.payload()) {
                 (Some(l), Some(r)) => {
-                    pending.push(Pair::Values(l, r));
+                    pending.push(Pair::Values(l, r, relation));
                     continue;
                 }
                 (l, r) => l.is_some() == r.is_some(),
@@ -276,7 +293,7 @@ fn plan_pairs_with_relation(
             }
             (Value::Composite(l), Value::Composite(r)) if l.slots().len() == r.slots().len() => {
                 let slots = l.slots().iter().zip(r.slots()).rev();
-                pending.extend(slots.map(|(l, r)| Pair::Slots(l, r)));
+                pending.extend(slots.map(|(l, r)| Pair::Slots(l, r, relation)));
                 continue;
             }
             (Value::Union(l), Value::Union(r)) if l.declaration() == r.declaration() => {
@@ -292,7 +309,7 @@ fn plan_pairs_with_relation(
                             .iter()
                             .zip(r.payload())
                             .rev()
-                            .map(|(l, r)| Pair::Values(l, r)),
+                            .map(|(l, r)| Pair::Values(l, r, relation)),
                     );
                     continue;
                 }
@@ -308,9 +325,47 @@ fn plan_pairs_with_relation(
                 if l.len() != r.len() {
                     false
                 } else {
+                    let element_relation = if kind == crate::collection::CollectionKind::Sequence {
+                        relation
+                    } else {
+                        LeafRelation::Membership
+                    };
                     let ranks = l.iter().zip(r).rev();
-                    pending.extend(ranks.map(|(l, r)| Pair::Values(l, r)));
+                    pending.extend(ranks.map(|(l, r)| Pair::Values(l, r, element_relation)));
                     continue;
+                }
+            }
+            (Value::Map(l), Value::Map(r)) => {
+                if l.map_type() != r.map_type() || l.entries().len() != r.entries().len() {
+                    false
+                } else {
+                    let mut order_keys = compare_map_membership_keys;
+                    let mut equal_keys = match relation {
+                        LeafRelation::Ordinary => compare_map_keys,
+                        LeafRelation::Membership => compare_map_membership_keys,
+                    };
+                    let matches = map_entry_matches_by(
+                        l.entries(),
+                        r.entries(),
+                        &mut order_keys,
+                        &mut equal_keys,
+                    )
+                    .map_err(|()| Refusal::CheckedInvariant {
+                        cause: CheckedInvariantCause::ValueKindMismatch,
+                    })?;
+                    if let Some(matches) = matches {
+                        pending.extend(matches.into_iter().rev().flat_map(
+                            |(left_key, left_value, right_key, right_value)| {
+                                [
+                                    Pair::MapKeys(left_key, right_key, relation),
+                                    Pair::Values(left_value, right_value, relation),
+                                ]
+                            },
+                        ));
+                        continue;
+                    } else {
+                        false
+                    }
                 }
             }
             (Value::Population(_), Value::Population(_)) => {
@@ -335,7 +390,8 @@ fn plan_pairs_with_relation(
                 | Value::Option(_)
                 | Value::Composite(_)
                 | Value::Union(_)
-                | Value::Collection(_),
+                | Value::Collection(_)
+                | Value::Map(_),
                 _,
             ) => {
                 return Err(Refusal::CheckedInvariant {
@@ -346,6 +402,75 @@ fn plan_pairs_with_relation(
         equal = equal && leaf;
     }
     Ok(PlannedPairs { pairs, equal })
+}
+
+/// Match two entry lists after sorting their borrowed views by key, retaining
+/// the source maps' entry order. `Err(())` means a key pair lacks a canonical
+/// typed order; `Ok(None)` means the maps have different keys.
+fn map_entry_matches_by<'a>(
+    left: &'a [(Value, Value)],
+    right: &'a [(Value, Value)],
+    order_keys: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+    equal_keys: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+) -> Result<Option<Vec<MapEntryMatch<'a>>>, ()> {
+    if left.len() != right.len() {
+        return Ok(None);
+    }
+    let left = ordered_map_entries_by(left, order_keys)?;
+    let right = ordered_map_entries_by(right, order_keys)?;
+    let mut matches = Vec::with_capacity(left.len());
+    for (left_entry, right_entry) in left.into_iter().zip(right) {
+        match equal_keys(&left_entry.0, &right_entry.0).ok_or(())? {
+            Ordering::Equal => {
+                matches.push((&left_entry.0, &left_entry.1, &right_entry.0, &right_entry.1))
+            }
+            Ordering::Less | Ordering::Greater => return Ok(None),
+        }
+    }
+    Ok(Some(matches))
+}
+
+/// Return a borrowed view in ascending canonical key order.
+fn ordered_map_entries_by<'a>(
+    entries: &'a [(Value, Value)],
+    compare: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+) -> Result<Vec<&'a (Value, Value)>, ()> {
+    let mut ordered: Vec<_> = entries.iter().collect();
+    let mut incomparable = false;
+    ordered.sort_unstable_by(|left, right| match compare(&left.0, &right.0) {
+        Some(ordering) => ordering,
+        None => {
+            incomparable = true;
+            Ordering::Equal
+        }
+    });
+    if incomparable {
+        Err(())
+    } else {
+        Ok(ordered)
+    }
+}
+
+/// Compare map keys for ordinary equality. Float's equality collapses signed
+/// zero, matching `numericEqual`; NaNs retain their total-order position so
+/// they can be aligned and then correctly fail ordinary equality.
+fn compare_map_keys(left: &Value, right: &Value) -> Option<Ordering> {
+    match (left, right) {
+        (Value::Float(left), Value::Float(right)) if left.width() == right.width() => {
+            if left.numeric_equal(*right) {
+                Some(Ordering::Equal)
+            } else {
+                Some(left.total_order_key().cmp(&right.total_order_key()))
+            }
+        }
+        _ => compare_membership_keys(left, right),
+    }
+}
+
+/// Compare map keys by membership identity, keeping signed zeros and NaN bit
+/// patterns distinct. This provides a stable sort order for equality matching.
+fn compare_map_membership_keys(left: &Value, right: &Value) -> Option<Ordering> {
+    compare_membership_keys(left, right)
 }
 
 #[cfg(test)]
@@ -359,6 +484,404 @@ mod tests {
 
     use super::*;
     use crate::accounting::{InjectedDenial, ScalarLimits};
+    use crate::collection::{
+        form, from_admitted, from_admitted_map, CardinalityBound, CollectionKind, CollectionType,
+        MapType,
+    };
+    use crate::key::compare_keys;
+    use crate::value::ValueType;
+
+    /// Map equality is independent of supplied entry order, and ValueType
+    /// admits a map value only under its declared map type.
+    #[trace("TC-958", "FR-410-AC-1", "FR-410-AC-5")]
+    #[test]
+    fn map_equality_matches_entries_by_key_and_checks_map_type_admission() {
+        let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
+        let make_map = |entries: &[(&str, i64)]| {
+            from_admitted_map(
+                map_type.clone(),
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            Value::String((*key).to_owned()),
+                            Value::Integer((*value).into()),
+                        )
+                    })
+                    .collect(),
+            )
+            .expect("unique map keys")
+        };
+        let first = make_map(&[("b", 2), ("a", 1)]);
+        let empty = from_admitted_map(map_type.clone(), Vec::new()).expect("empty map");
+        let reordered = make_map(&[("a", 1), ("b", 2)]);
+        let changed = make_map(&[("a", 1), ("b", 3)]);
+        let changed_keys = make_map(&[("a", 1), ("c", 2)]);
+        let changed_count = make_map(&[("a", 1)]);
+
+        assert_eq!(
+            plan_equality(&first, &reordered).unwrap().pair_events(),
+            &Integer::from(5_i64)
+        );
+        assert!(plan_pairs(&first, &reordered).unwrap().equal);
+        assert!(!plan_pairs(&first, &changed).unwrap().equal);
+        assert!(!plan_pairs(&first, &changed_keys).unwrap().equal);
+        assert!(!plan_pairs(&first, &changed_count).unwrap().equal);
+        let bounded_type = MapType::new(
+            ValueType::String,
+            ValueType::Integer,
+            Some(CardinalityBound::at_most(2)),
+        )
+        .unwrap();
+        let bounded = from_admitted_map(
+            bounded_type,
+            [("b", 2_i64), ("a", 1_i64)]
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        Value::String((*key).to_owned()),
+                        Value::Integer((*value).into()),
+                    )
+                })
+                .collect(),
+        )
+        .unwrap();
+        assert!(!plan_pairs(&first, &bounded).unwrap().equal);
+        assert!(ValueType::map(map_type.clone()).admits(&first));
+        assert!(!ValueType::map(
+            MapType::new(ValueType::String, ValueType::Boolean, None).unwrap()
+        )
+        .admits(&first));
+        let Value::Map(empty) = empty else {
+            panic!("empty map constructor returns Value::Map");
+        };
+        assert_eq!(empty.map_type(), &map_type);
+        assert!(empty.entries().is_empty());
+        let Value::Map(first_map) = first else {
+            panic!("map constructor returns Value::Map");
+        };
+        assert_eq!(first_map.entries().len(), 2);
+        assert!(matches!(&first_map.entries()[0].0, Value::String(key) if key == "b"));
+    }
+
+    /// A repeated admitted key is refused at the later source entry.
+    #[trace("TC-958", "FR-410-AC-2")]
+    #[test]
+    fn map_construction_refuses_duplicate_keys_deterministically() {
+        let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
+        let refusal = from_admitted_map(
+            map_type,
+            vec![
+                (
+                    Value::String("same".to_owned()),
+                    Value::Integer(1_i64.into()),
+                ),
+                (
+                    Value::String("other".to_owned()),
+                    Value::Integer(2_i64.into()),
+                ),
+                (
+                    Value::String("same".to_owned()),
+                    Value::Integer(3_i64.into()),
+                ),
+            ],
+        )
+        .expect_err("duplicate map key must be rejected");
+
+        assert_eq!(refusal.component, crate::value::Component::Element(2));
+        assert_eq!(
+            refusal.cause,
+            crate::value::ConstructionCause::DuplicateMember
+        );
+        let refusal = from_admitted_map(
+            MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
+            [("x", 1_i64), ("y", 2_i64), ("y", 3_i64), ("x", 4_i64)]
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        Value::String((*key).to_owned()),
+                        Value::Integer((*value).into()),
+                    )
+                })
+                .collect(),
+        )
+        .expect_err("report the smallest source index with an earlier equal key");
+        assert_eq!(refusal.component, crate::value::Component::Element(2));
+
+        use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
+        let float_type = ValueType::Float(FloatType::exact(IeeeWidth::Binary64));
+        let float_map_type = MapType::new(float_type, ValueType::Integer, None).unwrap();
+        let zeros = from_admitted_map(
+            float_map_type.clone(),
+            [0x8000_0000_0000_0000, 0]
+                .into_iter()
+                .map(|bits| {
+                    (
+                        Value::Float(IeeeValue::binary64(bits)),
+                        Value::Integer(1_i64.into()),
+                    )
+                })
+                .collect(),
+        )
+        .expect("signed zeros are distinct membership keys");
+        assert!(matches!(&zeros, Value::Map(map) if map.entries().len() == 2));
+        let nan = Value::Float(IeeeValue::binary64(0x7ff8_0000_0000_0001));
+        let refusal = from_admitted_map(
+            float_map_type,
+            vec![
+                (nan.clone(), Value::Integer(1_i64.into())),
+                (nan, Value::Integer(2_i64.into())),
+            ],
+        )
+        .expect_err("same NaN membership key must be refused");
+        assert_eq!(refusal.component, crate::value::Component::Element(1));
+    }
+
+    /// The map matcher uses a sort-and-merge key comparison budget, not a
+    /// nested scan whose comparison count grows quadratically.
+    #[trace("TC-958", "FR-410-AC-6")]
+    #[test]
+    fn map_entry_matching_scales_by_sorting_key_order() {
+        const ENTRY_COUNT: usize = 1_024;
+        let left: Vec<_> = (0..ENTRY_COUNT)
+            .rev()
+            .map(|key| (Value::Integer(Integer::from(key)), Value::Boolean(true)))
+            .collect();
+        let right: Vec<_> = (0..ENTRY_COUNT)
+            .map(|key| (Value::Integer(Integer::from(key)), Value::Boolean(true)))
+            .collect();
+        let comparisons = core::cell::Cell::new(0_usize);
+        let mut compare_order = |left: &Value, right: &Value| {
+            comparisons.set(comparisons.get() + 1);
+            compare_map_membership_keys(left, right)
+        };
+        let mut compare_equal = |left: &Value, right: &Value| {
+            comparisons.set(comparisons.get() + 1);
+            compare_map_keys(left, right)
+        };
+
+        let matches = map_entry_matches_by(&left, &right, &mut compare_order, &mut compare_equal)
+            .expect("integer map keys have total canonical keys");
+        assert_eq!(matches.as_ref().map(Vec::len), Some(ENTRY_COUNT));
+        assert!(
+            comparisons.get() < ENTRY_COUNT * 32,
+            "{} key comparisons exceeded the deterministic sort budget",
+            comparisons.get()
+        );
+        let map_type = MapType::new(ValueType::Integer, ValueType::Boolean, None).unwrap();
+        let left_map = from_admitted_map(map_type.clone(), left).unwrap();
+        let right_map = from_admitted_map(map_type, right).unwrap();
+        assert!(plan_pairs(&left_map, &right_map).unwrap().equal);
+    }
+
+    /// Map construction rejects a key outside K at its source entry.
+    #[trace("TC-958", "FR-410-AC-3")]
+    #[test]
+    fn map_construction_rejects_wrong_key_type() {
+        let refusal = from_admitted_map(
+            MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
+            vec![
+                (Value::String("a".to_owned()), Value::Integer(1_i64.into())),
+                (Value::Integer(7_i64.into()), Value::Integer(2_i64.into())),
+            ],
+        )
+        .expect_err("Integer is not admitted by String key type");
+        assert_eq!(refusal.component, crate::value::Component::Element(1));
+        assert_eq!(refusal.cause, crate::value::ConstructionCause::TypeMismatch);
+    }
+
+    /// Map admission includes type identity, entry count and each K/V pair.
+    #[trace("TC-958", "FR-410-AC-4")]
+    #[test]
+    fn map_admission_checks_bound_key_value_and_kind() {
+        let bounded_type = MapType::new(
+            ValueType::String,
+            ValueType::Integer,
+            Some(CardinalityBound::at_most(1)),
+        )
+        .unwrap();
+        let declared = ValueType::map(bounded_type.clone());
+        let one = from_admitted_map(
+            bounded_type.clone(),
+            vec![(Value::String("a".to_owned()), Value::Integer(1_i64.into()))],
+        )
+        .unwrap();
+        assert!(declared.admits(&one));
+
+        let two = from_admitted_map(
+            bounded_type.clone(),
+            ["a", "b"]
+                .into_iter()
+                .enumerate()
+                .map(|(index, key)| {
+                    (
+                        Value::String(key.to_owned()),
+                        Value::Integer((index as i64).into()),
+                    )
+                })
+                .collect(),
+        )
+        .unwrap();
+        assert!(!declared.admits(&two));
+
+        let unbounded = from_admitted_map(
+            MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
+            vec![(Value::String("a".to_owned()), Value::Integer(1_i64.into()))],
+        )
+        .unwrap();
+        assert!(!declared.admits(&unbounded));
+
+        let wrong_values = from_admitted_map(
+            bounded_type.clone(),
+            vec![(Value::String("a".to_owned()), Value::Boolean(true))],
+        )
+        .unwrap();
+        assert!(!declared.admits(&wrong_values));
+
+        let sequence = from_admitted(
+            CollectionType::new(CollectionKind::Sequence, ValueType::Integer, None),
+            vec![Value::Integer(1_i64.into())],
+        );
+        assert!(!declared.admits(&sequence));
+        let wrong_map_type = from_admitted_map(
+            MapType::new(
+                ValueType::String,
+                ValueType::Boolean,
+                Some(CardinalityBound::at_most(1)),
+            )
+            .unwrap(),
+            vec![(Value::String("a".to_owned()), Value::Boolean(true))],
+        )
+        .unwrap();
+        assert!(!declared.admits(&wrong_map_type));
+        let map = from_admitted_map(
+            bounded_type,
+            vec![(Value::String("a".to_owned()), Value::Integer(1_i64.into()))],
+        )
+        .unwrap();
+        for kind in CollectionKind::ALL {
+            assert!(
+                !ValueType::collection(CollectionType::new(kind, ValueType::Integer, None,))
+                    .admits(&map)
+            );
+        }
+    }
+
+    /// Maps work as Set members and as map values.
+    #[trace("TC-958", "FR-410-AC-8")]
+    #[test]
+    fn maps_form_sets_and_nest_as_map_values() {
+        let inner_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
+        let make_inner = |entries: &[(&str, i64)]| {
+            from_admitted_map(
+                inner_type.clone(),
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            Value::String((*key).to_owned()),
+                            Value::Integer((*value).into()),
+                        )
+                    })
+                    .collect(),
+            )
+            .unwrap()
+        };
+        let first = make_inner(&[("b", 2), ("a", 1)]);
+        let reordered = make_inner(&[("a", 1), ("b", 2)]);
+        let smaller = make_inner(&[("a", 0)]);
+        let set_type = CollectionType::new(
+            CollectionKind::Set,
+            ValueType::map(inner_type.clone()),
+            None,
+        );
+        let set = form(
+            &set_type,
+            vec![first.clone(), reordered, smaller],
+            &mut generous_meter(),
+        )
+        .completed()
+        .expect("maps have membership keys");
+        let Value::Collection(set) = set else {
+            panic!("form returns a collection");
+        };
+        assert_eq!(set.elements().len(), 2);
+        let Value::Map(smallest) = &set.elements()[0] else {
+            panic!("set member is a map");
+        };
+        assert!(matches!(
+            smallest.entries(),
+            [(Value::String(key), Value::Integer(value))]
+                if key == "a" && value == &Integer::zero()
+        ));
+
+        let outer_type =
+            MapType::new(ValueType::String, ValueType::map(inner_type.clone()), None).unwrap();
+        let outer_left = from_admitted_map(
+            outer_type.clone(),
+            vec![(Value::String("nested".to_owned()), first)],
+        )
+        .unwrap();
+        let outer_right = from_admitted_map(
+            outer_type,
+            vec![(
+                Value::String("nested".to_owned()),
+                make_inner(&[("a", 1), ("b", 2)]),
+            )],
+        )
+        .unwrap();
+        assert!(plan_pairs(&outer_left, &outer_right).unwrap().equal);
+        assert_eq!(
+            compare_keys(&outer_left, &outer_right),
+            Some(Ordering::Equal)
+        );
+    }
+
+    /// Ordinary map equality uses numericEqual for float keys while map
+    /// membership keeps signed zeros as distinct keys.
+    #[trace("TC-958", "FR-410-AC-9")]
+    #[test]
+    fn float_map_equality_and_membership_use_different_key_relations() {
+        use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
+
+        let map_type = MapType::new(
+            ValueType::Float(FloatType::exact(IeeeWidth::Binary64)),
+            ValueType::Integer,
+            None,
+        )
+        .unwrap();
+        let map_for = |bits| {
+            from_admitted_map(
+                map_type.clone(),
+                vec![(
+                    Value::Float(IeeeValue::binary64(bits)),
+                    Value::Integer(1_i64.into()),
+                )],
+            )
+            .unwrap()
+        };
+        let negative_zero = map_for(0x8000_0000_0000_0000);
+        let positive_zero = map_for(0);
+
+        assert!(plan_pairs(&negative_zero, &positive_zero).unwrap().equal);
+        assert_ne!(
+            compare_keys(&negative_zero, &positive_zero),
+            Some(Ordering::Equal)
+        );
+
+        let set_type = CollectionType::new(CollectionKind::Set, ValueType::map(map_type), None);
+        let set = form(
+            &set_type,
+            vec![negative_zero, positive_zero],
+            &mut generous_meter(),
+        )
+        .completed()
+        .expect("map membership keys distinguish signed zeros");
+        let Value::Collection(set) = set else {
+            panic!("form returns a collection");
+        };
+        assert_eq!(set.elements().len(), 2);
+    }
 
     fn generous_limits() -> ScalarLimits {
         ScalarLimits {
@@ -414,6 +937,93 @@ mod tests {
         let right = Value::Integer(Integer::one());
         let plan = plan_equality(&left, &right).unwrap();
         assert_eq!(plan.pair_events(), &Integer::one());
+    }
+
+    /// Structural equality uses IEEE numeric equality at float leaves: NaN is
+    /// unequal to itself, while signed zero compares equal.
+    #[trace("TC-194", "FR-149-AC-25")]
+    #[test]
+    fn float_leaves_use_ieee_numeric_equality() {
+        use crate::ieee::IeeeValue;
+
+        let equal = |left, right| {
+            plan_equality(&Value::Float(left), &Value::Float(right))
+                .expect("same-width float equality has a plan")
+                .pair_events()
+                == &Integer::one()
+                && {
+                    let mut meter = generous_meter();
+                    planned_equality(&Value::Float(left), &Value::Float(right), &mut meter)
+                        .completed()
+                        .expect("meter admits one pair")
+                }
+        };
+        assert!(equal(
+            IeeeValue::binary64(0),
+            IeeeValue::binary64(0x8000_0000_0000_0000)
+        ));
+        assert!(!equal(
+            IeeeValue::binary64(0x7ff8_0000_0000_0000),
+            IeeeValue::binary64(0x7ff8_0000_0000_0000)
+        ));
+    }
+
+    /// Sequences recurse with numeric float equality, while set members use
+    /// bit identity for both signed zero and NaN payloads.
+    #[trace("TC-194", "FR-149-AC-25", "FR-149-AC-26")]
+    #[test]
+    fn collection_float_equality_selects_its_membership_relation() {
+        use crate::collection::{
+            form_collection, CardinalityBound, CollectionKind, CollectionType,
+        };
+        use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
+        use crate::value::ValueType;
+
+        let make = |kind, bits: &[u64]| {
+            let collection_type = CollectionType::new(
+                kind,
+                ValueType::Float(FloatType::exact(IeeeWidth::Binary64)),
+                Some(CardinalityBound::new(0, 4).expect("valid bound")),
+            );
+            form_collection(
+                &collection_type,
+                bits.iter()
+                    .copied()
+                    .map(|bits| Value::Float(IeeeValue::binary64(bits)))
+                    .collect(),
+                &mut generous_meter(),
+            )
+            .expect("the completed values fit their bounds")
+            .completed()
+            .expect("the collection is admitted")
+        };
+        let equal = |left: &Value, right: &Value| {
+            let mut meter = generous_meter();
+            planned_equality(left, right, &mut meter)
+                .completed()
+                .expect("the equality plan fits the meter")
+        };
+
+        let positive_zero = 0;
+        let negative_zero = 0x8000_0000_0000_0000;
+        let nan = 0x7ff8_0000_0000_0000;
+        let distinct_nan = 0x7ff8_0000_0000_0001;
+        assert!(equal(
+            &make(CollectionKind::Sequence, &[positive_zero]),
+            &make(CollectionKind::Sequence, &[negative_zero])
+        ));
+        assert!(equal(
+            &make(CollectionKind::Set, &[nan]),
+            &make(CollectionKind::Set, &[nan])
+        ));
+        assert!(!equal(
+            &make(CollectionKind::Set, &[positive_zero]),
+            &make(CollectionKind::Set, &[negative_zero])
+        ));
+        assert!(!equal(
+            &make(CollectionKind::Set, &[nan]),
+            &make(CollectionKind::Set, &[distinct_nan])
+        ));
     }
 
     /// TC-992: native String equality compares exact scalar sequences; its

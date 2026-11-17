@@ -144,6 +144,21 @@ impl IeeeValue {
         self.bits
     }
 
+    /// IEEE numeric equality without a meter charge, for an already formed
+    /// structural equality pair. Different widths are never comparable.
+    pub(crate) fn numeric_equal(self, other: Self) -> bool {
+        if self.width != other.width {
+            return false;
+        }
+        match (decode(self), decode(other)) {
+            (Class::Nan { .. }, _) | (_, Class::Nan { .. }) => false,
+            (Class::Zero { .. }, Class::Zero { .. }) => true,
+            (Class::Infinite { .. } | Class::Zero { .. } | Class::Finite(_), _) => {
+                self.bits == other.bits
+            }
+        }
+    }
+
     /// Whether the value is any NaN.
     pub fn is_nan(self) -> bool {
         matches!(decode(self), Class::Nan { .. })
