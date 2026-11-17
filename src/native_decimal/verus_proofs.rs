@@ -9,8 +9,8 @@ use vstd::arithmetic::power2::*;
 use vstd::prelude::*;
 
 use super::{NativeDecimal, NativeDecimalRefusal, NativeDecimalType};
-use crate::native_rational::verus_proofs::{bit_len, lemma_leading_zeros};
 use crate::native_float::verus_proofs::lemma_bit_len_range;
+use crate::native_rational::verus_proofs::{bit_len, lemma_leading_zeros};
 
 verus! {
 

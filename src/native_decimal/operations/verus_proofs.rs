@@ -11,22 +11,23 @@ use vstd::arithmetic::power2::*;
 use vstd::prelude::*;
 
 use super::super::verus_proofs::{
-    digit_len, digits_of, lemma_digit_len_range, lemma_digits_of, lemma_pow10_adds, lemma_pow10_bound, lemma_pow10_monotone, lemma_pow10_pos,
-    pow10,
+    digit_len, digits_of, lemma_digit_len_range, lemma_digits_of, lemma_pow10_adds,
+    lemma_pow10_bound, lemma_pow10_monotone, lemma_pow10_pos, pow10,
 };
 use super::super::{NativeDecimal, NativeDecimalType};
 use super::{
-    AdmittedNativeDecimalOperation, Admission, Intermediate, NativeDecimalCapacityQuantity,
-    NativeDecimalCapacityRefusal, NativeDecimalLoss, NativeDecimalOperation, Placement, Planned, Retain, Settled,
-    Tail, LOG2_10_LOWER,
+    Admission, AdmittedNativeDecimalOperation, Intermediate, NativeDecimalCapacityQuantity,
+    NativeDecimalCapacityRefusal, NativeDecimalLoss, NativeDecimalOperation, Placement, Planned,
+    Retain, Settled, Tail, LOG2_10_LOWER,
 };
 use crate::decimal::RoundingMode;
 use crate::native_float::verus_proofs::lemma_pow2_le;
-use crate::native_integer::verus_proofs::lemma_truncating;
 use crate::native_fraction::verus_proofs::{
-    canonical, common, divides, gcd, gcd256, lemma_divides_witness, lemma_gcd256, lemma_gcd_common, lemma_gcd_greatest,
-    lemma_gcd_one_iff_no_common_factor, lemma_gcd_positive, lemma_gcd_scale, lemma_gcd_sym, lemma_gcd_zero_left,
+    canonical, common, divides, gcd, gcd256, lemma_divides_witness, lemma_gcd256, lemma_gcd_common,
+    lemma_gcd_greatest, lemma_gcd_one_iff_no_common_factor, lemma_gcd_positive, lemma_gcd_scale,
+    lemma_gcd_sym, lemma_gcd_zero_left,
 };
+use crate::native_integer::verus_proofs::lemma_truncating;
 
 verus! {
 
@@ -1904,6 +1905,24 @@ pub(super) proof fn lemma_admitted(
             lemma_quotient_means(ty.rounding, ty.max_scale, numerator, denominator, tail_of(r));
         },
     }
+}
+
+/// Ground (a) is decided by the plan: once the plan passes, a refusal of the
+/// placement is one of grounds (e), (f) and (g), never the exponent.
+pub(super) proof fn lemma_late_refusals(
+    ty: NativeDecimalType,
+    operation: NativeDecimalOperation,
+    r: Result<AdmittedNativeDecimalOperation, NativeDecimalCapacityRefusal>,
+)
+    requires
+        admitted_is(ty, operation, r),
+        plan_refusal(ty.max_scale, operation) is None,
+        r is Err,
+    ensures
+        r->Err_0.quantity == NativeDecimalCapacityQuantity::PowerOfTen || r->Err_0.quantity
+            == NativeDecimalCapacityQuantity::DoubledRemainder || r->Err_0.quantity
+            == NativeDecimalCapacityQuantity::RetainedCoefficient,
+{
 }
 
 /// The quotient of a `Divide` in units of `10^-target`: `N / D` is

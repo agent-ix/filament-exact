@@ -23,6 +23,7 @@ fn script(path: &str) -> Command {
 #[trace("TC-957", "FR-409-AC-11")]
 #[trace("TC-953", "FR-405-AC-17")]
 #[trace("TC-950", "FR-402-AC-13")]
+#[trace("TC-951", "FR-403-AC-15")]
 #[test]
 #[ignore = "runs Verus (a few seconds); set VERUS and run with `make verus`"]
 fn verus_proofs_verify() {
@@ -41,6 +42,7 @@ fn verus_proofs_verify() {
 #[trace("TC-957", "FR-409-AC-12")]
 #[trace("TC-953", "FR-405-AC-18")]
 #[trace("TC-950", "FR-402-AC-14")]
+#[trace("TC-951", "FR-403-AC-16")]
 #[test]
 #[ignore = "runs Verus once per mutant (a few minutes); set VERUS and run with `make verus-mutants`"]
 fn verus_mutants_are_killed() {
@@ -49,6 +51,7 @@ fn verus_mutants_are_killed() {
         "scripts/ir1556_verus_mutants.py",
         "scripts/ir1551_verus_mutants.py",
         "scripts/ir1554_verus_mutants.py",
+        "scripts/ir1555_verus_mutants.py",
     ] {
         let output = script(mutants).output().expect("start the mutant script");
         let log = String::from_utf8_lossy(&output.stdout);
