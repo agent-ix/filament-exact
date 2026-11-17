@@ -30,10 +30,12 @@
 
 use crate::accounting::{Charge, ChargePoint, Incomplete, LimitKind, Meter};
 use crate::integer::Integer;
+use crate::key::compare_keys;
 use crate::outcome::{CheckedInvariantCause, Outcome, Refusal, Stop};
 use crate::value::{FieldValue, Value};
 use alloc::vec;
 use alloc::vec::Vec;
+use core::cmp::Ordering;
 
 /// The complete occurrence-pair plan of one planned equality.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -333,23 +335,12 @@ fn plan_pairs_with_relation(
                 if l.map_type() != r.map_type() || l.entries().len() != r.entries().len() {
                     false
                 } else {
-                    let mut matches = Vec::with_capacity(l.entries().len());
-                    for (left_key, left_value) in l.entries() {
-                        let mut found = None;
-                        for (right_key, right_value) in r.entries() {
-                            if plan_membership_pairs(left_key, right_key)?.equal {
-                                found = Some((right_key, right_value));
-                                break;
-                            }
-                        }
-                        if let Some((right_key, right_value)) = found {
-                            matches.push((left_key, left_value, right_key, right_value));
-                        } else {
-                            equal = false;
-                            break;
-                        }
-                    }
-                    if equal {
+                    let mut compare = compare_map_keys;
+                    let matches = map_entry_matches_by(l.entries(), r.entries(), &mut compare)
+                        .map_err(|()| Refusal::CheckedInvariant {
+                            cause: CheckedInvariantCause::ValueKindMismatch,
+                        })?;
+                    if let Some(matches) = matches {
                         pending.extend(matches.into_iter().rev().flat_map(
                             |(left_key, left_value, right_key, right_value)| {
                                 [
@@ -359,8 +350,9 @@ fn plan_pairs_with_relation(
                             },
                         ));
                         continue;
+                    } else {
+                        false
                     }
-                    false
                 }
             }
             (Value::Population(_), Value::Population(_)) => {
@@ -397,6 +389,63 @@ fn plan_pairs_with_relation(
         equal = equal && leaf;
     }
     Ok(PlannedPairs { pairs, equal })
+}
+
+/// Match two entry lists after sorting their borrowed views by key, retaining
+/// the source maps' entry order. `None` means a key pair lacks a canonical
+/// typed order; `Ok(None)` means the maps have different keys.
+fn map_entry_matches_by<'a>(
+    left: &'a [(Value, Value)],
+    right: &'a [(Value, Value)],
+    compare: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+) -> Result<Option<Vec<(&'a Value, &'a Value, &'a Value, &'a Value)>>, ()> {
+    if left.len() != right.len() {
+        return Ok(None);
+    }
+    let left = ordered_map_entries_by(left, compare)?;
+    let right = ordered_map_entries_by(right, compare)?;
+    let mut matches = Vec::with_capacity(left.len());
+    for (left_entry, right_entry) in left.into_iter().zip(right) {
+        match compare(&left_entry.0, &right_entry.0).ok_or(())? {
+            Ordering::Equal => {
+                matches.push((&left_entry.0, &left_entry.1, &right_entry.0, &right_entry.1))
+            }
+            Ordering::Less | Ordering::Greater => return Ok(None),
+        }
+    }
+    Ok(Some(matches))
+}
+
+/// Return a borrowed view in ascending canonical key order.
+fn ordered_map_entries_by<'a>(
+    entries: &'a [(Value, Value)],
+    compare: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+) -> Result<Vec<&'a (Value, Value)>, ()> {
+    let mut ordered: Vec<_> = entries.iter().collect();
+    let mut incomparable = false;
+    ordered.sort_unstable_by(|left, right| match compare(&left.0, &right.0) {
+        Some(ordering) => ordering,
+        None => {
+            incomparable = true;
+            Ordering::Equal
+        }
+    });
+    if incomparable {
+        Err(())
+    } else {
+        Ok(ordered)
+    }
+}
+
+/// Compare map keys by their total kernel key, including Float's total-order
+/// key which is intentionally separate from ordinary equality.
+fn compare_map_keys(left: &Value, right: &Value) -> Option<Ordering> {
+    match (left, right) {
+        (Value::Float(left), Value::Float(right)) if left.width() == right.width() => {
+            Some(left.total_order_key().cmp(&right.total_order_key()))
+        }
+        _ => compare_keys(left, right),
+    }
 }
 
 #[cfg(test)]
@@ -453,6 +502,34 @@ mod tests {
         };
         assert_eq!(first_map.entries().len(), 2);
         assert!(matches!(&first_map.entries()[0].0, Value::String(key) if key == "b"));
+    }
+
+    /// The map matcher uses a sort-and-merge key comparison budget, not a
+    /// nested scan whose comparison count grows quadratically.
+    #[test]
+    fn map_entry_matching_scales_by_sorting_key_order() {
+        const ENTRY_COUNT: usize = 1_024;
+        let left: Vec<_> = (0..ENTRY_COUNT)
+            .rev()
+            .map(|key| (Value::Integer(Integer::from(key)), Value::Boolean(true)))
+            .collect();
+        let right: Vec<_> = (0..ENTRY_COUNT)
+            .map(|key| (Value::Integer(Integer::from(key)), Value::Boolean(true)))
+            .collect();
+        let comparisons = core::cell::Cell::new(0_usize);
+        let mut compare = |left: &Value, right: &Value| {
+            comparisons.set(comparisons.get() + 1);
+            compare_map_keys(left, right)
+        };
+
+        let matches = map_entry_matches_by(&left, &right, &mut compare)
+            .expect("integer map keys have total canonical keys");
+        assert_eq!(matches.as_ref().map(Vec::len), Some(ENTRY_COUNT));
+        assert!(
+            comparisons.get() < ENTRY_COUNT * 32,
+            "{} key comparisons exceeded the deterministic sort budget",
+            comparisons.get()
+        );
     }
 
     fn generous_limits() -> ScalarLimits {
