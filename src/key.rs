@@ -288,7 +288,8 @@ mod tests {
         assert_eq!(compare_keys(&one, &two), Some(Ordering::Less));
     }
 
-    /// Maps receive canonical keys independent of retained entry order.
+    /// TC-958: maps receive canonical keys independent of retained entry order.
+    #[trace("TC-958", "FR-410-AC-7")]
     #[test]
     fn map_keys_sort_entries_by_key_and_compare_values() {
         let map_type = MapType::new(
@@ -318,6 +319,23 @@ mod tests {
         let changed = map(&[("a", 1), ("b", 3)]);
         assert_eq!(compare_keys(&first, &reordered), Some(Ordering::Equal));
         assert_eq!(compare_keys(&first, &changed), Some(Ordering::Less));
+        assert_eq!(
+            compare_keys(&map(&[("a", 9)]), &map(&[("b", 0)])),
+            Some(Ordering::Less)
+        );
+        assert_eq!(
+            compare_keys(&map(&[("a", 1)]), &map(&[("a", 1), ("b", 0)])),
+            Some(Ordering::Less)
+        );
+        let sequence = crate::collection::from_admitted(
+            crate::collection::CollectionType::new(
+                crate::collection::CollectionKind::Sequence,
+                crate::value::ValueType::String,
+                None,
+            ),
+            vec![Value::String("a".to_owned())],
+        );
+        assert_eq!(compare_keys(&first, &sequence), None);
     }
 
     /// TC-992: native String keys preserve exact UTF-8 scalar order and do

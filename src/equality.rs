@@ -185,7 +185,7 @@ pub(crate) struct PlannedPairs {
 /// One node of the occurrence-pair tree still to be formed.
 #[derive(Clone, Copy)]
 enum Pair<'a> {
-    MapKeys(&'a Value, &'a Value),
+    MapKeys(&'a Value, &'a Value, LeafRelation),
     Values(&'a Value, &'a Value, LeafRelation),
     Slots(&'a FieldValue, &'a FieldValue, LeafRelation),
 }
@@ -224,8 +224,11 @@ fn plan_pairs_with_relation(
     let mut pending = vec![Pair::Values(left, right, relation)];
     while let Some(pair) = pending.pop() {
         let (left, right, relation) = match pair {
-            Pair::MapKeys(left, right) => {
-                let key_plan = plan_membership_pairs(left, right)?;
+            Pair::MapKeys(left, right, relation) => {
+                let key_plan = match relation {
+                    LeafRelation::Ordinary => plan_pairs(left, right)?,
+                    LeafRelation::Membership => plan_membership_pairs(left, right)?,
+                };
                 pairs = pairs.add(&key_plan.pairs);
                 equal &= key_plan.equal;
                 continue;
@@ -346,7 +349,7 @@ fn plan_pairs_with_relation(
                         pending.extend(matches.into_iter().rev().flat_map(
                             |(left_key, left_value, right_key, right_value)| {
                                 [
-                                    Pair::MapKeys(left_key, right_key),
+                                    Pair::MapKeys(left_key, right_key, relation),
                                     Pair::Values(left_value, right_value, relation),
                                 ]
                             },
@@ -461,6 +464,7 @@ mod tests {
 
     /// Map equality is independent of supplied entry order, and ValueType
     /// admits a map value only under its declared map type.
+    #[trace("TC-958", "FR-410-AC-1", "FR-410-AC-5")]
     #[test]
     fn map_equality_matches_entries_by_key_and_checks_map_type_admission() {
         let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
@@ -480,8 +484,11 @@ mod tests {
             .expect("unique map keys")
         };
         let first = make_map(&[("b", 2), ("a", 1)]);
+        let empty = from_admitted_map(map_type.clone(), Vec::new()).expect("empty map");
         let reordered = make_map(&[("a", 1), ("b", 2)]);
         let changed = make_map(&[("a", 1), ("b", 3)]);
+        let changed_keys = make_map(&[("a", 1), ("c", 2)]);
+        let changed_count = make_map(&[("a", 1)]);
 
         assert_eq!(
             plan_equality(&first, &reordered).unwrap().pair_events(),
@@ -489,11 +496,38 @@ mod tests {
         );
         assert!(plan_pairs(&first, &reordered).unwrap().equal);
         assert!(!plan_pairs(&first, &changed).unwrap().equal);
+        assert!(!plan_pairs(&first, &changed_keys).unwrap().equal);
+        assert!(!plan_pairs(&first, &changed_count).unwrap().equal);
+        let bounded_type = MapType::new(
+            ValueType::String,
+            ValueType::Integer,
+            Some(crate::collection::CardinalityBound::at_most(2)),
+        )
+        .unwrap();
+        let bounded = from_admitted_map(
+            bounded_type,
+            [("b", 2), ("a", 1)]
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        Value::String((*key).to_owned()),
+                        Value::Integer((*value).into()),
+                    )
+                })
+                .collect(),
+        )
+        .unwrap();
+        assert!(!plan_pairs(&first, &bounded).unwrap().equal);
         assert!(ValueType::map(map_type.clone()).admits(&first));
         assert!(!ValueType::map(
             MapType::new(ValueType::String, ValueType::Boolean, None).unwrap()
         )
         .admits(&first));
+        let Value::Map(empty) = empty else {
+            panic!("empty map constructor returns Value::Map");
+        };
+        assert_eq!(empty.map_type(), &map_type);
+        assert!(empty.entries().is_empty());
         let Value::Map(first_map) = first else {
             panic!("map constructor returns Value::Map");
         };
@@ -502,6 +536,7 @@ mod tests {
     }
 
     /// A repeated admitted key is refused at the later source entry.
+    #[trace("TC-958", "FR-410-AC-2")]
     #[test]
     fn map_construction_refuses_duplicate_keys_deterministically() {
         let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
@@ -529,10 +564,53 @@ mod tests {
             refusal.cause,
             crate::value::ConstructionCause::DuplicateMember
         );
+        let refusal = from_admitted_map(
+            MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
+            [("x", 1), ("y", 2), ("y", 3), ("x", 4)]
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        Value::String((*key).to_owned()),
+                        Value::Integer((*value).into()),
+                    )
+                })
+                .collect(),
+        )
+        .expect_err("report the smallest source index with an earlier equal key");
+        assert_eq!(refusal.component, crate::value::Component::Element(2));
+
+        use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
+        let float_type = ValueType::Float(FloatType::exact(IeeeWidth::Binary64));
+        let float_map_type = MapType::new(float_type, ValueType::Integer, None).unwrap();
+        let zeros = from_admitted_map(
+            float_map_type.clone(),
+            [0x8000_0000_0000_0000, 0]
+                .into_iter()
+                .map(|bits| {
+                    (
+                        Value::Float(IeeeValue::binary64(bits)),
+                        Value::Integer(1_i64.into()),
+                    )
+                })
+                .collect(),
+        )
+        .expect("signed zeros are distinct membership keys");
+        assert!(matches!(&zeros, Value::Map(map) if map.entries().len() == 2));
+        let nan = Value::Float(IeeeValue::binary64(0x7ff8_0000_0000_0001));
+        let refusal = from_admitted_map(
+            float_map_type,
+            vec![
+                (nan.clone(), Value::Integer(1_i64.into())),
+                (nan, Value::Integer(2_i64.into())),
+            ],
+        )
+        .expect_err("same NaN membership key must be refused");
+        assert_eq!(refusal.component, crate::value::Component::Element(1));
     }
 
     /// The map matcher uses a sort-and-merge key comparison budget, not a
     /// nested scan whose comparison count grows quadratically.
+    #[trace("TC-958", "FR-410-AC-6")]
     #[test]
     fn map_entry_matching_scales_by_sorting_key_order() {
         const ENTRY_COUNT: usize = 1_024;
@@ -557,6 +635,215 @@ mod tests {
             "{} key comparisons exceeded the deterministic sort budget",
             comparisons.get()
         );
+    }
+
+    /// Map construction rejects a key outside K at its source entry.
+    #[trace("TC-958", "FR-410-AC-3")]
+    #[test]
+    fn map_construction_rejects_wrong_key_type() {
+        let refusal = from_admitted_map(
+            MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
+            vec![
+                (Value::String("a".to_owned()), Value::Integer(1_i64.into())),
+                (Value::Integer(7_i64.into()), Value::Integer(2_i64.into())),
+            ],
+        )
+        .expect_err("Integer is not admitted by String key type");
+        assert_eq!(refusal.component, crate::value::Component::Element(1));
+        assert_eq!(refusal.cause, crate::value::ConstructionCause::TypeMismatch);
+    }
+
+    /// Map admission includes type identity, entry count and each K/V pair.
+    #[trace("TC-958", "FR-410-AC-4")]
+    #[test]
+    fn map_admission_checks_bound_key_value_and_kind() {
+        let bounded_type = MapType::new(
+            ValueType::String,
+            ValueType::Integer,
+            Some(crate::collection::CardinalityBound::at_most(1)),
+        )
+        .unwrap();
+        let declared = ValueType::map(bounded_type.clone());
+        let one = from_admitted_map(
+            bounded_type.clone(),
+            vec![(Value::String("a".to_owned()), Value::Integer(1_i64.into()))],
+        )
+        .unwrap();
+        assert!(declared.admits(&one));
+
+        let two = from_admitted_map(
+            bounded_type.clone(),
+            ["a", "b"]
+                .into_iter()
+                .enumerate()
+                .map(|(index, key)| {
+                    (
+                        Value::String(key.to_owned()),
+                        Value::Integer((index as i64).into()),
+                    )
+                })
+                .collect(),
+        )
+        .unwrap();
+        assert!(!declared.admits(&two));
+
+        let unbounded = from_admitted_map(
+            MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
+            vec![(Value::String("a".to_owned()), Value::Integer(1_i64.into()))],
+        )
+        .unwrap();
+        assert!(!declared.admits(&unbounded));
+
+        let wrong_values = from_admitted_map(
+            bounded_type.clone(),
+            vec![(Value::String("a".to_owned()), Value::Boolean(true))],
+        )
+        .unwrap();
+        assert!(!declared.admits(&wrong_values));
+
+        let sequence = from_admitted(
+            CollectionType::new(CollectionKind::Sequence, ValueType::Integer, None),
+            vec![Value::Integer(1_i64.into())],
+        );
+        assert!(!declared.admits(&sequence));
+        let wrong_map_type = from_admitted_map(
+            MapType::new(
+                ValueType::String,
+                ValueType::Boolean,
+                Some(crate::collection::CardinalityBound::at_most(1)),
+            )
+            .unwrap(),
+            vec![(Value::String("a".to_owned()), Value::Boolean(true))],
+        )
+        .unwrap();
+        assert!(!declared.admits(&wrong_map_type));
+        let map = from_admitted_map(
+            bounded_type,
+            vec![(Value::String("a".to_owned()), Value::Integer(1_i64.into()))],
+        )
+        .unwrap();
+        for kind in CollectionKind::ALL {
+            assert!(
+                !ValueType::collection(CollectionType::new(kind, ValueType::Integer, None,))
+                    .admits(&map)
+            );
+        }
+    }
+
+    /// Maps work as Set members and as map values.
+    #[trace("TC-958", "FR-410-AC-8")]
+    #[test]
+    fn maps_form_sets_and_nest_as_map_values() {
+        let inner_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
+        let make_inner = |entries: &[(&str, i64)]| {
+            from_admitted_map(
+                inner_type.clone(),
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            Value::String((*key).to_owned()),
+                            Value::Integer((*value).into()),
+                        )
+                    })
+                    .collect(),
+            )
+            .unwrap()
+        };
+        let first = make_inner(&[("b", 2), ("a", 1)]);
+        let reordered = make_inner(&[("a", 1), ("b", 2)]);
+        let smaller = make_inner(&[("a", 0)]);
+        let set_type = CollectionType::new(
+            CollectionKind::Set,
+            ValueType::map(inner_type.clone()),
+            None,
+        );
+        let set = form(
+            &set_type,
+            vec![first.clone(), reordered, smaller],
+            &mut generous_meter(),
+        )
+        .completed()
+        .expect("maps have membership keys");
+        let Value::Collection(set) = set else {
+            panic!("form returns a collection");
+        };
+        assert_eq!(set.elements().len(), 2);
+        let Value::Map(smallest) = &set.elements()[0] else {
+            panic!("set member is a map");
+        };
+        assert!(matches!(
+            smallest.entries(),
+            [(Value::String(key), Value::Integer(value))]
+                if key == "a" && value == &Integer::zero()
+        ));
+
+        let outer_type =
+            MapType::new(ValueType::String, ValueType::map(inner_type.clone()), None).unwrap();
+        let outer_left = from_admitted_map(
+            outer_type.clone(),
+            vec![(Value::String("nested".to_owned()), first)],
+        )
+        .unwrap();
+        let outer_right = from_admitted_map(
+            outer_type,
+            vec![(
+                Value::String("nested".to_owned()),
+                make_inner(&[("a", 1), ("b", 2)]),
+            )],
+        )
+        .unwrap();
+        assert!(plan_pairs(&outer_left, &outer_right).unwrap().equal);
+        assert_eq!(
+            compare_keys(&outer_left, &outer_right),
+            Some(Ordering::Equal)
+        );
+    }
+
+    /// Ordinary map equality uses numericEqual for float keys while map
+    /// membership keeps signed zeros as distinct keys.
+    #[trace("TC-958", "FR-410-AC-9")]
+    #[test]
+    fn float_map_equality_and_membership_use_different_key_relations() {
+        use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
+
+        let map_type = MapType::new(
+            ValueType::Float(FloatType::exact(IeeeWidth::Binary64)),
+            ValueType::Integer,
+            None,
+        )
+        .unwrap();
+        let map_for = |bits| {
+            from_admitted_map(
+                map_type.clone(),
+                vec![(
+                    Value::Float(IeeeValue::binary64(bits)),
+                    Value::Integer(1_i64.into()),
+                )],
+            )
+            .unwrap()
+        };
+        let negative_zero = map_for(0x8000_0000_0000_0000);
+        let positive_zero = map_for(0);
+
+        assert!(plan_pairs(&negative_zero, &positive_zero).unwrap().equal);
+        assert_ne!(
+            compare_keys(&negative_zero, &positive_zero),
+            Some(Ordering::Equal)
+        );
+
+        let set_type = CollectionType::new(CollectionKind::Set, ValueType::map(map_type), None);
+        let set = form(
+            &set_type,
+            vec![negative_zero, positive_zero],
+            &mut generous_meter(),
+        )
+        .completed()
+        .expect("map membership keys distinguish signed zeros");
+        let Value::Collection(set) = set else {
+            panic!("form returns a collection");
+        };
+        assert_eq!(set.elements().len(), 2);
     }
 
     fn generous_limits() -> ScalarLimits {
