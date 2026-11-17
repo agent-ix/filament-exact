@@ -207,6 +207,59 @@ pub struct MapType {
     bound: Option<CardinalityBound>,
 }
 
+/// A completed map value with its admitted entries retained in input order.
+#[derive(Clone, Debug)]
+pub struct MapValue {
+    map_type: MapType,
+    entries: Box<[(Value, Value)]>,
+    occ: Integer,
+}
+
+impl MapValue {
+    /// The declared map type.
+    pub fn map_type(&self) -> &MapType {
+        &self.map_type
+    }
+
+    /// The map entries in their retained order.
+    pub fn entries(&self) -> &[(Value, Value)] {
+        &self.entries
+    }
+
+    /// `occ` of the map.
+    pub(crate) fn occ(&self) -> &Integer {
+        &self.occ
+    }
+
+    /// Every field, for `Value`'s iterative `Debug` implementation.
+    pub(crate) fn debug_fields(&self) -> (&MapType, &[(Value, Value)], &Integer) {
+        let Self {
+            map_type,
+            entries,
+            occ,
+        } = self;
+        (map_type, entries, occ)
+    }
+
+    /// Move all keys and values out so a uniquely owned map can be taken
+    /// apart without recursive drop glue.
+    pub(crate) fn take_entries(&mut self) -> Box<[(Value, Value)]> {
+        core::mem::take(&mut self.entries)
+    }
+}
+
+impl Drop for MapValue {
+    fn drop(&mut self) {
+        let entries = self.take_entries();
+        drop_nested(
+            entries
+                .into_vec()
+                .into_iter()
+                .flat_map(|(key, value)| [key, value]),
+        );
+    }
+}
+
 /// A map key type that nests another type (`Option`, a collection or a map).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, thiserror::Error)]
 #[error("a map key type must not nest another type")]
@@ -254,6 +307,79 @@ impl MapType {
     pub fn bound(&self) -> Option<CardinalityBound> {
         self.bound
     }
+}
+
+/// Materialize a map from entries whose count and key/value types the caller
+/// has already checked. Refuses duplicate keys under the canonical key
+/// relation and retains the supplied entry order.
+pub fn from_admitted_map(
+    map_type: MapType,
+    entries: Vec<(Value, Value)>,
+) -> Result<Value, ConstructionRefusal> {
+    if let Some((index, _)) = entries
+        .iter()
+        .enumerate()
+        .find(|(_, (key, _))| !map_type.key().admits(key))
+    {
+        return Err(ConstructionRefusal {
+            component: Component::Element(index),
+            cause: ConstructionCause::TypeMismatch,
+        });
+    }
+    let mut ordered: Vec<_> = entries.iter().enumerate().collect();
+    let mut incomparable = false;
+    ordered.sort_unstable_by(|(left_index, left), (right_index, right)| {
+        match compare_membership_keys(&left.0, &right.0) {
+            Some(Ordering::Equal) => left_index.cmp(right_index),
+            Some(ordering) => ordering,
+            None => {
+                incomparable = true;
+                left_index.cmp(right_index)
+            }
+        }
+    });
+    if incomparable {
+        return Err(ConstructionRefusal {
+            component: Component::Element(0),
+            cause: ConstructionCause::TypeMismatch,
+        });
+    }
+    let mut duplicate_index = None;
+    let mut start = 0;
+    while start < ordered.len() {
+        let mut end = start + 1;
+        while end < ordered.len()
+            && compare_membership_keys(&ordered[start].1 .0, &ordered[end].1 .0)
+                == Some(Ordering::Equal)
+        {
+            end += 1;
+        }
+        if end - start > 1 {
+            let mut indexes: Vec<_> = ordered[start..end]
+                .iter()
+                .map(|(index, _)| *index)
+                .collect();
+            indexes.sort_unstable();
+            duplicate_index =
+                Some(duplicate_index.map_or(indexes[1], |current: usize| current.min(indexes[1])));
+        }
+        start = end;
+    }
+    if let Some(index) = duplicate_index {
+        return Err(ConstructionRefusal {
+            component: Component::Element(index),
+            cause: ConstructionCause::DuplicateMember,
+        });
+    }
+    let occ = entries.iter().fold(Integer::one(), |occ, (key, value)| {
+        occ.add(&key.occ()).add(&value.occ())
+    });
+    let entries = entries.into_boxed_slice();
+    Ok(Value::Map(Arc::new(MapValue {
+        map_type,
+        entries,
+        occ,
+    })))
 }
 
 /// A completed collection value.
@@ -1005,7 +1131,14 @@ mod float_membership_tests {
                 CollectionKind::Sequence => assert_eq!(observed, patterns),
                 CollectionKind::OrderedSet => assert_eq!(
                     observed,
-                    [patterns[0], patterns[2], patterns[3], patterns[4], patterns[5], patterns[6]]
+                    [
+                        patterns[0],
+                        patterns[2],
+                        patterns[3],
+                        patterns[4],
+                        patterns[5],
+                        patterns[6]
+                    ]
                 ),
                 CollectionKind::Set => assert_eq!(
                     observed,

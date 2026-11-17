@@ -216,6 +216,16 @@ fn leaf<'a>(
             tasks.extend(elements.map(|(left, right)| Task::Values(left, right, relation)));
             return Some(None);
         }
+        (Value::Map(left), Value::Map(right)) => {
+            let left_entries = ordered_map_entries(left.entries())?;
+            let right_entries = ordered_map_entries(right.entries())?;
+            tasks.push(Task::Lengths(left_entries.len(), right_entries.len()));
+            for (left, right) in left_entries.iter().zip(&right_entries).rev() {
+                tasks.push(Task::Values(&left.1, &right.1, relation));
+                tasks.push(Task::Values(&left.0, &right.0, KeyRelation::Membership));
+            }
+            return Some(None);
+        }
         (
             Value::Boolean(_)
             | Value::Integer(_)
@@ -233,11 +243,29 @@ fn leaf<'a>(
             | Value::Option(_)
             | Value::Composite(_)
             | Value::Union(_)
-            | Value::Collection(_),
+            | Value::Collection(_)
+            | Value::Map(_),
             _,
         ) => return None,
     };
     Some(Some(ordering))
+}
+
+/// Return map entries in ascending canonical key order. Map keys use the
+/// membership key so float keys retain their total-order identity.
+fn ordered_map_entries(entries: &[(Value, Value)]) -> Option<Vec<&(Value, Value)>> {
+    let mut ordered: Vec<_> = entries.iter().collect();
+    let mut incomparable = false;
+    ordered.sort_unstable_by(
+        |left, right| match compare_membership_keys(&left.0, &right.0) {
+            Some(ordering) => ordering,
+            None => {
+                incomparable = true;
+                Ordering::Equal
+            }
+        },
+    );
+    (!incomparable).then_some(ordered)
 }
 
 #[cfg(test)]
@@ -247,6 +275,7 @@ mod tests {
     use ix_trace_rs::trace;
 
     use super::*;
+    use crate::collection::{from_admitted_map, MapType};
     use crate::integer::Integer;
 
     /// two equal integers key-compare equal; unequal integers key
@@ -257,6 +286,56 @@ mod tests {
         let two = Value::Integer(Integer::one().add(&Integer::one()));
         assert_eq!(compare_keys(&one, &one), Some(Ordering::Equal));
         assert_eq!(compare_keys(&one, &two), Some(Ordering::Less));
+    }
+
+    /// TC-958: maps receive canonical keys independent of retained entry order.
+    #[trace("TC-958", "FR-410-AC-7")]
+    #[test]
+    fn map_keys_sort_entries_by_key_and_compare_values() {
+        let map_type = MapType::new(
+            crate::value::ValueType::String,
+            crate::value::ValueType::Integer,
+            None,
+        )
+        .expect("leaf key type");
+        let map = |entries: &[(&str, i64)]| {
+            from_admitted_map(
+                map_type.clone(),
+                entries
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            Value::String((*key).to_owned()),
+                            Value::Integer(Integer::from(*value)),
+                        )
+                    })
+                    .collect(),
+            )
+            .expect("unique map keys")
+        };
+
+        let first = map(&[("b", 2), ("a", 1)]);
+        let reordered = map(&[("a", 1), ("b", 2)]);
+        let changed = map(&[("a", 1), ("b", 3)]);
+        assert_eq!(compare_keys(&first, &reordered), Some(Ordering::Equal));
+        assert_eq!(compare_keys(&first, &changed), Some(Ordering::Less));
+        assert_eq!(
+            compare_keys(&map(&[("a", 9)]), &map(&[("b", 0)])),
+            Some(Ordering::Less)
+        );
+        assert_eq!(
+            compare_keys(&map(&[("a", 1)]), &map(&[("a", 1), ("b", 0)])),
+            Some(Ordering::Less)
+        );
+        let sequence = crate::collection::from_admitted(
+            crate::collection::CollectionType::new(
+                crate::collection::CollectionKind::Sequence,
+                crate::value::ValueType::String,
+                None,
+            ),
+            vec![Value::String("a".to_owned())],
+        );
+        assert_eq!(compare_keys(&first, &sequence), None);
     }
 
     /// TC-992: native String keys preserve exact UTF-8 scalar order and do
