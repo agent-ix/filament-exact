@@ -610,7 +610,10 @@ fn wide_product(left: NativeInteger, right: NativeInteger) -> Option<NativeInteg
 /// Exact `(quotient, remainder)` of native `dividend / divisor` under `profile`,
 /// `divisor` nonzero. Only the quotient can leave i128 (`i128::MIN / -1`), so
 /// it is `None` there; the remainder always fits.
+#[cfg_attr(verus_keep_ghost, vstd::prelude::verus_spec(r => requires divisor != 0, ensures verus_proofs::div_rem_post(profile, dividend, divisor, r)))]
 fn native_div_rem(profile: DivisionProfile, dividend: i128, divisor: i128) -> (Option<i128>, i128) {
+    #[cfg(verus_keep_ghost)]
+    vstd::prelude::proof! { verus_proofs::lemma_truncating(dividend, divisor); }
     let quotient = dividend.checked_div(divisor);
     // `wrapping_rem` differs from `%` only for `i128::MIN % -1`, whose
     // remainder is the exact value 0.
@@ -622,7 +625,10 @@ fn native_div_rem(profile: DivisionProfile, dividend: i128, divisor: i128) -> (O
     // one step; the addition of opposite signs cannot overflow.
     let (floor_q, floor_r) = if (remainder < 0) != (divisor < 0) {
         (
-            quotient.and_then(|q| q.checked_sub(1)),
+            match quotient {
+                Some(q) => q.checked_sub(1),
+                None => None,
+            },
             remainder.wrapping_add(divisor),
         )
     } else {
@@ -633,7 +639,10 @@ fn native_div_rem(profile: DivisionProfile, dividend: i128, divisor: i128) -> (O
     }
     // Euclidean: only a negative divisor leaves a negative floor remainder.
     (
-        floor_q.and_then(|q| q.checked_add(1)),
+        match floor_q {
+            Some(q) => q.checked_add(1),
+            None => None,
+        },
         floor_r.wrapping_sub(divisor),
     )
 }
@@ -931,6 +940,8 @@ mod division_proofs;
 mod kani_proofs;
 #[cfg(any(test, kani))]
 mod reference;
+#[cfg(verus_keep_ghost)]
+mod verus_proofs;
 
 fn bounded_product(left: i128, right: i128) -> Option<i128> {
     let left = i32::try_from(left).ok()?;

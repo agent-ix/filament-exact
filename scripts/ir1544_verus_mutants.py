@@ -95,7 +95,8 @@ def verus(src):
     return run.returncode == 0, run.stdout + run.stderr
 
 
-def main():
+def run(mutants):
+    """Run `mutants` (all, or the ids named on the command line); 0 if every one is killed."""
     wanted = set(sys.argv[1:])
     scratch = tempfile.mkdtemp(prefix="ir1544-verus-mutants-")
     failures = 0
@@ -108,7 +109,7 @@ def main():
             print("the unmutated copy does not verify")
             return 1
         print("unmutated copy: verified")
-        for ident, edits in MUTANTS:
+        for ident, edits in mutants:
             if wanted and ident not in wanted:
                 continue
             originals = {}
@@ -144,4 +145,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run(MUTANTS))

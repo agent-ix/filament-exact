@@ -12,6 +12,7 @@
 use vstd::prelude::*;
 
 use crate::accounting::{ChargePoint, Incomplete, LimitKind, Meter, UnitsCharge};
+use crate::division::DivisionProfile;
 use crate::numeric::OrderingOperator;
 use crate::outcome::{Outcome, Refusal, Undefined};
 
@@ -67,5 +68,14 @@ pub open spec fn ordering_holds(operator: OrderingOperator, ordering: core::cmp:
         OrderingOperator::GreaterOrEqual => ordering != core::cmp::Ordering::Less,
     }
 }
+
+#[verifier::external_type_specification]
+pub struct ExDivisionProfile(DivisionProfile);
+
+/// The derived equality of `DivisionProfile` is equality of the variants.
+pub assume_specification[ <DivisionProfile as PartialEq>::eq ](a: &DivisionProfile, b: &DivisionProfile) -> (r: bool)
+    ensures
+        r == (*a == *b),
+;
 
 } // verus!

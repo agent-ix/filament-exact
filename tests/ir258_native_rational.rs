@@ -1072,6 +1072,7 @@ fn tc956_table(text: &str, heading: &str) -> Vec<Vec<String>> {
 /// harness and each `ROWS` pair against its CG row).
 #[test]
 #[trace("TC-956", "FR-408-AC-12")]
+#[trace("TC-956", "FR-408-AC-15")]
 fn the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded_failing() {
     let tc = read_repo_file("spec/test-cases/TC-956-kani-tractable-native-rational-carrier.md");
     let script = read_repo_file("scripts/ir258_u8_tier_mutants.py");
@@ -1079,6 +1080,8 @@ fn the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded
     for tier in [
         "native_fraction_gcd8_matches_euclid_over_u8",
         "native_fraction_reduce_u8_tier_matches_euclid",
+        // FR-408-AC-15: the equality row's Kani half.
+        "native_rational_equal_all_parts_is_structural",
     ] {
         let row = evidence
             .iter()
