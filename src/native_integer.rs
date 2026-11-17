@@ -941,7 +941,7 @@ mod kani_proofs;
 #[cfg(any(test, kani))]
 mod reference;
 #[cfg(verus_keep_ghost)]
-mod verus_proofs;
+pub(crate) mod verus_proofs;
 
 fn bounded_product(left: i128, right: i128) -> Option<i128> {
     let left = i32::try_from(left).ok()?;
