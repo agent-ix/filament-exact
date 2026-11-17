@@ -340,11 +340,20 @@ fn plan_pairs_with_relation(
                 if l.map_type() != r.map_type() || l.entries().len() != r.entries().len() {
                     false
                 } else {
-                    let mut compare = compare_map_keys;
-                    let matches = map_entry_matches_by(l.entries(), r.entries(), &mut compare)
-                        .map_err(|()| Refusal::CheckedInvariant {
-                            cause: CheckedInvariantCause::ValueKindMismatch,
-                        })?;
+                    let mut order_keys = compare_map_membership_keys;
+                    let mut equal_keys = match relation {
+                        LeafRelation::Ordinary => compare_map_keys,
+                        LeafRelation::Membership => compare_map_membership_keys,
+                    };
+                    let matches = map_entry_matches_by(
+                        l.entries(),
+                        r.entries(),
+                        &mut order_keys,
+                        &mut equal_keys,
+                    )
+                    .map_err(|()| Refusal::CheckedInvariant {
+                        cause: CheckedInvariantCause::ValueKindMismatch,
+                    })?;
                     if let Some(matches) = matches {
                         pending.extend(matches.into_iter().rev().flat_map(
                             |(left_key, left_value, right_key, right_value)| {
@@ -402,16 +411,17 @@ fn plan_pairs_with_relation(
 fn map_entry_matches_by<'a>(
     left: &'a [(Value, Value)],
     right: &'a [(Value, Value)],
-    compare: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+    order_keys: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
+    equal_keys: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
 ) -> Result<Option<Vec<MapEntryMatch<'a>>>, ()> {
     if left.len() != right.len() {
         return Ok(None);
     }
-    let left = ordered_map_entries_by(left, compare)?;
-    let right = ordered_map_entries_by(right, compare)?;
+    let left = ordered_map_entries_by(left, order_keys)?;
+    let right = ordered_map_entries_by(right, order_keys)?;
     let mut matches = Vec::with_capacity(left.len());
     for (left_entry, right_entry) in left.into_iter().zip(right) {
-        match compare(&left_entry.0, &right_entry.0).ok_or(())? {
+        match equal_keys(&left_entry.0, &right_entry.0).ok_or(())? {
             Ordering::Equal => {
                 matches.push((&left_entry.0, &left_entry.1, &right_entry.0, &right_entry.1))
             }
@@ -442,9 +452,25 @@ fn ordered_map_entries_by<'a>(
     }
 }
 
-/// Compare map keys by their total kernel key, including Float's total-order
-/// key which is intentionally separate from ordinary equality.
+/// Compare map keys for ordinary equality. Float's equality collapses signed
+/// zero, matching `numericEqual`; NaNs retain their total-order position so
+/// they can be aligned and then correctly fail ordinary equality.
 fn compare_map_keys(left: &Value, right: &Value) -> Option<Ordering> {
+    match (left, right) {
+        (Value::Float(left), Value::Float(right)) if left.width() == right.width() => {
+            if left.numeric_equal(*right) {
+                Some(Ordering::Equal)
+            } else {
+                Some(left.total_order_key().cmp(&right.total_order_key()))
+            }
+        }
+        _ => compare_membership_keys(left, right),
+    }
+}
+
+/// Compare map keys by membership identity, keeping signed zeros and NaN bit
+/// patterns distinct. This provides a stable sort order for equality matching.
+fn compare_map_membership_keys(left: &Value, right: &Value) -> Option<Ordering> {
     compare_membership_keys(left, right)
 }
 
@@ -459,7 +485,11 @@ mod tests {
 
     use super::*;
     use crate::accounting::{InjectedDenial, ScalarLimits};
-    use crate::collection::{from_admitted_map, MapType};
+    use crate::collection::{
+        form, from_admitted, from_admitted_map, CardinalityBound, CollectionKind, CollectionType,
+        MapType,
+    };
+    use crate::key::compare_keys;
     use crate::value::ValueType;
 
     /// Map equality is independent of supplied entry order, and ValueType
@@ -501,12 +531,12 @@ mod tests {
         let bounded_type = MapType::new(
             ValueType::String,
             ValueType::Integer,
-            Some(crate::collection::CardinalityBound::at_most(2)),
+            Some(CardinalityBound::at_most(2)),
         )
         .unwrap();
         let bounded = from_admitted_map(
             bounded_type,
-            [("b", 2), ("a", 1)]
+            [("b", 2_i64), ("a", 1_i64)]
                 .iter()
                 .map(|(key, value)| {
                     (
@@ -566,7 +596,7 @@ mod tests {
         );
         let refusal = from_admitted_map(
             MapType::new(ValueType::String, ValueType::Integer, None).unwrap(),
-            [("x", 1), ("y", 2), ("y", 3), ("x", 4)]
+            [("x", 1_i64), ("y", 2_i64), ("y", 3_i64), ("x", 4_i64)]
                 .iter()
                 .map(|(key, value)| {
                     (
@@ -622,12 +652,16 @@ mod tests {
             .map(|key| (Value::Integer(Integer::from(key)), Value::Boolean(true)))
             .collect();
         let comparisons = core::cell::Cell::new(0_usize);
-        let mut compare = |left: &Value, right: &Value| {
+        let mut compare_order = |left: &Value, right: &Value| {
+            comparisons.set(comparisons.get() + 1);
+            compare_map_membership_keys(left, right)
+        };
+        let mut compare_equal = |left: &Value, right: &Value| {
             comparisons.set(comparisons.get() + 1);
             compare_map_keys(left, right)
         };
 
-        let matches = map_entry_matches_by(&left, &right, &mut compare)
+        let matches = map_entry_matches_by(&left, &right, &mut compare_order, &mut compare_equal)
             .expect("integer map keys have total canonical keys");
         assert_eq!(matches.as_ref().map(Vec::len), Some(ENTRY_COUNT));
         assert!(
@@ -635,6 +669,10 @@ mod tests {
             "{} key comparisons exceeded the deterministic sort budget",
             comparisons.get()
         );
+        let map_type = MapType::new(ValueType::Integer, ValueType::Boolean, None).unwrap();
+        let left_map = from_admitted_map(map_type.clone(), left).unwrap();
+        let right_map = from_admitted_map(map_type, right).unwrap();
+        assert!(plan_pairs(&left_map, &right_map).unwrap().equal);
     }
 
     /// Map construction rejects a key outside K at its source entry.
@@ -660,7 +698,7 @@ mod tests {
         let bounded_type = MapType::new(
             ValueType::String,
             ValueType::Integer,
-            Some(crate::collection::CardinalityBound::at_most(1)),
+            Some(CardinalityBound::at_most(1)),
         )
         .unwrap();
         let declared = ValueType::map(bounded_type.clone());
@@ -710,7 +748,7 @@ mod tests {
             MapType::new(
                 ValueType::String,
                 ValueType::Boolean,
-                Some(crate::collection::CardinalityBound::at_most(1)),
+                Some(CardinalityBound::at_most(1)),
             )
             .unwrap(),
             vec![(Value::String("a".to_owned()), Value::Boolean(true))],
