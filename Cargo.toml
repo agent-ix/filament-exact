@@ -47,7 +47,7 @@ codegen-units = 1
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)', 'cfg(verus_keep_ghost)'] }
 
 [lints.clippy]
 all = "deny"

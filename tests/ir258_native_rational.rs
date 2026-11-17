@@ -1139,7 +1139,7 @@ fn the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded
             pairs += 1;
         }
     }
-    assert_eq!(pairs, 9);
+    assert_eq!(pairs, 10);
 }
 
 fn tc_evidence_rows(tc: &str) -> Vec<Vec<String>> {

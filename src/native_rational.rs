@@ -27,6 +27,10 @@ use crate::numeric::OrderingOperator;
 use crate::outcome::Outcome;
 use crate::rational::Rational;
 
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
+
 /// The first formed integer that left signed 128 bits, in the order the
 /// operations check them (FR-408 Behavior 9).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
@@ -68,15 +72,29 @@ pub enum NativeRationalRefusal {
 /// A canonical fraction of two signed 128-bit integers. Its fields are
 /// private so every value is canonical: positive denominator, lowest terms,
 /// zero as `0/1`.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct NativeRational {
     numerator: i128,
     denominator: i128,
 }
 
+#[cfg(verus_keep_ghost)]
+vstd::prelude::verus! {
+
+impl NativeRational {
+    /// The carried `(numerator, denominator)`, for specifications.
+    pub closed spec fn parts(self) -> (i128, i128) {
+        (self.numerator, self.denominator)
+    }
+}
+
+} // verus!
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl NativeRational {
     /// Build the carrier from `i64` parts, admitting only a canonical pair.
     /// Nothing is normalized: `2/4` is refused, never built as `1/2`.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures verus_proofs::from_i64_parts(numerator, denominator, r)))]
     pub fn from_i64_parts(numerator: i64, denominator: i64) -> Result<Self, NativeRationalRefusal> {
         if denominator == 0 {
             Err(NativeRationalRefusal::ZeroDenominator)
@@ -91,6 +109,7 @@ impl NativeRational {
     }
 
     /// Build the carrier from the owner's canonical `Rational`.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub fn from_rational(value: &Rational) -> Result<Self, NativeRationalRefusal> {
         match (value.numerator().native(), value.denominator().native()) {
             (Some(numerator), Some(denominator)) => Ok(Self {
@@ -104,6 +123,7 @@ impl NativeRational {
     }
 
     /// Read the value out as the owner's `Rational`. This allocates.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub fn to_rational(&self) -> Rational {
         Rational::new(
             Integer::from(self.numerator),
@@ -124,7 +144,10 @@ impl NativeRational {
 }
 
 /// `B(x)`: the bit length of `|x|`, with `B(0) = 1`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::bits(value), 1 <= r <= 128))]
 fn bits(value: i128) -> u64 {
+    #[cfg(verus_keep_ghost)]
+    vstd::prelude::proof! { verus_proofs::lemma_leading_zeros(value.unsigned_abs()); }
     u64::from((128 - value.unsigned_abs().leading_zeros()).max(1))
 }
 
@@ -137,13 +160,14 @@ enum Operation {
 
 /// The unreduced result fraction. The checks run in the order of the
 /// capacity quantities; no charge precedes them.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::form(operation, left.numerator, left.denominator, right.numerator, right.denominator)))]
 fn form(
     operation: Operation,
     left: &NativeRational,
     right: &NativeRational,
 ) -> Result<(i128, i128), NativeRationalRefusal> {
     use NativeRationalCapacity as Capacity;
-    let refuse = NativeRationalRefusal::Capacity;
+    use NativeRationalRefusal::Capacity as Refuse;
     let (a, p, c, q) = (
         left.numerator,
         left.denominator,
@@ -151,22 +175,23 @@ fn form(
         right.denominator,
     );
     let numerator = match operation {
-        Operation::Multiply => a.checked_mul(c).ok_or(refuse(Capacity::LeftProduct))?,
+        Operation::Multiply => a.checked_mul(c).ok_or(Refuse(Capacity::LeftProduct))?,
         Operation::Add | Operation::Subtract => {
-            let first = a.checked_mul(q).ok_or(refuse(Capacity::LeftProduct))?;
-            let second = c.checked_mul(p).ok_or(refuse(Capacity::RightProduct))?;
+            let first = a.checked_mul(q).ok_or(Refuse(Capacity::LeftProduct))?;
+            let second = c.checked_mul(p).ok_or(Refuse(Capacity::RightProduct))?;
             let combined = match operation {
                 Operation::Subtract => first.checked_sub(second),
                 _ => first.checked_add(second),
             };
-            combined.ok_or(refuse(Capacity::Combination))?
+            combined.ok_or(Refuse(Capacity::Combination))?
         }
     };
-    let denominator = p.checked_mul(q).ok_or(refuse(Capacity::Denominator))?;
+    let denominator = p.checked_mul(q).ok_or(Refuse(Capacity::Denominator))?;
     Ok((numerator, denominator))
 }
 
 /// `integer_bits` of `rational-arithmetic.arithmetic`: `max(N, D)`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::arithmetic_bits(operation, left.numerator, left.denominator, right.numerator, right.denominator)))]
 fn arithmetic_bits(operation: Operation, left: &NativeRational, right: &NativeRational) -> u64 {
     let (a, p, c, q) = (
         bits(left.numerator),
@@ -181,6 +206,7 @@ fn arithmetic_bits(operation: Operation, left: &NativeRational, right: &NativeRa
     numerator.max(p + q)
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::operand_bits(left.numerator, left.denominator, right.numerator, right.denominator)))]
 fn operand_bits(left: &NativeRational, right: &NativeRational) -> u64 {
     bits(left.numerator)
         .max(bits(left.denominator))
@@ -188,6 +214,7 @@ fn operand_bits(left: &NativeRational, right: &NativeRational) -> u64 {
         .max(bits(right.denominator))
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures verus_proofs::charge_arithmetic_post(verus_proofs::arithmetic_bits(operation, left.numerator, left.denominator, right.numerator, right.denominator), left.numerator, left.denominator, right.numerator, right.denominator, unreduced, *old(meter), *final(meter), r)))]
 fn charge_arithmetic(
     operation: Operation,
     left: &NativeRational,
@@ -213,6 +240,7 @@ fn charge_arithmetic(
     meter.charge_units(UnitsCharge::new(ChargePoint::RationalArithmeticResultRetain).results(1))
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires left.denominator > 0, right.denominator > 0, ensures verus_proofs::arithmetic_post(verus_proofs::form(operation, left.numerator, left.denominator, right.numerator, right.denominator), verus_proofs::arithmetic_bits(operation, left.numerator, left.denominator, right.numerator, right.denominator), left.numerator, left.denominator, right.numerator, right.denominator, *old(meter), *final(meter), r)))]
 fn arithmetic(
     operation: Operation,
     left: &NativeRational,
@@ -220,6 +248,8 @@ fn arithmetic(
     meter: &mut Meter,
 ) -> Result<Outcome<NativeRational>, NativeRationalRefusal> {
     let unreduced = form(operation, left, right)?;
+    #[cfg(verus_keep_ghost)]
+    vstd::prelude::proof! { verus_proofs::lemma_positive_product(left.denominator, right.denominator); }
     Ok(
         match charge_arithmetic(operation, left, right, unreduced, meter) {
             Ok(()) => {
@@ -236,6 +266,7 @@ fn arithmetic(
 
 /// `a/p + c/q`: `rational-arithmetic.operands`, `.arithmetic`, `.normalize`,
 /// then `.result-retain`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires left.parts().1 > 0, right.parts().1 > 0, ensures verus_proofs::arithmetic_post(verus_proofs::form_add(left.parts().0, left.parts().1, right.parts().0, right.parts().1), verus_proofs::sum_bits(left.parts().0, left.parts().1, right.parts().0, right.parts().1), left.parts().0, left.parts().1, right.parts().0, right.parts().1, *old(meter), *final(meter), r)))]
 pub fn native_rational_add(
     left: &NativeRational,
     right: &NativeRational,
@@ -245,6 +276,7 @@ pub fn native_rational_add(
 }
 
 /// `a/p - c/q`, on the schedule of [`native_rational_add`].
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires left.parts().1 > 0, right.parts().1 > 0, ensures verus_proofs::arithmetic_post(verus_proofs::form_subtract(left.parts().0, left.parts().1, right.parts().0, right.parts().1), verus_proofs::sum_bits(left.parts().0, left.parts().1, right.parts().0, right.parts().1), left.parts().0, left.parts().1, right.parts().0, right.parts().1, *old(meter), *final(meter), r)))]
 pub fn native_rational_subtract(
     left: &NativeRational,
     right: &NativeRational,
@@ -254,6 +286,7 @@ pub fn native_rational_subtract(
 }
 
 /// `a/p * c/q`, on the schedule of [`native_rational_add`].
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires left.parts().1 > 0, right.parts().1 > 0, ensures verus_proofs::arithmetic_post(verus_proofs::form_multiply(left.parts().0, left.parts().1, right.parts().0, right.parts().1), verus_proofs::product_bits(left.parts().0, left.parts().1, right.parts().0, right.parts().1), left.parts().0, left.parts().1, right.parts().0, right.parts().1, *old(meter), *final(meter), r)))]
 pub fn native_rational_multiply(
     left: &NativeRational,
     right: &NativeRational,
@@ -262,6 +295,7 @@ pub fn native_rational_multiply(
     arithmetic(Operation::Multiply, left, right, meter)
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures verus_proofs::charge_ordering_post(left.numerator, left.denominator, right.numerator, right.denominator, *old(meter), *final(meter), r)))]
 fn charge_ordering(
     left: &NativeRational,
     right: &NativeRational,
@@ -284,6 +318,7 @@ fn charge_ordering(
 
 /// Order two carriers: `ordering.operands`, `ordering.arithmetic`, then
 /// `ordering.result-retain`. The Boolean compares `a q` with `c p`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures verus_proofs::order_post(operator, left.parts().0, left.parts().1, right.parts().0, right.parts().1, *old(meter), *final(meter), r)))]
 pub fn native_rational_order(
     operator: OrderingOperator,
     left: &NativeRational,
@@ -323,3 +358,5 @@ pub fn native_rational_equal(
 mod kani_proofs;
 #[cfg(kani)]
 mod reference;
+#[cfg(verus_keep_ghost)]
+mod verus_proofs;

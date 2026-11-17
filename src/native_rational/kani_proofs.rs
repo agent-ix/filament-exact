@@ -274,6 +274,37 @@ fn native_rational_equal_full_i64_matches_reference() {
     equality_matches(full_carrier(), full_carrier());
 }
 
+/// Equality over every pair of `i64` parts, canonical or not: the Boolean is
+/// "the same pair", on the equality schedule. That "the same pair" is
+/// `a q == c p` for canonical carriers is not a SAT problem; it is the Verus
+/// lemma `row_equal_structural_is_cross_product` (IR-1544).
+#[kani::proof]
+fn native_rational_equal_all_parts_is_structural() {
+    let (a, p, c, q): (i64, i64, i64, i64) = (kani::any(), kani::any(), kani::any(), kani::any());
+    let left = NativeRational {
+        numerator: i128::from(a),
+        denominator: i128::from(p),
+    };
+    let right = NativeRational {
+        numerator: i128::from(c),
+        denominator: i128::from(q),
+    };
+    let mut meter = sufficient();
+    let outcome = ManuallyDrop::new(native_rational_equal(&left, &right, &mut meter));
+    match &*outcome {
+        Outcome::Completed(equal) => {
+            kani::cover!(*equal, "equal witness");
+            kani::cover!(!*equal, "unequal witness");
+            assert_eq!(*equal, a == c && p == q);
+        }
+        _ => panic!("a sufficient meter completes"),
+    }
+    assert_eq!(meter.admission_count(), 4);
+    assert_eq!(meter.consumed(LimitKind::ValueOccurrences), 1);
+    assert_eq!(meter.consumed(LimitKind::WorkUnits), 5);
+    assert_eq!(meter.consumed(LimitKind::ResultUnits), 1);
+}
+
 /// One denied charge of an addition over the CG domain: the record names the
 /// charge point and counter, and the meter holds the admitted prefix.
 fn denied_add(limits: ScalarLimits, point: ChargePoint, kind: LimitKind, prefix: u64) {

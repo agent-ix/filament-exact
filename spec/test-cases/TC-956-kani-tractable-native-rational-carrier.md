@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-408-AC-1 through FR-408-AC-12 through the public kernel API, a literal-charge test, the owner differential and the recorded Kani measurement. The differential lives in filament-exact's `tests/`, because the owner route (`Rational`, `evaluate_rational_arithmetic`, `order_numbers`, `planned_equality`) is in the same crate. Each mutant names the input or inspection that fails it.
+Verify FR-408-AC-1 through FR-408-AC-15 through the public kernel API, a literal-charge test, the owner differential, the recorded Kani measurement and the recorded Verus run. The differential lives in filament-exact's `tests/`, because the owner route (`Rational`, `evaluate_rational_arithmetic`, `order_numbers`, `planned_equality`) is in the same crate. Each mutant names the input or inspection that fails it.
 
 ## Test Procedure
 
@@ -26,6 +26,9 @@ Verify FR-408-AC-1 through FR-408-AC-12 through the public kernel API, a literal
 9. For AC-11, execute the harnesses of FR-408 Behavior 18 under the authorized Kani runner (`timeout 900`) and record the outcome, time and peak memory in the evidence record below; confirm every cover of a verified harness is reached and each mutant fails. The Kani arithmetic harnesses check the aggregate `integer_bits` high-water, the counters and the admission count; the `rational-arithmetic.normalize` amount on its own is owned by steps 6 and 7, because it never exceeds the arithmetic amount.
 10. Run each mutant through the step it names.
 11. For AC-12, run the host sweep over every numerator in `[-600, 600]` and denominator in `[1, 600]` (the tier covers up to 255; the rest take the `u64` tier), run the two tier harnesses of the evidence record, and run `scripts/ir258_u8_tier_mutants.py` (host mutants of the tier) and `scripts/ir258_u8_tier_mutants.py --kani-rows` (the arithmetic mutants against the Kani rows).
+12. For AC-13, run `make verus` and record the result, time and peak memory in the Verus record below.
+13. For AC-14, run `make verus-mutants` and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
+14. For AC-15, run the Kani harness `native_rational_equal_all_parts_is_structural` under the runner of step 9 and its mutant (`equality-numerators-only`), and record both.
 
 ### Mutants
 
@@ -83,6 +86,7 @@ Verify FR-408-AC-1 through FR-408-AC-12 through the public kernel API, a literal
 | `native_rational_equal_denies_the_plan_form_occurrence` | VERIFIED, covers reached (1 of 1) | 2.1 s (wall 5.4 s) | 641679360 bytes (0.60 GiB) |
 | `native_rational_equal_denies_the_plan_result_unit` | VERIFIED, covers reached (1 of 1) | 3.1 s (wall 16.7 s) | 647004160 bytes (0.60 GiB) |
 | `native_rational_equal_full_i64_matches_reference` | TIMED OUT | 900 s (limit; killed, no verdict) | 1389637632 bytes (1.29 GiB) |
+| `native_rational_equal_all_parts_is_structural` (every `i64` part, canonical or not) | VERIFIED, covers reached (2 of 2) | 2.0 s (wall 7.1 s) | 711647232 bytes (0.66 GiB) |
 | `native_rational_order_full_i64_matches_reference` | TIMED OUT | 900 s (limit; killed, no verdict) | 1860517888 bytes (1.73 GiB) |
 | `native_rational_add_full_i64_matches_reference` | TIMED OUT | 900 s (limit; killed, no verdict) | 15523975168 bytes (14.46 GiB) |
 | `native_rational_subtract_full_i64_matches_reference` | TIMED OUT | 900 s (limit; killed, no verdict) | 15575470080 bytes (14.51 GiB) |
@@ -90,7 +94,7 @@ Verify FR-408-AC-1 through FR-408-AC-12 through the public kernel API, a literal
 
 What the `u8` tier changed. The four CG-domain rows that timed out at 900 s without the tier (add, subtract, subtract with `from_i64_parts` carriers, and the composed predicate (c)) now return VERIFIED with their covers reached, and so does the composed predicate with both operands built by `from_i64_parts`; the multiply CG row, which took 641 s before, now takes 128.9 s. The reference side of the CG-domain arithmetic harnesses is Euclid's algorithm over `u8` (16 steps; both results of the CG domain are below 256, and the reference asserts that range instead of assuming it) in place of 16 steps of 64-bit division, and the carriers are unchanged. The tier is proved equal to Euclid by two harnesses: `native_fraction_gcd8_matches_euclid_over_u8` (the 16-step `u8` gcd against `u8` Euclid for every pair of `u8` values) and `native_fraction_reduce_u8_tier_matches_euclid` (the shipped `reduce`, through all three tiers' selection, against `u8` Euclid for every numerator magnitude up to 255 and every denominator in `[1, 255]`). The rows that were VERIFIED before the tier were rerun on the changed kernel and are VERIFIED again.
 
-The six full-`i64` rows stay measured not-tractable: `from_i64_parts` is a 128-step binary coprime test against 128 steps of Euclid (two gcd algorithms proved equal), equality is the coprimality fact that canonical fractions are equal exactly when they cross-multiply equal, and ordering, add, subtract and multiply are 128-bit products against reference products plus gcd. These are number theory and multiplier problems that a bit-level solver does not close at 900 s; add, subtract and multiply sit at 14.3 to 14.5 GiB, below the 16 GiB ceiling. They wait on the deductive lane (owner: IR-1544, whose AC-2 covers all six full-`i64` rows).
+The six full-`i64` rows stay measured not-tractable: `from_i64_parts` is a 128-step binary coprime test against 128 steps of Euclid (two gcd algorithms proved equal), equality is the coprimality fact that canonical fractions are equal exactly when they cross-multiply equal, and ordering, add, subtract and multiply are 128-bit products against reference products plus gcd. These are number theory and multiplier problems that a bit-level solver does not close at 900 s; add, subtract and multiply sit at 14.3 to 14.5 GiB, below the 16 GiB ceiling. Their executed verdict is the Verus record below (IR-1544); the Kani rows stay as measured and claim no proof.
 
 Mutants. The kernel mutants of the tier are in `scripts/ir258_u8_tier_mutants.py`, each an exact-text edit built in a scratch copy with its own target directory. The host sweep (`the_u8_tier_reduces_every_pair_as_euclid_does_across_its_threshold`, FR-408-AC-12) kills all six: the step count cut to 4 and to 6 (7 is the fewest steps that every pair needs, so 6 is the nearest mutant that some input distinguishes), the threshold widened to `u16` while the gcd stays `u8`, the common power of two dropped, the even parts kept, and the difference not reduced to its odd part. The Kani harness `native_fraction_gcd8_matches_euclid_over_u8` fails (VERIFICATION FAILED) on every one of those except the threshold mutant, which lives in `reduce` and is not in the gcd8 harness's reach. The arithmetic mutants fail their CG rows under Kani: addition forming `a q - c p` fails the add row and both composed-predicate rows, subtraction with its operands swapped fails both subtract rows, multiplication forming `a + c` fails the multiply row, an unreduced result fails the add row, equality comparing only the numerators fails the equality row, and ordering that compares `a p` with `c p` fails the order row. Every pair is listed in the Kani mutant record below and checked by the test named in the Status.
 
@@ -114,6 +118,29 @@ Each row is one `VERIFICATION:- FAILED` verdict of a Kani harness of the table a
 | `native_rational_add_cg_domain_matches_reference` | result-not-reduced | FAILED |
 | `native_rational_equal_cg_domain_matches_reference` | equality-numerators-only | FAILED |
 | `native_rational_order_cg_domain_matches_reference` | order-compares-a-p | FAILED |
+| `native_rational_equal_all_parts_is_structural` | equality-numerators-only | FAILED |
+
+### Verus record
+
+Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proofs are `src/native_fraction/verus_proofs.rs` and `src/native_rational/verus_proofs.rs`; the assumptions are `src/verus_std_specs.rs` and `src/verus_kernel_model.rs` (FR-408 Behavior 18a).
+
+| Run | Outcome | Time | Peak memory |
+| --- | --- | --- | --- |
+| `make verus` | `211 verified, 0 errors` | 4.2 s wall | 578520 kB resident (0.55 GiB) |
+| `make verus-mutants` | unmutated copy verified; 18 of 18 mutants killed by a failed proof obligation, none UNRELIABLE | 72 s wall for the 19 runs | as above per run |
+
+What each full-`i64` row of FR-408 Behavior 18 rests on:
+
+| Row | Verus theorem | On the production function |
+| --- | --- | --- |
+| (a) `from_i64_parts` | `row_from_i64_parts`, with `lemma_is_canonical_pair` and `lemma_coprime` (the 128-step binary test decides `gcd = 1` by Euclid) | `NativeRational::from_i64_parts` |
+| add, subtract, multiply | `row_add`, `row_subtract`, `row_multiply`, with `lemma_form_i64` (no refusal, exact integers) and `lemma_reduce` (lowest terms, all three tiers) | `native_rational_add`, `native_rational_subtract`, `native_rational_multiply` |
+| ordering | `row_order` | `native_rational_order` |
+| equality | `row_equal_structural_is_cross_product` (the same pair exactly when `a q = c p`), with the Kani harness `native_rational_equal_all_parts_is_structural` for the production function | `native_rational_equal` (Kani) |
+
+The row theorems for add, subtract, multiply and ordering state the completed value and the admitted requests in order; they do not state that a sufficient `Meter` admits them, which the CG-domain Kani rows and the host tests of steps 6 and 7 check.
+
+Mutants (`scripts/ir1544_verus_mutants.py`). Each is an exact-text edit of a scratch copy of `src/`. A mutant is killed only when Verus reports a failed proof obligation (a postcondition, precondition or assertion that does not hold, or a possible overflow); a run that only exhausts the solver's resource limit is reported as UNRELIABLE and fails the script, as a Kani timeout claims no proof. All 18 are killed by a failed postcondition: `from_i64_parts` accepting zero over any denominator, the zero-denominator check made conditional, a ladder step that keeps the even difference, the both-even test of `coprime` written with `&`, the 128-step ladder cut to 64 steps in code and specification, `gcd64` not restoring the common power of two, the odd case of `gcd_step` not halved in code and specification, `gcd256` returning `g (u | v)`, the wide tier of `reduce` keeping the denominator in code and specification, the sign dropped in `reduce`, add forming `a q - c p`, the capacity checks in the wrong order, the result not reduced, the normalize amount taken from the numerator only, the arithmetic request sent at the normalize point, ordering comparing `a p` with `c p`, `<=` decided as `<`, and the bit length off by one. The three mutants that also edit the specification leave the production function equal to its specification, so only the theorem can fail, and it does. In the first run of this change four of these mutants (the `coprime` test, the 64-step ladder, the `gcd64` shift and the wide tier) only exhausted the resource limit; the specifications of the unrolled ladders were then made opaque, after which each fails a postcondition.
 
 ## Expected Results
 
@@ -121,4 +148,4 @@ Every step passes, each mutant fails at the step it names, and the evidence reco
 
 ## Status
 
-Steps 1 to 8, 10 and 11's host part run on the host in `tests/ir258_native_rational.rs`. Step 9 is measured in the evidence record: 22 harnesses are VERIFIED with their covers reached and 6 (the full-`i64` group: `from_i64_parts`, equality, ordering, add, subtract, multiply) are TIMED OUT at 900 s with no proof claimed. Of the rows of Behavior 18 (a is full `i64`; b and c are the CG domain), b (add, subtract, multiply, order, equality) and c (the composed predicate) are VERIFIED with their covers reached and mutants that fail them, and a is a measured not-tractable row. AC-11 stays PLANNED: its text names (a) over the full `i64` domain, which is a measured not-tractable row, so AC-11 cannot be fully executed in Kani; b and c are executed. Whether AC-11 closes on "b and c executed, a measured and waiting on the Verus lane (IR-1544)" is the planner's ruling. The equality and ordering CG rows were run again against a mutant on the tiered kernel (equality comparing only the numerators, ordering comparing `a p` with `c p`): both fail their rows (the Kani mutant record above). AC-12 is met by the host sweep, the two tier harnesses and the mutants above; `the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded_failing` checks the Kani half against the evidence record and the script.
+Steps 1 to 8, 10 and 11's host part run on the host in `tests/ir258_native_rational.rs`. Step 9 is measured in the evidence record: 22 harnesses are VERIFIED with their covers reached and 6 (the full-`i64` group: `from_i64_parts`, equality, ordering, add, subtract, multiply) are TIMED OUT at 900 s with no proof claimed. Of the rows of Behavior 18 (a is full `i64`; b and c are the CG domain), b (add, subtract, multiply, order, equality) and c (the composed predicate) are VERIFIED with their covers reached and mutants that fail them, and a is a measured not-tractable row. AC-11 is executed: b and c are VERIFIED under Kani, and (a) with the other five full-`i64` rows, measured not-tractable under Kani, has the Verus record above as its executed verdict (AC-13 to AC-15, steps 12 to 14, IR-1544). The equality and ordering CG rows were run again against a mutant on the tiered kernel (equality comparing only the numerators, ordering comparing `a p` with `c p`): both fail their rows (the Kani mutant record above). AC-12 is met by the host sweep, the two tier harnesses and the mutants above; `the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded_failing` checks the Kani half against the evidence record and the script.

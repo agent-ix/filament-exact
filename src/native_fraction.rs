@@ -7,9 +7,14 @@
 //! Everything here is fixed-width native arithmetic: no loop, iterator adapter
 //! or recursion, no allocation, and one body for host and `cfg(kani)` builds.
 
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
+
 /// Whether `numerator / denominator` is a canonical pair: positive
 /// denominator, lowest terms, zero only as `0/1`. A non-positive denominator
 /// is never canonical.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::is_canonical_pair(numerator, denominator)))]
 pub(crate) fn is_canonical_pair(numerator: i64, denominator: i64) -> bool {
     if denominator <= 0 {
         false
@@ -24,6 +29,7 @@ pub(crate) fn is_canonical_pair(numerator: i64, denominator: i64) -> bool {
 /// greatest-common-divisor algorithm unrolled to its worst case (128 steps)
 /// so that it holds no loop. Every step at least halves the product of the
 /// two odd parts, which starts below `2^126`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires left != 0, right != 0, ensures r == verus_proofs::coprime(left, right)))]
 pub(crate) fn coprime(left: u64, right: u64) -> bool {
     if (left | right) & 1 == 0 {
         return false;
@@ -37,7 +43,13 @@ pub(crate) fn coprime(left: u64, right: u64) -> bool {
 
 /// The gcd of two magnitudes, not both zero, by the same 128 unrolled steps
 /// on the odd parts, with the common power of two restored.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd64(left, right)))]
 pub(crate) fn gcd64(left: u64, right: u64) -> u64 {
+    #[cfg(verus_keep_ghost)]
+    proof! {
+        reveal(verus_proofs::gcd64);
+        verus_proofs::lemma_gcd64(left, right);
+    }
     if left == 0 {
         return right;
     }
@@ -56,7 +68,10 @@ pub(crate) fn gcd64(left: u64, right: u64) -> u64 {
 /// terms with zero as `0/1`, in the width the magnitudes need: the 16-step
 /// `u8` gcd when both fit `u8`, the `u64` gcd and division when both fit
 /// `u64`, else the 256-step `u128` gcd.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires denominator > 0, ensures r == verus_proofs::reduce(numerator, denominator)))]
 pub(crate) fn reduce(numerator: i128, denominator: i128) -> (i128, i128) {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_reduce_divisors(numerator, denominator); }
     let (n, d) = (numerator.unsigned_abs(), denominator.unsigned_abs());
     let (n, d) = match (u8::try_from(n), u8::try_from(d)) {
         (Ok(n), Ok(d)) => {
@@ -88,6 +103,7 @@ pub(crate) fn reduce(numerator: i128, denominator: i128) -> (i128, i128) {
 /// One step on a pair `(small, other)` of odd values or `(value, 0)`: replace
 /// the larger by the odd part of the difference. The divisor ends in the first
 /// slot with the second zero.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::step((left, right))))]
 fn step((left, right): (u64, u64)) -> (u64, u64) {
     if right == 0 {
         return (left, right);
@@ -105,29 +121,39 @@ fn step((left, right): (u64, u64)) -> (u64, u64) {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_2(state)))]
 fn steps_2(state: (u64, u64)) -> (u64, u64) {
     step(step(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_4(state)))]
 fn steps_4(state: (u64, u64)) -> (u64, u64) {
     steps_2(steps_2(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_8(state)))]
 fn steps_8(state: (u64, u64)) -> (u64, u64) {
     steps_4(steps_4(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_16(state)))]
 fn steps_16(state: (u64, u64)) -> (u64, u64) {
     steps_8(steps_8(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_32(state)))]
 fn steps_32(state: (u64, u64)) -> (u64, u64) {
     steps_16(steps_16(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_64(state)))]
 fn steps_64(state: (u64, u64)) -> (u64, u64) {
     steps_32(steps_32(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_128(state)))]
 fn steps_128(state: (u64, u64)) -> (u64, u64) {
+    #[cfg(verus_keep_ghost)]
+    proof! { reveal(verus_proofs::steps_128); }
     steps_64(steps_64(state))
 }
 
 /// One step of the `u8` ladder, as [`step`] over `u8`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::step8((left, right))))]
 fn step8((left, right): (u8, u8)) -> (u8, u8) {
     if right == 0 {
         return (left, right);
@@ -145,17 +171,27 @@ fn step8((left, right): (u8, u8)) -> (u8, u8) {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps8_4(state)))]
 fn steps8_4(state: (u8, u8)) -> (u8, u8) {
     step8(step8(step8(step8(state))))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps8_16(state)))]
 fn steps8_16(state: (u8, u8)) -> (u8, u8) {
+    #[cfg(verus_keep_ghost)]
+    proof! { reveal(verus_proofs::steps8_16); }
     steps8_4(steps8_4(steps8_4(steps8_4(state))))
 }
 
 /// The gcd of two `u8` magnitudes, not both zero, by 16 unrolled steps on the
 /// odd parts, with the common power of two restored. The product of the two
 /// odd parts is below `2^16` and every step at least halves it.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd8(left, right)))]
 pub(crate) fn gcd8(left: u8, right: u8) -> u8 {
+    #[cfg(verus_keep_ghost)]
+    proof! {
+        reveal(verus_proofs::gcd8);
+        verus_proofs::lemma_gcd8(left, right);
+    }
     if left == 0 {
         return right;
     }
@@ -173,6 +209,7 @@ pub(crate) fn gcd8(left: u8, right: u8) -> u8 {
 pub(crate) type GcdState = (u128, u128, u128);
 
 /// One step of the binary gcd on `(u, v, g)` (FR-403 Behavior 16).
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_step(state)))]
 fn gcd_step(state: GcdState) -> GcdState {
     let (u, v, g) = state;
     let (u_even, v_even) = (u & 1 == 0 && u != 0, v & 1 == 0 && v != 0);
@@ -193,34 +230,53 @@ fn gcd_step(state: GcdState) -> GcdState {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_2(state)))]
 fn gcd_steps_2(state: GcdState) -> GcdState {
     gcd_step(gcd_step(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_4(state)))]
 fn gcd_steps_4(state: GcdState) -> GcdState {
     gcd_steps_2(gcd_steps_2(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_8(state)))]
 fn gcd_steps_8(state: GcdState) -> GcdState {
     gcd_steps_4(gcd_steps_4(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_16(state)))]
 fn gcd_steps_16(state: GcdState) -> GcdState {
     gcd_steps_8(gcd_steps_8(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_32(state)))]
 fn gcd_steps_32(state: GcdState) -> GcdState {
     gcd_steps_16(gcd_steps_16(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_64(state)))]
 fn gcd_steps_64(state: GcdState) -> GcdState {
     gcd_steps_32(gcd_steps_32(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_128(state)))]
 pub(crate) fn gcd_steps_128(state: GcdState) -> GcdState {
     gcd_steps_64(gcd_steps_64(state))
 }
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_256(state)))]
 fn gcd_steps_256(state: GcdState) -> GcdState {
+    #[cfg(verus_keep_ghost)]
+    proof! { reveal(verus_proofs::gcd_steps_256); }
     gcd_steps_128(gcd_steps_128(state))
 }
 
 /// The gcd of two magnitudes, not both zero, by exactly 256 fixed steps. A
 /// zero operand leaves the state unchanged, so `gcd(0, m)` is `m`.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd256(u, v)))]
 pub(crate) fn gcd256(u: u128, v: u128) -> u128 {
+    #[cfg(verus_keep_ghost)]
+    proof! {
+        reveal(verus_proofs::gcd256);
+        verus_proofs::lemma_gcd256(u, v);
+    }
     let (u, v, g) = gcd_steps_256((u, v, 1));
     g * (u + v)
 }
+
+#[cfg(verus_keep_ghost)]
+pub(crate) mod verus_proofs;

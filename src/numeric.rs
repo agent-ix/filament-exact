@@ -16,6 +16,8 @@
 
 use alloc::boxed::Box;
 use core::cmp::Ordering;
+#[cfg(verus_keep_ghost)]
+use vstd::prelude::verus_spec;
 
 use crate::accounting::{Charge, ChargePoint, LimitKind, Meter};
 use crate::decimal::{sbits, sdigits, Decimal};
@@ -49,10 +51,12 @@ pub enum OrderingOperator {
     GreaterOrEqual,
 }
 
+#[cfg_attr(verus_keep_ghost, vstd::prelude::verus_verify)]
 impl OrderingOperator {
     /// `pub`, not `fn`-private: a caller's own numeric ordering, which
     /// returns its own outcome type, calls it directly. It is a pure decision over an
     /// already-computed `Ordering`, so widening charges or exposes nothing.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == crate::verus_kernel_model::ordering_holds(self, ordering)))]
     pub fn holds(self, ordering: Ordering) -> bool {
         match self {
             Self::Less => ordering.is_lt(),
