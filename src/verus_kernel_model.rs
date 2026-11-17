@@ -12,7 +12,9 @@
 use vstd::prelude::*;
 
 use crate::accounting::{ChargePoint, Incomplete, LimitKind, Meter, UnitsCharge};
+use crate::decimal::RoundingMode;
 use crate::division::DivisionProfile;
+use crate::ieee::{IeeeFlag, IeeeWidth};
 use crate::numeric::OrderingOperator;
 use crate::outcome::{Outcome, Refusal, Undefined};
 
@@ -77,5 +79,20 @@ pub assume_specification[ <DivisionProfile as PartialEq>::eq ](a: &DivisionProfi
     ensures
         r == (*a == *b),
 ;
+
+#[verifier::external_type_specification]
+pub struct ExRoundingMode(RoundingMode);
+
+/// The derived equality of `RoundingMode` is equality of the variants.
+pub assume_specification[ <RoundingMode as PartialEq>::eq ](a: &RoundingMode, b: &RoundingMode) -> (r: bool)
+    ensures
+        r == (*a == *b),
+;
+
+#[verifier::external_type_specification]
+pub struct ExIeeeWidth(IeeeWidth);
+
+#[verifier::external_type_specification]
+pub struct ExIeeeFlag(IeeeFlag);
 
 } // verus!

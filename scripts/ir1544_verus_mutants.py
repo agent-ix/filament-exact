@@ -33,6 +33,8 @@ SEMANTIC = (
     "error: assertion failed",
     "error: possible arithmetic underflow/overflow",
     "error: possible division by zero",
+    "error: invariant not satisfied",
+    "error: possible bit shift underflow/overflow",
 )
 
 # (id, [(file, old, new), ...])

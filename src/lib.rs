@@ -52,6 +52,9 @@
 // prover's macro expands each with `unsafe`. Under that run only, the lint is
 // `deny` so that the one module holding them (`verus_std_specs`) can allow it.
 #![cfg_attr(verus_keep_ghost, deny(unsafe_code))]
+// A loop invariant is an attribute on the loop statement, which the compiler
+// Verus drives accepts only with this feature. No other build sees it.
+#![cfg_attr(verus_keep_ghost, feature(proc_macro_hygiene))]
 
 extern crate alloc;
 // Unit tests use `std` (e.g. `HashSet` hash-consistency checks); the library

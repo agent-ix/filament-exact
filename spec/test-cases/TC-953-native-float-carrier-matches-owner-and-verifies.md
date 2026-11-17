@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-405-AC-1 through FR-405-AC-16 by running the native float operations beside the shipped `evaluate_ieee` and `compare_ieee`, by inspecting the proof-path source, and by recording the Kani probe, verdicts and peaks. Each mutant below is a buildable variant of the named site in a scratch copy and names the input that fails it and the step at which it fails; a mutant that no input distinguishes is not admitted. A timeout, memory exhaustion, missing cover or missing run is inconclusive and never a pass.
+Verify FR-405-AC-1 through FR-405-AC-18 by running the native float operations beside the shipped `evaluate_ieee` and `compare_ieee`, by inspecting the proof-path source, and by recording the Kani probe, verdicts and peaks. Each mutant below is a buildable variant of the named site in a scratch copy and names the input that fails it and the step at which it fails; a mutant that no input distinguishes is not admitted. A timeout, memory exhaustion, missing cover or missing run is inconclusive and never a pass.
 
 ## Test Procedure
 
@@ -27,6 +27,8 @@ The boundary set is fixed before the implementation, from independent literals a
 8. For AC-11, AC-12 and AC-13, run each Kani harness of each operation, comparison and width under the authorized runner with a 10-minute probe (and, for a harness that has not returned, a 30-minute cap, FR-405 Behavior 21) and record verdict, the limit it was last run under, time and peak memory with its provenance. An arithmetic combination has three harnesses that together cover the six rounding spellings (`NearestEven`; `Exact`; the four directed and nearest-away spellings drawn symbolically), and each harness is its own row; a combination is VERIFIED only when all three are. The Binary64 add and multiply harnesses are the probe: they are the AC-11 harnesses, not separate ones, and each combination is judged alone. For a non-VERIFIED outcome, record the row in the evidence record below and in the Kani tractability table that IR-1526's seam loads. Confirm each VERIFIED harness's cover is reached and its harness mutant fails, and compare each peak with 16 GiB.
 9. For AC-14, code review searches the kernel source for a refusal variant, refusal path or `Meter` behaviour defined for the table-row state; none may exist, and the seam referenced is IR-1526's. There is no automated step.
 10. For AC-15, inspect the Status for a per-operation, per-width verdict or table row, including SquareRoot and FusedMultiplyAdd.
+11. For AC-17, run `make verus` (bound by `verus_proofs_verify` in `tests/verus_gate.rs`) and record the result in the Verus record below.
+12. For AC-18, run `scripts/ir1551_verus_mutants.py` (bound by `verus_mutants_are_killed` in `tests/verus_gate.rs`) and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
 
 A Kani harness is a property harness (FR-405 Behavior 19, second sentence): per operation it draws the operands (two, one for Negate and SquareRoot, three for FusedMultiplyAdd) as fully symbolic bit patterns of the width, runs the native operation with a meter that never denies, and asserts the outputs listed in the harness docstring of `src/native_float/kani_proofs.rs` against an expected side that shares no function with the native body: result bits under `NearestEven` and a completed `Exact`, the NaN result (sign, quietness, payload) and the `invalid` flag of NaN-producing operations under every spelling, that only `Exact` refuses, provenance and the result-unit charge. The outputs it does not cover (result bits under the directed and nearest-away spellings, the `overflow`, `underflow`, `inexact` and `divide_by_zero` flags, the `Exact` refusal's would-be flags, charge amounts and meter limits) are left to the host differential. For a comparison it asserts the boolean and the result-unit charge.
 
@@ -176,6 +178,30 @@ Two faults of CBMC's `fma` model, each reproduced by a harness that runs the mod
 | `native_float_kani_proofs::tool_fault_fma_model_infinite_addend_f32` | FAILED | For finite `x` and `y`, `x.mul_add(y, +inf)` is `+inf`; the model's check "floating-point exception" fails (it raises the exception for any infinite addend, including valid sums) | 0.02 s, 38359040 bytes (0.04 GiB) |
 | `native_float_kani_proofs::tool_fault_fma_model_zero_product_f32` | FAILED | For finite `b` and finite nonzero `c`, `0.0.mul_add(b, c)` is `c`; the model returns another finite value, so "0 * b + c is c" fails | 0.02 s, 39030784 bytes (0.04 GiB) |
 
+### Verus record
+
+Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proof is `src/native_float/verus_proofs.rs` (FR-405 Behavior 23); the flag set's specification is in `src/ieee.rs`.
+
+| Run | Outcome | Time |
+| --- | --- | --- |
+| `make verus` (the whole crate) | `393 verified, 0 errors` | 7.0 s wall |
+| `scripts/ir1551_verus_mutants.py` | unmutated copy verified; 17 of 17 mutants killed by a failed proof obligation, none UNRELIABLE | 119 s wall for the 18 runs |
+
+What the twelve timeout rows rest on. Each row is one operation, width and rounding class; the theorems hold for both widths and all six rounding spellings at once.
+
+| Rows | Exact intermediate | Rounding |
+| --- | --- | --- |
+| Divide (five rows) | `row_divide` with `lemma_plan_divide`: the quotient of the operands, floored, sticky, two guard bits | `lemma_round`: `round_post` |
+| SquareRoot (three rows) | `row_square_root` with `lemma_plan_square_root` and the loop invariant of `integer_square_root`: the floor root | `lemma_round` |
+| Multiply Binary64 (one row) | `row_multiply` with `lemma_plan_multiply`: the exact product | `lemma_round` |
+| FusedMultiplyAdd (three rows) | `row_fused_multiply_add` with `lemma_sum`: the exact sum of the exact product and the addend | `lemma_round` |
+
+`lemma_round` states the result bits, the overflow result of each direction, `inexact` and `underflow` after rounding; `lemma_decode_rounded` states that `decode` reads the bits back as the rounded value; `lemma_grid_round` states that the rounding function is the only multiple satisfying the rounding relation. The proofs stop at the planners and `round`: NaN classification, the charges, the strict `Exact` refusal and the composition inside `arithmetic` are not in them (FR-405 Behavior 23).
+
+The fused multiply-add theorem does not depend on the CBMC `fma` model, whose two faults are recorded under Tool faults.
+
+Mutants (`scripts/ir1551_verus_mutants.py`), each killed by a failed proof obligation: ties rounded to odd (code and specification); nearest-away rounding ties down; toward-positive ignoring the sign; the carry not renormalised; underflow raised without inexact (code and specification); an overflow toward zero going to infinity; divide with one guard bit fewer (code and specification); the divide sticky dropped; divide by zero raising `invalid`; the odd exponent of a square root not doubled (code and specification); a root digit accepted only strictly below the radicand (loop invariant fails); one root step fewer (loop invariant fails at entry); the borrow for the sticky dropped in a difference (code and specification); an infinite product taking the addend's sign; product exponents subtracted; a signaling NaN read as quiet; `justify` one bit short.
+
 ## Expected Results
 
 Every boundary case yields the owner's bits, flags, provenance and charges, with independent literals for the cases named. Every mutant fails as named. Each combination of operation and width ends as an executed VERIFIED verdict or a measured table row, judged alone, with its peak recorded and at most 16 GiB; a combination with neither is inconclusive and no proof is claimed.
@@ -183,3 +209,5 @@ Every boundary case yields the owner's bits, flags, provenance and charges, with
 ## Status
 
 Run under IR-1446 (reopened) with IR-258 batched into the same PR. The host tests (`tests/ir1446_native_float.rs`, steps 1 to 4, 6, 7 and the evidence checks of step 8) pass. All 44 Kani harnesses of step 8 were run on the harness shape described in the runner paragraph, to a terminal state or to the limit it names; none returned a FAILED verdict. 32 are VERIFIED on the final harness text, each with its covers reached and its harness mutants failing (the `Exact` rows also fail the two numeric-path mutants): Negate, NumericEqual, TotalOrder and BitIdentical at both widths; Add and Subtract at both widths and Multiply at Binary32 in all three spelling groups; Multiply at Binary64 in the `Exact` and directed groups; Divide at Binary32 in the directed group; SquareRoot at Binary32 in the `Exact` and directed groups and at Binary64 in the directed group; FusedMultiplyAdd at Binary32 in the `Exact` and directed groups and at Binary64 in the directed group. The other 12 are timeout rows, each hanging in the solver (the five Exact and directed rows among them at the 1800 s cap after a 600 s probe that timed out, the seven NearestEven rows at the 600 s probe, not extended; the 12 were measured before the final cover and checks were added and claim nothing). Per combination: Negate, NumericEqual, TotalOrder, BitIdentical, Add and Subtract at both widths and Multiply at Binary32 are VERIFIED; Multiply at Binary64, Divide, SquareRoot and FusedMultiplyAdd at both widths are table rows, because each has a spelling group that is not verified. No proof is claimed for a table-row combination as a whole; the VERIFIED harnesses of such a combination cover only what the harness docstring lists. The table rows are for IR-1526 (the owner of the refusal seam and of the tractability table) to load; this repository does not own that table, and the evidence record above is the copy. The unverified rows are solver hangs: they wait on a deductive prover (no float Verus ticket exists yet; planner to assign).
+
+Steps 11 and 12 (AC-17 and AC-18, IR-1551): the Verus record above.
