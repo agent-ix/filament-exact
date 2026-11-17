@@ -147,6 +147,8 @@ fn steps_64(state: (u64, u64)) -> (u64, u64) {
 }
 #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps_128(state)))]
 fn steps_128(state: (u64, u64)) -> (u64, u64) {
+    #[cfg(verus_keep_ghost)]
+    proof! { reveal(verus_proofs::steps_128); }
     steps_64(steps_64(state))
 }
 
@@ -175,6 +177,8 @@ fn steps8_4(state: (u8, u8)) -> (u8, u8) {
 }
 #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::steps8_16(state)))]
 fn steps8_16(state: (u8, u8)) -> (u8, u8) {
+    #[cfg(verus_keep_ghost)]
+    proof! { reveal(verus_proofs::steps8_16); }
     steps8_4(steps8_4(steps8_4(steps8_4(state))))
 }
 
@@ -256,6 +260,8 @@ pub(crate) fn gcd_steps_128(state: GcdState) -> GcdState {
 }
 #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::gcd_steps_256(state)))]
 fn gcd_steps_256(state: GcdState) -> GcdState {
+    #[cfg(verus_keep_ghost)]
+    proof! { reveal(verus_proofs::gcd_steps_256); }
     gcd_steps_128(gcd_steps_128(state))
 }
 

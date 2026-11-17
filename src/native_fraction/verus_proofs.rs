@@ -518,6 +518,7 @@ pub open spec fn steps_64(s: (u64, u64)) -> (u64, u64) {
     steps_32(steps_32(s))
 }
 
+#[verifier::opaque]
 pub open spec fn steps_128(s: (u64, u64)) -> (u64, u64) {
     steps_64(steps_64(s))
 }
@@ -678,9 +679,9 @@ pub proof fn lemma_iter(s: (u64, u64), k: nat)
     }
 }
 
-pub proof fn lemma_steps_128_is_iter(s: (u64, u64))
+pub proof fn lemma_steps_64_is_iter(s: (u64, u64))
     ensures
-        steps_128(s) == iter(s, 128),
+        steps_64(s) == iter(s, 64),
 {
     assert forall|x: (u64, u64)| #[trigger] steps_2(x) == iter(x, 2) by {
         reveal_with_fuel(iter, 3);
@@ -697,9 +698,20 @@ pub proof fn lemma_steps_128_is_iter(s: (u64, u64))
     assert forall|x: (u64, u64)| #[trigger] steps_32(x) == iter(x, 32) by {
         lemma_iter_add(x, 16, 16);
     }
-    assert forall|x: (u64, u64)| #[trigger] steps_64(x) == iter(x, 64) by {
-        lemma_iter_add(x, 32, 32);
-    }
+    lemma_iter_add(s, 32, 32);
+}
+
+/// The unrolled ladder is 128 steps. Only the two halves are used here, so
+/// the halves and the iteration stay folded.
+pub proof fn lemma_steps_128_is_iter(s: (u64, u64))
+    ensures
+        steps_128(s) == iter(s, 128),
+{
+    hide(steps_64);
+    hide(iter);
+    reveal(steps_128);
+    lemma_steps_64_is_iter(s);
+    lemma_steps_64_is_iter(steps_64(s));
     lemma_iter_add(s, 64, 64);
 }
 
@@ -856,7 +868,6 @@ pub proof fn lemma_gcd64(left: u64, right: u64)
         gcd64(left, right) as nat == gcd(left as nat, right as nat),
         left != 0 && right != 0 ==> (left | right).trailing_zeros() < 64,
 {
-    hide(steps_128);
     reveal(gcd64);
     if left == 0 {
         lemma_gcd_zero_left(right as nat);
@@ -1058,20 +1069,34 @@ pub open spec fn steps8_4(s: (u8, u8)) -> (u8, u8) {
     step8(step8(step8(step8(s))))
 }
 
+#[verifier::opaque]
 pub open spec fn steps8_16(s: (u8, u8)) -> (u8, u8) {
     steps8_4(steps8_4(steps8_4(steps8_4(s))))
 }
 
+pub proof fn lemma_steps8_4_is_iter(s: (u8, u8))
+    ensures
+        steps8_4(s) == iter8(s, 4),
+{
+    reveal_with_fuel(iter8, 5);
+}
+
+/// The unrolled ladder is 16 steps. Only the four quarters are used here, so
+/// the quarters and the iteration stay folded.
 pub proof fn lemma_steps8_16_is_iter(s: (u8, u8))
     ensures
         steps8_16(s) == iter8(s, 16),
 {
-    assert forall|x: (u8, u8)| #[trigger] steps8_4(x) == iter8(x, 4) by {
-        reveal_with_fuel(iter8, 5);
-    }
-    let s4 = iter8(s, 4);
-    let s8 = iter8(s4, 4);
-    let s12 = iter8(s8, 4);
+    hide(steps8_4);
+    hide(iter8);
+    reveal(steps8_16);
+    let s4 = steps8_4(s);
+    let s8 = steps8_4(s4);
+    let s12 = steps8_4(s8);
+    lemma_steps8_4_is_iter(s);
+    lemma_steps8_4_is_iter(s4);
+    lemma_steps8_4_is_iter(s8);
+    lemma_steps8_4_is_iter(s12);
     lemma_iter8_add(s, 4, 4);
     lemma_iter8_add(s, 8, 4);
     lemma_iter8_add(s, 12, 4);
@@ -1229,7 +1254,6 @@ pub proof fn lemma_gcd8(left: u8, right: u8)
         gcd8(left, right) as nat == gcd(left as nat, right as nat),
         left != 0 && right != 0 ==> (left | right).trailing_zeros() < 8,
 {
-    hide(steps8_16);
     reveal(gcd8);
     if left == 0 {
         lemma_gcd_zero_left(right as nat);
@@ -1341,6 +1365,7 @@ pub open spec fn gcd_steps_128(s: (u128, u128, u128)) -> (u128, u128, u128) {
     gcd_steps_64(gcd_steps_64(s))
 }
 
+#[verifier::opaque]
 pub open spec fn gcd_steps_256(s: (u128, u128, u128)) -> (u128, u128, u128) {
     gcd_steps_128(gcd_steps_128(s))
 }
@@ -1509,9 +1534,9 @@ pub proof fn lemma_giter(s: (u128, u128, u128), k: nat, total: nat)
     }
 }
 
-pub proof fn lemma_gcd_steps_256_is_giter(s: (u128, u128, u128))
+pub proof fn lemma_gcd_steps_128_is_giter(s: (u128, u128, u128))
     ensures
-        gcd_steps_256(s) == giter(s, 256),
+        gcd_steps_128(s) == giter(s, 128),
 {
     assert forall|x: (u128, u128, u128)| #[trigger] gcd_steps_2(x) == giter(x, 2) by {
         reveal_with_fuel(giter, 3);
@@ -1531,9 +1556,20 @@ pub proof fn lemma_gcd_steps_256_is_giter(s: (u128, u128, u128))
     assert forall|x: (u128, u128, u128)| #[trigger] gcd_steps_64(x) == giter(x, 64) by {
         lemma_giter_add(x, 32, 32);
     }
-    assert forall|x: (u128, u128, u128)| #[trigger] gcd_steps_128(x) == giter(x, 128) by {
-        lemma_giter_add(x, 64, 64);
-    }
+    lemma_giter_add(s, 64, 64);
+}
+
+/// The unrolled ladder is 256 steps. Only the two halves are used here, so
+/// the halves and the iteration stay folded.
+pub proof fn lemma_gcd_steps_256_is_giter(s: (u128, u128, u128))
+    ensures
+        gcd_steps_256(s) == giter(s, 256),
+{
+    hide(gcd_steps_128);
+    hide(giter);
+    reveal(gcd_steps_256);
+    lemma_gcd_steps_128_is_giter(s);
+    lemma_gcd_steps_128_is_giter(gcd_steps_128(s));
     lemma_giter_add(s, 128, 128);
 }
 
@@ -1595,7 +1631,6 @@ pub proof fn lemma_gcd256(u: u128, v: u128)
         }),
         gcd256(u, v) as nat == gcd(u as nat, v as nat),
 {
-    hide(gcd_steps_256);
     reveal(gcd256);
     lemma_gcd_steps_256_is_giter((u, v, 1u128));
     lemma_giter_256(u, v);
@@ -1659,7 +1694,6 @@ pub proof fn lemma_coprime(left: u64, right: u64)
     ensures
         coprime(left, right) == (gcd(left as nat, right as nat) == 1),
 {
-    hide(steps_128);
     let (a, b) = (left as nat, right as nat);
     assert(((left | right) & 1 == 0) <==> (left % 2 == 0 && right % 2 == 0)) by (bit_vector);
     if (left | right) & 1 == 0 {

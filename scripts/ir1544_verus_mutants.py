@@ -2,8 +2,11 @@
 """Mutants of the code the Verus proofs cover (FR-408 Behavior 18b, TC-956).
 
 Each mutant is an exact-text edit applied to a scratch copy of `src/`. A mutant
-is killed when `scripts/verus.sh` on that copy reports an error. The unmutated
-copy must verify first. A mutant whose `spec` entry is not empty also edits the
+is killed when `scripts/verus.sh` on that copy reports a failed proof
+obligation (a postcondition, precondition or assertion that does not hold, or
+a possible overflow). A run that only exhausts the solver's resource limit is
+no verdict and is reported as UNRELIABLE, which fails the script. The
+unmutated copy must verify first. A mutant whose `spec` entry is not empty also edits the
 specification function of the same name the same way, so that the production
 function still equals its specification and only the theorem can fail.
 
@@ -21,6 +24,17 @@ FRACTION_PROOFS = "native_fraction/verus_proofs.rs"
 RATIONAL = "native_rational.rs"
 NUMERIC = "numeric.rs"
 
+# The errors that are a verdict: a proof obligation Verus checked and found
+# not to hold. A resource-limit error is not one.
+SEMANTIC = (
+    "error: postcondition not satisfied",
+    "error: precondition not satisfied",
+    "error: requires not satisfied",
+    "error: assertion failed",
+    "error: possible arithmetic underflow/overflow",
+    "error: possible division by zero",
+)
+
 # (id, [(file, old, new), ...])
 MUTANTS = [
     ("from-parts-accepts-zero-over-any", [
@@ -35,8 +49,8 @@ MUTANTS = [
     ("coprime-both-even-test-wrong", [
         (FRACTION, "    if (left | right) & 1 == 0 {", "    if (left & right) & 1 == 0 {")]),
     ("ladder-64-steps-code-and-spec", [
-        (FRACTION, "fn steps_128(state: (u64, u64)) -> (u64, u64) {\n    steps_64(steps_64(state))",
-         "fn steps_128(state: (u64, u64)) -> (u64, u64) {\n    steps_64(state)"),
+        (FRACTION, "    proof! { reveal(verus_proofs::steps_128); }\n    steps_64(steps_64(state))",
+         "    proof! { reveal(verus_proofs::steps_128); }\n    steps_64(state)"),
         (FRACTION_PROOFS, "pub open spec fn steps_128(s: (u64, u64)) -> (u64, u64) {\n    steps_64(steps_64(s))",
          "pub open spec fn steps_128(s: (u64, u64)) -> (u64, u64) {\n    steps_64(s)")]),
     ("gcd64-power-of-two-not-restored", [
@@ -47,6 +61,8 @@ MUTANTS = [
     ("reduce-wide-tier-keeps-denominator-code-and-spec", [
         (FRACTION, "                (n / gcd, d / gcd)", "                (n / gcd, d)"),
         (FRACTION_PROOFS, "        (n / gcd, d / gcd)", "        (n / gcd, d)")]),
+    ("gcd256-or-instead-of-sum", [
+        (FRACTION, "    g * (u + v)\n}", "    g * (u | v)\n}")]),
     ("reduce-sign-dropped", [
         (FRACTION, "    let numerator = if numerator < 0 {\n        signed.wrapping_neg()\n    } else {\n        signed\n    };\n    (numerator, d as i128)",
          "    let numerator = signed;\n    (numerator, d as i128)")]),
@@ -107,12 +123,20 @@ def main():
             ok, out = verus(base)
             for path, text in originals.items():
                 open(path, "w").write(text)
+            verdict = [line for line in out.splitlines() if line.startswith(SEMANTIC)]
             if ok:
                 failures += 1
                 print(f"{ident}: SURVIVED")
+            elif "is not supported" in out or "error[E" in out:
+                failures += 1
+                print(f"{ident}: INVALID (the mutant does not build under Verus)")
+            elif not verdict:
+                # A solver that ran out of resources gave no verdict; like a
+                # Kani timeout, that claims nothing.
+                failures += 1
+                print(f"{ident}: UNRELIABLE (no failed proof obligation, only a resource limit)")
             else:
-                reason = next((line for line in out.splitlines() if line.startswith("error")), "error")
-                print(f"{ident}: killed ({reason[:70]})")
+                print(f"{ident}: killed ({verdict[0]})")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     print("FAILED" if failures else "all mutants killed")

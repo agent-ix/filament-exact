@@ -11,9 +11,9 @@ VERUS=/path/to/verus-x86-linux/verus make verus
 VERUS=/path/to/verus-x86-linux/verus make verus-mutants
 ```
 
-`scripts/verus.sh` accepts only the pinned release, `0.2026.11.02.8bf68ee`. It builds the crate's dependencies with the Rust toolchain that Verus binary names (`rustup` must have it), runs Verus on `src/lib.rs`, and fails unless Verus reports no error. A full run takes a few seconds and well under 1 GiB.
+`VERUS` names a Verus binary. `scripts/verus.sh` builds the crate's dependencies with the Rust toolchain that binary names (`rustup` must have it), takes the list of dependencies and their built artifacts from cargo, runs Verus on `src/lib.rs`, and fails unless Verus reports no error. A full run takes a few seconds and well under 1 GiB.
 
-`scripts/ir1544_verus_mutants.py` applies each recorded mutant to a scratch copy of `src/` and requires the proofs to fail on it.
+`scripts/ir1544_verus_mutants.py` applies each recorded mutant to a scratch copy of `src/` and requires a proof to fail on it. Only a failed proof obligation counts (a postcondition, precondition or assertion that does not hold, or a possible overflow). A run that only exhausts the solver's resource limit gave no verdict; the script reports it as UNRELIABLE and fails.
 
 ## How a proof attaches to the code
 
@@ -28,7 +28,7 @@ The proofs are about the production functions, not about a copy of them. Nothing
 
 Most production functions are specified as "equal to the specification function of the same name". Verus checks that equality against the body; the theorems are then stated on the specification functions and on wrappers that call the production entry points (`row_*`).
 
-Long unrolled ladders (`steps_128`, `gcd_steps_256`) are hidden inside the lemmas that only need their result, so the solver does not unfold them. A lemma that starts to time out after an unrelated edit usually needs the same treatment.
+The specifications of the long unrolled ladders (`steps_128`, `steps8_16`, `gcd_steps_256`) and of the three gcds are opaque: the solver sees their bodies only where a proof reveals them. Without that it unfolds hundreds of steps wherever one is named, and a wrong body times out instead of failing. A proof that starts to hit the resource limit after an unrelated edit usually needs a definition hidden the same way.
 
 ## What is assumed, not proved
 

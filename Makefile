@@ -102,7 +102,7 @@ kani-meter-gate:
 	cargo test --locked --test meter_kani_gate -- --ignored
 
 # Verus proof lane (docs/verus-proofs.md); intentionally separate from make ci.
-# VERUS names the pinned Verus binary.
+# VERUS names the Verus binary.
 .PHONY: verus
 verus:
 	scripts/verus.sh
