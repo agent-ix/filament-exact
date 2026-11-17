@@ -127,3 +127,23 @@ fn membership_is_judged_on_the_normalized_pair_even_for_a_retained_pair() {
     assert!(NativeDecimal::from_bindings(&ty, 100, 2).is_ok());
     assert!(!ty.admits(&NativeDecimal::from_retained(1, 2)));
 }
+
+/// The Verus proofs of the constructor and the normalized view assume the
+/// table of powers of ten (a loop inside a constant initializer, which the
+/// prover cannot check). Every entry is compared here with a power computed
+/// by repeated checked multiplication from one.
+#[test]
+#[trace("TC-950", "FR-402-AC-15")]
+fn the_power_table_holds_every_power_of_ten_inside_i128() {
+    assert_eq!(POWERS_OF_TEN.len(), 39);
+    assert_eq!(MAX_NATIVE_POWER, 38);
+    let mut expected = 1_i128;
+    for (exponent, entry) in POWERS_OF_TEN.iter().enumerate() {
+        assert_eq!(*entry, expected, "10^{exponent}");
+        if exponent < 38 {
+            expected = expected.checked_mul(10).expect("10^38 fits i128");
+        } else {
+            assert!(expected.checked_mul(10).is_none(), "10^39 leaves i128");
+        }
+    }
+}
