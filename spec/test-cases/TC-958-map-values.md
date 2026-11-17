@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify [FR-410](../functional/FR-410-map-values.md) through the public `from_admitted_map`, `MapValue`, `ValueType::admits`, `plan_equality`, `compare_keys` and collection `form`. Scope: FR-410-AC-1 through FR-410-AC-8.
+Verify [FR-410](../functional/FR-410-map-values.md) through the public `from_admitted_map`, `MapValue`, `ValueType::admits`, `plan_equality`, `compare_keys` and collection `form`. Scope: FR-410-AC-1 through FR-410-AC-9.
 
 ## Test Procedure
 
@@ -23,6 +23,7 @@ Verify [FR-410](../functional/FR-410-map-values.md) through the public `from_adm
 6. For FR-410-AC-6, build two 1,024-entry `Map<Integer, Boolean>` entry lists in opposite orders and match them through the map entry matcher with a counting key comparator.
 7. For FR-410-AC-7, call `compare_keys` on each pair FR-410-AC-7 names.
 8. For FR-410-AC-8, `form` a `Set<Map<String, Integer>>` from the three maps FR-410-AC-8 names and read its elements; build the two `Map<String, Map<String, Integer>>` values and run `plan_equality` and `compare_keys` over them.
+9. For FR-410-AC-9, build `{-0.0: 1}` and `{+0.0: 1}` over `Map<Float64, Integer>`; run `plan_equality` and `compare_keys` over them and `form` a `Set<Map<Float64, Integer>>` from both.
 
 ## Expected Results
 
@@ -34,3 +35,4 @@ Verify [FR-410](../functional/FR-410-map-values.md) through the public `from_adm
 6. Equal, with fewer than 32 × 1,024 key comparisons.
 7. `Equal`, `Less`, `Less`, `Less` and `None`, in the order FR-410-AC-7 lists them.
 8. Two set members, `{a: 0}` first; the nested maps are equal and have an `Equal` canonical key.
+9. Equal under `plan_equality`; `compare_keys` is not `Equal`; the set holds two members.
