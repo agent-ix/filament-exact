@@ -9,7 +9,10 @@ no text with their body, so an edit of the body alone fails that statement.
 A function whose specification is a copy of its body (`capacity`, `lift_fits`,
 `tie`, the strips and `loss_record`) is edited together with that copy, so the
 function still equals its specification and only a theorem can fail. The
-runner is the one of `scripts/ir1544_verus_mutants.py`.
+numbers of `FIVE_LADDER` have no copy: the specification of `strip_fives`
+names the powers of five themselves and the function also carries the
+mathematical postcondition, so an edit of a table entry alone fails those.
+The runner is the one of `scripts/ir1544_verus_mutants.py`.
 
     VERUS=/path/to/verus python3 scripts/ir1555_verus_mutants.py [mutant-id ...]
 """
@@ -97,7 +100,7 @@ MUTANTS = [
         (PROOFS, "    if width <= limit - count && magnitude % power == 0 {", "    if magnitude % power == 0 {")]),
     ("strip-fives-rung-missing-code-and-spec", [
         (OPS, "    let (m, c) = strip_five(m, c, limit, 4, FIVE_LADDER[2]);\n", ""),
-        (PROOFS, "    let (m, c) = strip_five(m, c, limit, 4, 625);\n", "")]),
+        (PROOFS, "    let (m, c) = strip_five(m, c, limit, 4, pow5(4) as u128);\n", "")]),
     ("five-ladder-entry-wrong", [
         (OPS, "    390_625,\n", "    390_626,\n")]),
     ("loss-twos-not-cancelled-code-and-spec", [

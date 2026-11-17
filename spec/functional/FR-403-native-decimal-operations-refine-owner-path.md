@@ -119,7 +119,8 @@ For a retained coefficient `c` and a shift `k`: `bits(c)` is the bit length of `
 | FR-403-AC-14 | For every `u32` shift (2^32 shifts, in 16 threads), the lower and upper approximations of `log2(10)` give one floor, `k` times the upper approximation fits 128 bits, and the kernel's `bits(10^k)` equals the same scheme computed apart from the kernel with the upper constant: test `bits_of_a_power_of_ten_matches_the_reference_for_every_u32_shift`. The constant itself is checked against `floor(log2(10) x 2^90)` by exact integer arithmetic in `the_log2_ten_constant_is_the_floor_of_the_true_value`; a constant one unit low or high fails that test. | Test (TC-951) |
 | FR-403-AC-15 | The Verus proofs of Behavior 41 verify with no error (`make verus`) on the production functions Behavior 41 lists. | Test (TC-951) |
 | FR-403-AC-16 | Every mutant of `scripts/ir1555_verus_mutants.py` makes a proof of Behavior 41 fail with a failed proof obligation (a postcondition, precondition or assertion that does not hold, or a possible overflow). A run that only exhausts the solver's resource limit is no verdict and does not count. | Test (TC-951) |
-| FR-403-AC-17 | No Kani proof of the six operations or the ordering is claimed, and the Status states what the Verus proof covers and what it does not (Behavior 42). | Inspection (TC-951) |
+| FR-403-AC-17 | No Kani proof of the six operations or the ordering is claimed (Behavior 42). | Inspection (TC-951) |
+| FR-403-AC-18 | The Status states what the Verus proof covers and what stays unproved (Behavior 42). | Inspection (TC-951) |
 
 
 ## Status

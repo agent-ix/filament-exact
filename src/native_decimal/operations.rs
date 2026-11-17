@@ -553,8 +553,15 @@ fn strip_five(magnitude: u128, count: u64, limit: u64, width: u64, power: u128) 
 /// `(m / 5^k, k)` for the greatest `k <= limit` with `5^k | m`, nonzero `m`.
 #[cfg_attr(verus_keep_ghost, verus_spec(r =>
     requires magnitude != 0,
-    ensures r == verus_proofs::strip_fives(magnitude, limit)))]
+    ensures
+        r == verus_proofs::strip_fives(magnitude, limit),
+        verus_proofs::fives_stripped(magnitude, limit, r)))]
 fn strip_fives(magnitude: u128, limit: u64) -> (u128, u64) {
+    #[cfg(verus_keep_ghost)]
+    proof! {
+        verus_proofs::lemma_pow5_ladder();
+        verus_proofs::lemma_strip_fives(magnitude, limit);
+    }
     let (m, c) = strip_five(magnitude, 0, limit, 32, FIVE_LADDER[5]);
     let (m, c) = strip_five(m, c, limit, 16, FIVE_LADDER[4]);
     let (m, c) = strip_five(m, c, limit, 8, FIVE_LADDER[3]);

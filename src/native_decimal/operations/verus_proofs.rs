@@ -791,14 +791,16 @@ pub(super) open spec fn strip_five(magnitude: u128, count: u64, limit: u64, widt
     }
 }
 
-/// Specification of the production `strip_fives`.
+/// Specification of the production `strip_fives`. The rungs are the powers
+/// `5^32` down to `5^1` themselves, not the numbers of `FIVE_LADDER`: the
+/// production function has to show that each table entry is that power.
 pub(super) open spec fn strip_fives(magnitude: u128, limit: u64) -> (u128, u64) {
-    let (m, c) = strip_five(magnitude, 0, limit, 32, 23_283_064_365_386_962_890_625);
-    let (m, c) = strip_five(m, c, limit, 16, 152_587_890_625);
-    let (m, c) = strip_five(m, c, limit, 8, 390_625);
-    let (m, c) = strip_five(m, c, limit, 4, 625);
-    let (m, c) = strip_five(m, c, limit, 2, 25);
-    strip_five(m, c, limit, 1, 5)
+    let (m, c) = strip_five(magnitude, 0, limit, 32, pow5(32) as u128);
+    let (m, c) = strip_five(m, c, limit, 16, pow5(16) as u128);
+    let (m, c) = strip_five(m, c, limit, 8, pow5(8) as u128);
+    let (m, c) = strip_five(m, c, limit, 4, pow5(4) as u128);
+    let (m, c) = strip_five(m, c, limit, 2, pow5(2) as u128);
+    strip_five(m, c, limit, 1, pow5(1) as u128)
 }
 
 /// `(m / 5^k, k)` with `k` the greatest exponent up to the limit.
@@ -876,17 +878,17 @@ pub(super) proof fn lemma_strip_fives(m: u128, limit: u64)
     assert(pow5(0) == 1);
     lemma_small_mod(m as nat, pow5(64));
     let m0 = m as nat;
-    lemma_strip_five(m0, m, 0, limit, 32, 23_283_064_365_386_962_890_625);
-    let (m1, c1) = strip_five(m, 0, limit, 32, 23_283_064_365_386_962_890_625);
-    lemma_strip_five(m0, m1, c1, limit, 16, 152_587_890_625);
-    let (m2, c2) = strip_five(m1, c1, limit, 16, 152_587_890_625);
-    lemma_strip_five(m0, m2, c2, limit, 8, 390_625);
-    let (m3, c3) = strip_five(m2, c2, limit, 8, 390_625);
-    lemma_strip_five(m0, m3, c3, limit, 4, 625);
-    let (m4, c4) = strip_five(m3, c3, limit, 4, 625);
-    lemma_strip_five(m0, m4, c4, limit, 2, 25);
-    let (m5, c5) = strip_five(m4, c4, limit, 2, 25);
-    lemma_strip_five(m0, m5, c5, limit, 1, 5);
+    lemma_strip_five(m0, m, 0, limit, 32, pow5(32) as u128);
+    let (m1, c1) = strip_five(m, 0, limit, 32, pow5(32) as u128);
+    lemma_strip_five(m0, m1, c1, limit, 16, pow5(16) as u128);
+    let (m2, c2) = strip_five(m1, c1, limit, 16, pow5(16) as u128);
+    lemma_strip_five(m0, m2, c2, limit, 8, pow5(8) as u128);
+    let (m3, c3) = strip_five(m2, c2, limit, 8, pow5(8) as u128);
+    lemma_strip_five(m0, m3, c3, limit, 4, pow5(4) as u128);
+    let (m4, c4) = strip_five(m3, c3, limit, 4, pow5(4) as u128);
+    lemma_strip_five(m0, m4, c4, limit, 2, pow5(2) as u128);
+    let (m5, c5) = strip_five(m4, c4, limit, 2, pow5(2) as u128);
+    lemma_strip_five(m0, m5, c5, limit, 1, pow5(1) as u128);
 }
 
 /// Specification of the production `loss_record`.

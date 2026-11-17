@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-403-AC-1 through FR-403-AC-17 by running the native operations beside the owner's `evaluate_decimal` and `order_numbers`, each under a `Meter` with the same limits. Each mutant below is a buildable variant of the named site in a scratch copy and names the input, or the inspection, that fails it and the step at which it fails; a mutant that no input and no inspection distinguishes from the unmutated body is not admitted. The host steps have run (see Status); the CG measurement has not, and no Kani harness remains.
+Verify FR-403-AC-1 through FR-403-AC-14 by running the native operations beside the owner's `evaluate_decimal` and `order_numbers`, each under a `Meter` with the same limits. Verify FR-403-AC-15 and FR-403-AC-16 by running the Verus proofs and their mutants (steps 12 and 13), and FR-403-AC-17 and FR-403-AC-18 by inspecting FR-403 (steps 14 and 15). Each mutant below is a buildable variant of the named site in a scratch copy and names the input, or the inspection, that fails it and the step at which it fails; a mutant that no input and no inspection distinguishes from the unmutated body is not admitted. The host steps have run (see Status); the CG measurement has not, and no Kani harness remains.
 
 ## Test Procedure
 
@@ -29,12 +29,13 @@ The operand and type set is fixed before the implementation is written, from ind
 6. For AC-9, compare the native `bits(10^k)` with the owner's `power_of_ten_bits(k)` at the listed `k`, and run the exhaustive host test over all `u32` values that the lower and upper approximations agree.
 7. For AC-10, check `Copy` of the result and the loss record; and run the capacity and completed cases inside a counting global allocator window around admission, asserting zero allocations.
 8. For AC-11, evaluate every case a second time by the owner route and assert that the native read-out `DecimalResult` equals the owner's under `Eq`, that the typed outcomes are equal, and that the complete list of disagreements is the set of native capacity refusals, each checked against its named quantity.
-9. For AC-12, run the host tests named by that criterion (the grid, the random operands, the gcd pairs and the differential of `tests/ir1508_native_decimal_ops.rs`). For AC-14, run `bits_of_a_power_of_ten_matches_the_reference_for_every_u32_shift` over all 2^32 shifts. AC-15 to AC-17 are steps 12 to 14.
+9. For AC-12, run the host tests named by that criterion (the grid, the random operands, the gcd pairs and the differential of `tests/ir1508_native_decimal_ops.rs`). For AC-14, run `bits_of_a_power_of_ten_matches_the_reference_for_every_u32_shift` over all 2^32 shifts. AC-15 to AC-18 are steps 12 to 15.
 10. Run each mutant: the input mutants through the check of the step named in the table, the two inspection mutants have no automated step.
 11. For AC-13, once CG's decimal row (IR-259) consumes the delivered operations, run it under the authorized runner and record the peak memory and its provenance, time, tool version and terminal outcome under IR-1508. Until then this step is not executable and AC-13 stays unexecuted; no fit is claimed.
 12. For AC-15, run `make verus` (bound by `verus_proofs_verify` in `tests/verus_gate.rs`) and record the result in the Verus record below.
 13. For AC-16, run `scripts/ir1555_verus_mutants.py` (bound by `verus_mutants_are_killed` in `tests/verus_gate.rs`) and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
-14. For AC-17, inspect the FR-403 Status: it claims no Kani proof and states what the Verus proof covers and what stays unproved.
+14. For AC-17, inspect FR-403 and `src/native_decimal`: no Kani harness (`kani::proof`) of the six operations or the ordering exists there, and no Behavior, criterion or Status sentence claims a Kani proof of them.
+15. For AC-18, inspect the FR-403 Status: it states what the Verus proof covers and what stays unproved.
 
 ### Mutants
 
@@ -107,7 +108,7 @@ Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proof
 | Run | Outcome | Time |
 | --- | --- | --- |
 | `make verus` (the whole crate) | `630 verified, 0 errors` | 14 s wall |
-| `scripts/ir1555_verus_mutants.py` | unmutated copy verified; 53 of 53 mutants killed by a failed proof obligation, none UNRELIABLE | 649 s wall for the 55 runs, in two batches (27 and 26 mutants, each after its own unmutated run) |
+| `scripts/ir1555_verus_mutants.py` | unmutated copy verified; 53 of 53 mutants killed by a failed proof obligation, none UNRELIABLE | 713 s wall for the 54 runs (the unmutated copy and the 53 mutants) |
 
 What each claim of Behavior 41 rests on. Every statement holds for every signed 128-bit coefficient, every `u32` scale, every type and every rounding spelling.
 
@@ -122,7 +123,7 @@ What each claim of Behavior 41 rests on. Every statement holds for every signed 
 
 Not proved (FR-403 Behavior 41 and Status): the agreement with `evaluate_decimal` and `order_numbers`, which the prover does not model (steps 8 and 9 are that evidence); the charge amounts beyond `bits_of` and `digits_of`, the charge sequence and the `Meter`; the typed outcome and the read-out.
 
-Mutants (`scripts/ir1555_verus_mutants.py`), each killed by a failed proof obligation. A function with a mathematical postcondition is edited alone; a function whose specification is a copy of its body is edited together with the copy (marked "both"), so a theorem is what fails. Every function Behavior 41 lists is the target of at least one mutant.
+Mutants (`scripts/ir1555_verus_mutants.py`), each killed by a failed proof obligation. A function with a mathematical postcondition is edited alone; a function whose specification is a copy of its body is edited together with the copy (marked "both"), so a theorem is what fails. The numbers of `FIVE_LADDER` have no copy in the specification: `strip_fives` is specified over the powers `5^32` to `5^1` themselves and also carries the mathematical postcondition (the greatest power of five up to the limit is removed), so the wrong table entry is edited alone and fails the statement that the entry is `5^8`. Every function Behavior 41 lists is the target of at least one mutant.
 
 | Function | Mutants |
 | --- | --- |
@@ -159,4 +160,4 @@ Every case yields the independently written outcome, retained pair, loss record 
 
 ## Status
 
-Run on the host: steps 1 to 8, through `tests/ir1508_native_decimal_ops.rs` (literal cases, the differential against `evaluate_decimal` and `order_numbers` over 19 types and 38 operands with an independently modelled capacity set, the limit sweeps) and `src/native_decimal/operations_tests.rs` (the reference binding of Behavior 38, `bits(10^k)`, the gcd and the wide product). The boundary set holds each mutant's distinguishing input, asserted against its literal in the step the table names, but the TC-951 mutants were not built and run as a set (step 10). The PR #149 reviewer ran eight controls on the unmutated branch, all killed by an assertion failure: M1 the gcd takes 128 steps, M2 the ordering forms the aligned operand with a wrapping multiply, M3 the doubled remainder wraps, M4 the numerator exponent ground runs before the zero-divisor exit, M5 `decimal.rounding` is charged on an exact result, M6 the `log2(10)` approximation has 64 fractional bits, M7 a Divide overflow is named `ShiftedOperand`, M8 the unary lift-exponent ground runs after the negation ground. The exhaustive all-`u32` host test of step 6 and the host tests of step 9 have run; no Kani harness remains. Step 11 waits for IR-259; no CG measurement exists. Steps 12 to 14 (AC-15 to AC-17, IR-1555): the Verus record above.
+Run on the host: steps 1 to 8, through `tests/ir1508_native_decimal_ops.rs` (literal cases, the differential against `evaluate_decimal` and `order_numbers` over 19 types and 38 operands with an independently modelled capacity set, the limit sweeps) and `src/native_decimal/operations_tests.rs` (the reference binding of Behavior 38, `bits(10^k)`, the gcd and the wide product). The boundary set holds each mutant's distinguishing input, asserted against its literal in the step the table names, but the TC-951 mutants were not built and run as a set (step 10). The PR #149 reviewer ran eight controls on the unmutated branch, all killed by an assertion failure: M1 the gcd takes 128 steps, M2 the ordering forms the aligned operand with a wrapping multiply, M3 the doubled remainder wraps, M4 the numerator exponent ground runs before the zero-divisor exit, M5 `decimal.rounding` is charged on an exact result, M6 the `log2(10)` approximation has 64 fractional bits, M7 a Divide overflow is named `ShiftedOperand`, M8 the unary lift-exponent ground runs after the negation ground. The exhaustive all-`u32` host test of step 6 and the host tests of step 9 have run; no Kani harness remains. Step 11 waits for IR-259; no CG measurement exists. Steps 12 and 13 (AC-15 and AC-16, IR-1555): the Verus record above. Steps 14 and 15 (AC-17 and AC-18) are inspections of FR-403 and `src/native_decimal`; both hold on this change.
