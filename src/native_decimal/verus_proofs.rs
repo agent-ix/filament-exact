@@ -276,4 +276,123 @@ pub proof fn lemma_zeros_bound(m: nat, s: nat)
     }
 }
 
+// ---- the normalized view -----------------------------------------------------------------
+
+/// One stage of the normalization on a magnitude: remove `p` zeros when the
+/// scale allows and `10^p` divides.
+pub open spec fn stage(m: nat, s: nat, p: nat) -> (nat, nat) {
+    if s >= p && m % pow10(p) == 0 {
+        (m / pow10(p), (s - p) as nat)
+    } else {
+        (m, s)
+    }
+}
+
+/// `(m, s)` is `(m0, s0)` with some of its removable zeros removed.
+pub open spec fn stripped_from(m0: nat, s0: nat, m: nat, s: nat) -> bool {
+    &&& m != 0
+    &&& s <= s0
+    &&& m0 == m * pow10((s0 - s) as nat)
+    &&& zeros(m, s) + (s0 - s) == zeros(m0, s0)
+}
+
+/// A stage keeps the value and halves the bound on what is left to remove.
+pub proof fn lemma_stage(m0: nat, s0: nat, m: nat, s: nat, p: nat)
+    requires
+        stripped_from(m0, s0, m, s),
+        zeros(m, s) < 2 * p,
+    ensures
+        stripped_from(m0, s0, stage(m, s, p).0, stage(m, s, p).1),
+        zeros(stage(m, s, p).0, stage(m, s, p).1) < p,
+{
+    lemma_zeros_at_least(m, s, p);
+    if zeros(m, s) >= p {
+        lemma_zeros_after(m, s, p);
+        let m2 = m / pow10(p);
+        let s2 = (s - p) as nat;
+        lemma_pow10_adds(p, (s0 - s) as nat);
+        assert(m0 == m2 * pow10((s0 - s2) as nat)) by (nonlinear_arith)
+            requires
+                m0 == m * pow10((s0 - s) as nat),
+                m == m2 * pow10(p),
+                pow10((s0 - s2) as nat) == pow10(p) * pow10((s0 - s) as nat),
+        ;
+    }
+}
+
+/// The production `strip_zeros` is `stage` on the magnitude and keeps the sign.
+pub proof fn lemma_strip_zeros(c: i128, s: u32, p: u32)
+    requires
+        c != 0,
+        p <= 38,
+    ensures
+        ({
+            let r = strip_zeros(c, s, p, pow10(p as nat) as i128);
+            &&& (magnitude(r.0), r.1 as nat) == stage(magnitude(c), s as nat, p as nat)
+            &&& (r.0 < 0) == (c < 0) || r.0 == 0
+        }),
+{
+    lemma_pow10_bound(p as nat);
+    let power = pow10(p as nat) as int;
+    let m = magnitude(c) as int;
+    lemma_fundamental_div_mod(m, power);
+    lemma_mod_bound(m, power);
+    let q = m / power;
+    assert(0 <= q <= m) by (nonlinear_arith)
+        requires
+            m == power * q + m % power,
+            0 <= m % power,
+            power >= 1,
+            m >= 0,
+    ;
+}
+
+/// The normalized view is the least-scale pair equal in value: zero is
+/// `(0, 0)`; otherwise the sign is kept, the magnitude is the coefficient's
+/// with `k` trailing zeros removed and the scale is lowered by `k`, where `k`
+/// is every zero the scale allows, so either the scale reached zero or the
+/// coefficient is no longer divisible by ten.
+pub proof fn lemma_normalized(c: i128, s: u32)
+    ensures
+        c == 0 ==> normalized(c, s) == (0i128, 0u32),
+        c != 0 ==> ({
+            let (c2, s2) = normalized(c, s);
+            let k = (s - s2) as nat;
+            &&& s2 <= s
+            &&& c2 != 0
+            &&& (c2 < 0) == (c < 0)
+            &&& magnitude(c) == magnitude(c2) * pow10(k)
+            &&& k == zeros(magnitude(c), s as nat)
+            &&& s2 == 0 || magnitude(c2) % 10 != 0
+        }),
+{
+    if c != 0 {
+        let (m0, s0) = (magnitude(c), s as nat);
+        lemma_zeros_bound(m0, s0);
+        assert(m0 == m0 * pow10(0)) by (nonlinear_arith)
+            requires
+                pow10(0) == 1,
+        ;
+        let (c1, s1) = strip_zeros(c, s, 32, pow10(32) as i128);
+        lemma_strip_zeros(c, s, 32);
+        lemma_stage(m0, s0, m0, s0, 32);
+        let (c2, s2) = strip_zeros(c1, s1, 16, pow10(16) as i128);
+        lemma_strip_zeros(c1, s1, 16);
+        lemma_stage(m0, s0, magnitude(c1), s1 as nat, 16);
+        let (c3, s3) = strip_zeros(c2, s2, 8, pow10(8) as i128);
+        lemma_strip_zeros(c2, s2, 8);
+        lemma_stage(m0, s0, magnitude(c2), s2 as nat, 8);
+        let (c4, s4) = strip_zeros(c3, s3, 4, pow10(4) as i128);
+        lemma_strip_zeros(c3, s3, 4);
+        lemma_stage(m0, s0, magnitude(c3), s3 as nat, 4);
+        let (c5, s5) = strip_zeros(c4, s4, 2, pow10(2) as i128);
+        lemma_strip_zeros(c4, s4, 2);
+        lemma_stage(m0, s0, magnitude(c4), s4 as nat, 2);
+        let (c6, s6) = strip_zeros(c5, s5, 1, pow10(1) as i128);
+        lemma_strip_zeros(c5, s5, 1);
+        lemma_stage(m0, s0, magnitude(c5), s5 as nat, 1);
+        assert(zeros(magnitude(c6), s6 as nat) == 0);
+    }
+}
+
 } // verus!
