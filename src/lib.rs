@@ -13,9 +13,10 @@
 //! `pub use` facade on this page, so the module names above are plain text,
 //! not links.
 //!
-//! It depends on no wire format, hashing or canonicalization crate. Its
-//! identity constructors carry caller-admitted structural components and
-//! never derive identities from digests.
+//! It does not derive identities from digests or serialize them implicitly.
+//! The default build has no JSON or canonicalization dependencies. Optional
+//! JSON features use `serde_json` with `alloc`; `json-object` also uses `serde`
+//! and `ryu-js` to admit canonical JSON values while preserving `no_std`.
 //!
 //! [`Value`]/[`ValueType`]: `ValueType::admits` never pairs
 //! `ValueType::Population(Option<u64>)` with `Value::Population(PopulationId)`
@@ -111,6 +112,7 @@ mod identity;
 mod identity_copy;
 mod ieee;
 mod integer;
+mod json_object;
 mod key;
 mod location;
 mod native_decimal;
@@ -203,6 +205,7 @@ pub use integer::{
     IntegerInterval, IntegerParseError, IntegerReserveError, NonCanonicalInteger, NonZeroInteger,
     OutOfDomain, ZeroDivisor,
 };
+pub use json_object::{JsonObject, JsonObjectError};
 pub use key::compare_keys;
 pub use location::{Location, Origin, Role};
 pub use native_decimal::{

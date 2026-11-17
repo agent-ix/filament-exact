@@ -133,6 +133,11 @@ fn leaf<'a>(
             left.retained().as_bytes().cmp(right.retained().as_bytes())
         }
         (Value::String(left), Value::String(right)) => left.as_bytes().cmp(right.as_bytes()),
+        (Value::Bytes(left), Value::Bytes(right)) => left.cmp(right),
+        (Value::JsonObject(left), Value::JsonObject(right)) => left
+            .canonical_text()
+            .as_bytes()
+            .cmp(right.canonical_text().as_bytes()),
         (Value::Uuid(left), Value::Uuid(right)) => {
             left.canonical_bytes().cmp(&right.canonical_bytes())
         }
@@ -235,6 +240,8 @@ fn leaf<'a>(
             | Value::Quantity(_)
             | Value::Text(_)
             | Value::String(_)
+            | Value::Bytes(_)
+            | Value::JsonObject(_)
             | Value::Uuid(_)
             | Value::Timestamp(_)
             | Value::Enum(_)
@@ -277,6 +284,8 @@ mod tests {
     use super::*;
     use crate::collection::{from_admitted_map, MapType};
     use crate::integer::Integer;
+    #[cfg(feature = "json-object")]
+    use crate::JsonObject;
 
     /// two equal integers key-compare equal; unequal integers key
     /// in the same order as their value ordering.
@@ -362,6 +371,28 @@ mod tests {
         assert_eq!(compare_keys(&decomposed, &uuid), None);
     }
 
+    /// FR-149-AC-24: native scalar keys use their canonical payload order.
+    #[trace("FSpec-FR-149-AC-23", "FSpec-FR-149-AC-24")]
+    #[test]
+    #[cfg(feature = "json-object")]
+    fn bytes_and_json_object_keys_follow_canonical_payload_order() {
+        let empty_bytes = Value::Bytes(Vec::new());
+        let one_zero = Value::Bytes(vec![0x00]);
+        let two_zeros = Value::Bytes(vec![0x00, 0x00]);
+        let ten = Value::Bytes(vec![0x10]);
+        let two_thousand = Value::Bytes(vec![0x20, 0x00]);
+        assert_eq!(compare_keys(&empty_bytes, &one_zero), Some(Ordering::Less));
+        assert_eq!(compare_keys(&one_zero, &two_zeros), Some(Ordering::Less));
+        assert_eq!(compare_keys(&ten, &two_thousand), Some(Ordering::Less));
+
+        let array = Value::JsonObject(JsonObject::from_json_text("[]").unwrap());
+        let object = Value::JsonObject(JsonObject::from_json_text("{}").unwrap());
+        let array_copy = Value::JsonObject(JsonObject::from_json_text("[]").unwrap());
+        assert_eq!(compare_keys(&array, &object), Some(Ordering::Less));
+        assert_eq!(compare_keys(&array, &array_copy), Some(Ordering::Equal));
+        assert_eq!(compare_keys(&one_zero, &array), None);
+    }
+
     /// comparing values of unrelated types (a checked program never
     /// produces this) returns `None`, not a panic.
     #[test]
@@ -382,8 +413,9 @@ mod tests {
         assert_eq!(compare_keys(&left, &right), None);
     }
 
-    /// A same-type `Value::Float` pair has no key, matching
-    /// its exclusion from `=` in `crate::equality`'s leaf match.
+    /// `compare_keys` returns no key for a same-type `Value::Float` pair: a
+    /// float's ordering is the total-order membership key of
+    /// `compare_membership_keys`, which collections use, not an ordinary key.
     #[test]
     fn float_pair_has_no_key() {
         use crate::ieee::IeeeValue;

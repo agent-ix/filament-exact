@@ -90,9 +90,12 @@ exhaust memory.
 | Results and limits | `Outcome`, `Undefined`, `Refusal`, `Meter`, `ScalarLimits`, `Cancel` |
 | Identity and provenance | `NodeKey`, `EffectiveId` and the other digest identities, `Location` |
 
-The crate does not hash or serialize anything. Every digest identity is made
-by wrapping an already-computed digest through its `from_digest` constructor,
-so the crate has no wire-format or hashing dependency. Everything is
+The crate does not derive identities from digests or serialize them
+implicitly. The default build has no JSON or canonicalization dependencies.
+Optional JSON features use `serde_json` with `alloc`; `json-object` also uses
+`serde` and `ryu-js` to parse and retain canonical JSON values. These features
+preserve `no_std` support. Every digest identity is made by wrapping an
+already-computed digest through its `from_digest` constructor. Everything is
 re-exported from the crate root; the modules are private.
 
 ## Cargo features
@@ -100,6 +103,8 @@ re-exported from the crate root; the modules are private.
 | Feature | Effect |
 | --- | --- |
 | `test-support` | Keeps the ordered log of every charge a `Meter` admits (`Meter::admitted_charges`), so tests can assert exact charge sequences. Enable it only from a dev-dependency. |
+| `json` | Enables the optional `serde_json` dependency with `alloc` support for JSON wire features. |
+| `json-object` | Adds canonical JSON object/value parsing through `JsonObject::from_json_text`; it enables `json` and uses optional `serde` and `ryu-js` dependencies. |
 
 ## Filament ecosystem
 

@@ -237,8 +237,12 @@ fn plan_pairs_with_relation(
                 (left, right, relation)
             }
             Pair::Slots(FieldValue::Absent, FieldValue::Absent, _)
-            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => continue,
+            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => {
+                pairs = pairs.add(&Integer::one());
+                continue;
+            }
             Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _, _) => {
+                pairs = pairs.add(&Integer::one());
                 equal = false;
                 continue;
             }
@@ -263,6 +267,10 @@ fn plan_pairs_with_relation(
                 l.retained() == r.retained()
             }
             (Value::String(l), Value::String(r)) => l == r,
+            (Value::Bytes(l), Value::Bytes(r)) => l == r,
+            (Value::JsonObject(l), Value::JsonObject(r)) => {
+                l.canonical_text().as_bytes() == r.canonical_text().as_bytes()
+            }
             (Value::Uuid(l), Value::Uuid(r)) => l == r,
             (Value::Timestamp(l), Value::Timestamp(r)) => l == r,
             // Identity and equality use the `VariantId` only
@@ -382,6 +390,8 @@ fn plan_pairs_with_relation(
                 | Value::Quantity(_)
                 | Value::Text(_)
                 | Value::String(_)
+                | Value::Bytes(_)
+                | Value::JsonObject(_)
                 | Value::Uuid(_)
                 | Value::Timestamp(_)
                 | Value::Enum(_)
@@ -490,6 +500,8 @@ mod tests {
     };
     use crate::key::compare_keys;
     use crate::value::ValueType;
+    #[cfg(feature = "json-object")]
+    use crate::{JsonObject, JsonObjectError};
 
     /// Map equality is independent of supplied entry order, and ValueType
     /// admits a map value only under its declared map type.
@@ -1060,6 +1072,100 @@ mod tests {
         assert!(compare(&text_value("é"), &text_value("e\u{301}")));
     }
 
+    /// FR-149-AC-23: native Bytes equality compares complete octet sequences.
+    #[trace("FSpec-FR-149-AC-23", "FSpec-FR-149-AC-24")]
+    #[test]
+    #[cfg(feature = "json-object")]
+    fn native_bytes_equality_compares_octet_sequences() {
+        let empty = Value::Bytes(Vec::new());
+        let zero = Value::Bytes(vec![0x00]);
+        let bytes = Value::Bytes(vec![0x00, 0xff]);
+        let equal = Value::Bytes(vec![0x00, 0xff]);
+        let changed = Value::Bytes(vec![0x00, 0xfe]);
+        let extended = Value::Bytes(vec![0x00, 0xff, 0x00]);
+        let compare = |left: &Value, right: &Value| {
+            let mut meter = generous_meter();
+            planned_equality(left, right, &mut meter)
+                .completed()
+                .expect("admitted same-kind values compare")
+        };
+
+        assert!(compare(&bytes, &equal));
+        assert!(!compare(&bytes, &changed));
+        assert!(!compare(&bytes, &extended));
+        assert!(!compare(&empty, &zero));
+        assert_eq!(
+            plan_equality(&bytes, &equal).unwrap().pair_events(),
+            &Integer::one()
+        );
+        assert!(matches!(
+            plan_equality(
+                &bytes,
+                &Value::JsonObject(JsonObject::from_json_text("[]").unwrap())
+            ),
+            Err(Refusal::CheckedInvariant {
+                cause: CheckedInvariantCause::ValueKindMismatch
+            })
+        ));
+    }
+
+    /// FR-149-AC-23: JsonObject equality follows its canonical JCS payload.
+    #[trace("FSpec-FR-149-AC-23", "FSpec-FR-149-AC-24")]
+    #[test]
+    #[cfg(feature = "json-object")]
+    fn native_json_object_equality_compares_canonical_payloads() {
+        let json = |text| Value::JsonObject(JsonObject::from_json_text(text).unwrap());
+        let object = json("{\"a\":1,\"b\":[true,null]}");
+        let same = json("{\"a\":1,\"b\":[true,null]}");
+        let reversed_array = json("{\"a\":1,\"b\":[null,true]}");
+        let changed = json("{\"a\":2,\"b\":[true,null]}");
+        let missing_member = json("{\"a\":1}");
+        let extra_member = json("{\"a\":1,\"b\":[true,null],\"c\":{}}");
+        let empty = json("{}");
+        let empty_copy = json("{}");
+        let compare = |left: &Value, right: &Value| {
+            let mut meter = generous_meter();
+            planned_equality(left, right, &mut meter)
+                .completed()
+                .expect("admitted same-kind values compare")
+        };
+
+        assert!(compare(&object, &same));
+        assert!(!compare(&object, &reversed_array));
+        assert!(!compare(&object, &changed));
+        assert!(!compare(&object, &missing_member));
+        assert!(!compare(&object, &extra_member));
+        assert!(compare(&empty, &empty_copy));
+
+        let inserted_b_first = json("{\"b\":1,\"a\":2}");
+        let inserted_a_first = json("{\"a\":2,\"b\":1}");
+        assert!(compare(&inserted_b_first, &inserted_a_first));
+        assert_eq!(
+            JsonObject::from_json_text("not JSON"),
+            Err(JsonObjectError::InvalidJson)
+        );
+        let Value::JsonObject(inserted_b_first) = inserted_b_first else {
+            unreachable!();
+        };
+        let Value::JsonObject(inserted_a_first) = inserted_a_first else {
+            unreachable!();
+        };
+        assert_eq!(
+            inserted_b_first, inserted_a_first,
+            "member insertion order canonicalizes to the same payload"
+        );
+        assert_eq!(
+            plan_equality(&object, &same).unwrap().pair_events(),
+            &Integer::one()
+        );
+        assert!(matches!(
+            plan_equality(&object, &Value::Bytes(vec![])),
+            Err(Refusal::CheckedInvariant {
+                cause: CheckedInvariantCause::ValueKindMismatch
+            })
+        ));
+    }
+
     /// `planned_equality` completes true for two equal integers
     /// under a generous meter, and a meter with no `value_occurrences` left
     /// cannot admit `equality.plan-form`, so the identical comparison
@@ -1130,6 +1236,34 @@ mod tests {
             assert_eq!(stopped_meter.admission_count(), 19);
             assert_eq!(stopped_meter.consumed(LimitKind::WorkUnits), 50);
             assert_eq!(stopped_meter.consumed(LimitKind::ResultUnits), 0);
+        }
+    }
+
+    /// A slot pair that is absent, null or mismatched is one pair event, as
+    /// are the root pair and each present slot pair (FR-376-AC-4).
+    #[trace("TC-924", "FR-376-AC-4")]
+    #[test]
+    fn absent_null_and_mismatched_slot_pairs_count_one_pair_each() {
+        let declaration = crate::node::NodeKey::fixture(43);
+        let one = || FieldValue::Present(Value::Integer(Integer::one()));
+        let pair_events = |left: FieldValue, right: FieldValue| {
+            let node = |tail: FieldValue| {
+                crate::value::from_admitted_slots(
+                    declaration.clone(),
+                    vec![one(), tail].into_boxed_slice(),
+                )
+            };
+            let plan = plan_equality(&node(left), &node(right)).unwrap();
+            plan.pair_events().clone()
+        };
+        let three = Integer::from(3_u64);
+        for (left, right) in [
+            (FieldValue::Absent, FieldValue::Absent),
+            (FieldValue::Null, FieldValue::Null),
+            (one(), FieldValue::Absent),
+            (FieldValue::Absent, FieldValue::Null),
+        ] {
+            assert_eq!(pair_events(left, right), three);
         }
     }
 

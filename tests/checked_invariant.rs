@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Public checked-invariant carrier controls for FR-369.
 
-use filament_exact::{CheckedInvariantCause, IllTypedCause, Refusal};
+use filament_exact::{
+    form_grouped, from_admitted_slots, CheckedInvariantCause, CollectionKind, CollectionType,
+    FieldValue, IllTypedCause, Integer, Meter, NodeKey, Outcome, PathSegment, Refusal,
+    ScalarLimits, Value, ValueType,
+};
 use ix_trace_rs::trace;
 
 // Independently authored exhaustive expectations, rather than a production list.
@@ -323,4 +327,38 @@ fn rust_compiler_rejects_unit_constructor_and_removed_causes() {
     );
 
     fs::remove_dir_all(directory).unwrap();
+}
+
+/// Collection ordering reports `CanonicalKeyUnavailable` at the real producer
+/// when two already grouped members have no canonical key: a composite and an
+/// `Integer`.
+#[trace("TC-917", "FR-369-AC-2")]
+#[test]
+fn grouped_members_without_a_canonical_key_refuse_canonical_key_unavailable() {
+    let declaration = NodeKey::new("test", vec![PathSegment::Text("1".to_owned())], 0).unwrap();
+    let composite = from_admitted_slots(
+        declaration.clone(),
+        vec![FieldValue::Present(Value::Integer(Integer::from(100_i64)))].into_boxed_slice(),
+    );
+    let integer = Value::Integer(Integer::from(100_i64));
+    let collection_type =
+        CollectionType::new(CollectionKind::Set, ValueType::Composite(declaration), None);
+    let mut meter = Meter::new(ScalarLimits {
+        integer_bits: u64::MAX,
+        decimal_digits: u64::MAX,
+        scale_expansion: u64::MAX,
+        text_input_bytes: u64::MAX,
+        text_scalars: u64::MAX,
+        normalized_scalars: u64::MAX,
+        unit_edges: u64::MAX,
+        value_occurrences: u64::MAX,
+        work_units: u64::MAX,
+        result_units: u64::MAX,
+    });
+    assert!(matches!(
+        form_grouped(&collection_type, vec![composite, integer], &mut meter),
+        Outcome::Refused(Refusal::CheckedInvariant {
+            cause: CheckedInvariantCause::CanonicalKeyUnavailable
+        })
+    ));
 }

@@ -12,7 +12,7 @@ relationships:
 
 Canonical collection membership SHALL compare float leaves by their complete
 width-specific bit identity. This relation serves collection formation,
-contains and removeOne; it SHALL NOT expand ordinary equality eligibility.
+contains and removeOne. Ordinary float equality is a separate relation, admitted by QSpec FR-149-AC-25.
 
 ## Behavior
 
@@ -27,7 +27,7 @@ The caller SHALL still charge `collection.member-walk` before planning and
 occurrence/work amounts. A false leaf SHALL NOT short-circuit the remaining
 pair traversal. Denied charges SHALL preserve the admitted prefix and return
 the original typed incomplete cause without a Boolean result retain.
-Ordinary equality SHALL retain its existing planner and IEEE eligibility.
+Ordinary equality admits float operands by IEEE numeric equality (QSpec FR-149-AC-25) through the same planner; membership does not change it.
 
 ## Acceptance Criteria
 
@@ -36,7 +36,7 @@ Ordinary equality SHALL retain its existing planner and IEEE eligibility.
 | FR-393-AC-1 | At both widths identical NaN patterns compare true; changed payload, sign, signaling bit, signed zero and infinity sign compare false. | Test |
 | FR-393-AC-2 | Float leaves nested in options and collections use the same membership relation, visiting all occurrence pairs after an unequal leaf. | Test |
 | FR-393-AC-3 | Nested comparisons retain the exact walk/test charge vectors and no result-retain charge; denial at either point returns Incomplete with the admitted prefix unchanged. | Test |
-| FR-393-AC-4 | Wrong width and wrong value kind preserve typed membership refusals; ordinary equality still refuses direct and nested float operands. | Test |
+| FR-393-AC-4 | Wrong width and wrong value kind preserve typed membership refusals; ordinary equality plans direct and nested float operands (QSpec FR-149-AC-25). | Test |
 
 ## Dependencies
 

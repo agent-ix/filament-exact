@@ -882,7 +882,7 @@ mod tests {
     }
 
     /// A set's canonical float order follows the membership key.
-    #[trace("TC-194", "FR-149-AC-26", "FR-369-AC-2")]
+    #[trace("TC-194", "FR-144-AC-6", "FR-144-AC-25", "FR-149-AC-26")]
     #[test]
     fn grouped_float_members_are_sorted_by_membership_key() {
         use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
@@ -898,7 +898,7 @@ mod tests {
         ];
         let value = form_grouped(&collection_type, members, &mut generous_meter())
             .completed()
-            .expect("float members have a bit-identity key");
+            .expect("float members have a totalOrder membership key");
         let Value::Collection(value) = value else {
             panic!("grouped result is a collection");
         };

@@ -19,9 +19,19 @@ fn tc_959_no_element_is_a_field_free_undefined_reason() {
         .nth(1)
         .and_then(|rest| rest.split('}').next())
         .expect("the Undefined declaration");
-    assert!(declaration.contains("    NoElement,"), "NoElement is a field-free variant of Undefined");
-    assert!(declaration.contains("`no-element`"), "its doc comment names the FSpec reason");
-    assert_eq!(declaration.matches("NoElement").count(), 1, "one index-read variant");
+    assert!(
+        declaration.contains("    NoElement,"),
+        "NoElement is a field-free variant of Undefined"
+    );
+    assert!(
+        declaration.contains("`no-element`"),
+        "its doc comment names the FSpec reason"
+    );
+    assert_eq!(
+        declaration.matches("NoElement").count(),
+        1,
+        "one index-read variant"
+    );
     for other in [
         Undefined::DivisionByZero,
         Undefined::IeeeNotFinite,
