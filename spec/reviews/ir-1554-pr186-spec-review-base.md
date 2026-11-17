@@ -49,3 +49,12 @@ CHANGES REQUIRED (one medium, doc-only). Two TC-950 sentences written before thi
 | docs/verus-proofs.md | examined | Two files and one constant hold everything the proofs take on trust. ... POWERS_OF_TEN in src/native_decimal.rs |
 | CG ir1530-general-route-scalar-table.json | context_only | 74 rows; no decimal row |
 | IR-1562 | context_only | Scope addition: the decimal constructor/normalized-view row (IR-1554, FR-402-AC-13) joins this batched CG table PR. |
+
+## Dispositions
+
+Round 1, fix head 327204c3 (reviewed head c7a4541e). Fix commit ecd792f edits only FR-402 Status and TC-950 step 5 and Status, and adds the three SR copies, which are byte-identical (cmp) to the round-0 files. The other changes between c7a4541e and 327204c3 come from the main merge of #184 and #187; the PR's own diff against main 2d13b816 is the same nine files as at c7a4541e plus the SR copies. No proof, script or native_decimal source changed. A grep of FR-402 and TC-950 finds no remaining stale "not executable", "separate Verus track" or "have not run" wording about AC-13. The only such wording left is about AC-11 (step 7) and step 6, and both are correct.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | after: step 5 ends "... by indexed lookup in a constant table of powers of ten, not by a loop." (the AC-13 sentence is gone); Status: "No Kani harness remains. Step 7 (AC-11) has not run." |
+| FND-002 | fixed | after: "The CG tractability table has no decimal row yet. IR-1562 adds the decimal row, with the proof scope and the `POWERS_OF_TEN` assumption; that is a CG change and is not part of this change." |
