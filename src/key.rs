@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! The type-owned total canonical key.
 //!
-//! Every type that admits `=` has a key, and two values of one type have
-//! equal keys exactly when they are equal under [`crate::equality`]. The key
-//! fixes set and bag canonical order and visiting order; it is not an
-//! ordering operator. Comparison is iterative, so value depth never reaches
-//! the host stack.
+//! Keys provide canonical ordering for values whose relation supports one;
+//! they are not an ordering operator. A key exists only when equal values
+//! under that relation share a key. Comparison is iterative, so value depth
+//! never reaches the host stack. This API is for canonical collection order,
+//! not a general-purpose map-key encoding.
 //!
 //! Two composites of different declarations are unequal under the equality
 //! plan, so their keys differ: they order by the ascending bytes of the two
@@ -13,9 +13,12 @@
 //! relation to ancestry, declaration names or slot contents. Two composites of
 //! one declaration continue by slots in declaration order.
 //!
-//! A float has no key under ordinary numeric equality because NaN is not
-//! reflexive. Collection membership has its own total key: float leaves order
-//! by width and bit pattern, matching the membership relation's bit identity.
+//! Float equality is IEEE `numericEqual`, so NaN is unequal to itself and
+//! ordinary float values have no key. Collection membership has a separate
+//! bit-identity relation. Its float leaves are ordered by IEEE `totalOrder`,
+//! which gives each distinct bit pattern a distinct position for set, bag and
+//! ordered-set canonicalization. That membership key does not define ordinary
+//! float equality or a map key.
 //!
 //! `Value::Enum` is [`crate::value::EnumMember`] here -- a bare
 //! [`crate::identity::VariantId`] paired with its zero-based canonical rank --
@@ -117,7 +120,7 @@ fn leaf<'a>(
         (Value::Float(left), Value::Float(right))
             if matches!(relation, KeyRelation::Membership) && left.width() == right.width() =>
         {
-            left.bits().cmp(&right.bits())
+            left.total_order_key().cmp(&right.total_order_key())
         }
         (Value::Boolean(left), Value::Boolean(right)) => left.cmp(right),
         (Value::Integer(left), Value::Integer(right)) => left.cmp(right),

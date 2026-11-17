@@ -755,7 +755,8 @@ mod tests {
         ));
     }
 
-    /// Trace: FR-369-AC-2
+    /// A set's canonical float order follows the membership key.
+    #[trace("TC-194", "FR-149-AC-26", "FR-369-AC-2")]
     #[test]
     fn grouped_float_members_are_sorted_by_membership_key() {
         use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
@@ -939,7 +940,7 @@ mod float_membership_tests {
         }
     }
 
-    #[trace("FR-393-AC-1")]
+    #[trace("TC-194", "FR-149-AC-26", "FR-393-AC-1")]
     #[test]
     fn collection_formation_coalesces_only_identical_float_patterns() {
         for kind in [
@@ -959,6 +960,8 @@ mod float_membership_tests {
                 0x7ff8000000000002,
                 0,
                 0x8000000000000000,
+                0xfff8000000000001,
+                0xfff8000000000002,
             ];
             let input = patterns
                 .map(|bits| Value::Float(IeeeValue::binary64(bits)))
@@ -983,9 +986,9 @@ mod float_membership_tests {
             assert_eq!(
                 observed.len(),
                 if matches!(kind, CollectionKind::Set | CollectionKind::OrderedSet) {
-                    4
+                    6
                 } else {
-                    5
+                    7
                 }
             );
             for bits in [
@@ -993,6 +996,8 @@ mod float_membership_tests {
                 0x7ff8000000000002,
                 0,
                 0x8000000000000000,
+                0xfff8000000000001,
+                0xfff8000000000002,
             ] {
                 assert!(observed.contains(&bits));
             }
@@ -1000,19 +1005,31 @@ mod float_membership_tests {
                 CollectionKind::Sequence => assert_eq!(observed, patterns),
                 CollectionKind::OrderedSet => assert_eq!(
                     observed,
-                    [patterns[0], patterns[2], patterns[3], patterns[4]]
+                    [patterns[0], patterns[2], patterns[3], patterns[4], patterns[5], patterns[6]]
                 ),
-                CollectionKind::Set => {
-                    let mut expected = patterns[2..].to_vec();
-                    expected.push(patterns[0]);
-                    expected.sort_unstable();
-                    assert_eq!(observed, expected);
-                }
-                CollectionKind::Bag => {
-                    let mut expected = patterns.to_vec();
-                    expected.sort_unstable();
-                    assert_eq!(observed, expected);
-                }
+                CollectionKind::Set => assert_eq!(
+                    observed,
+                    [
+                        0xfff8000000000002,
+                        0xfff8000000000001,
+                        0x8000000000000000,
+                        0,
+                        0x7ff8000000000001,
+                        0x7ff8000000000002,
+                    ]
+                ),
+                CollectionKind::Bag => assert_eq!(
+                    observed,
+                    [
+                        0xfff8000000000002,
+                        0xfff8000000000001,
+                        0x8000000000000000,
+                        0,
+                        0x7ff8000000000001,
+                        0x7ff8000000000001,
+                        0x7ff8000000000002,
+                    ]
+                ),
             }
         }
     }
@@ -1106,7 +1123,7 @@ mod float_membership_tests {
         }
     }
 
-    #[trace("FR-393-AC-4")]
+    #[trace("TC-194", "FR-149-AC-25", "FR-393-AC-4")]
     #[test]
     fn membership_keeps_typed_malformed_refusals_and_float_equality_is_available() {
         let left = Value::Float(IeeeValue::binary32(0));

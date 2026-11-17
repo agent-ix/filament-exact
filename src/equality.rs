@@ -424,6 +424,7 @@ mod tests {
 
     /// Structural equality uses IEEE numeric equality at float leaves: NaN is
     /// unequal to itself, while signed zero compares equal.
+    #[trace("TC-194", "FR-149-AC-25")]
     #[test]
     fn float_leaves_use_ieee_numeric_equality() {
         use crate::ieee::IeeeValue;
@@ -452,6 +453,7 @@ mod tests {
 
     /// Sequences recurse with numeric float equality, while set members use
     /// bit identity for both signed zero and NaN payloads.
+    #[trace("TC-194", "FR-149-AC-25", "FR-149-AC-26")]
     #[test]
     fn collection_float_equality_selects_its_membership_relation() {
         use crate::collection::{
