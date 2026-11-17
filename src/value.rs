@@ -42,6 +42,7 @@
 //!   for a caller that has independently checked a value against its own
 //!   registry, mirroring [`OptionValue::from_admitted`]'s identical role.
 
+use crate::JsonObject;
 use alloc::sync::Arc;
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
 use core::fmt;
@@ -367,6 +368,10 @@ pub enum ValueType {
     Text(TextType),
     /// An unbounded native Unicode scalar sequence, compared without text normalization.
     String,
+    /// A native byte sequence.
+    Bytes,
+    /// A canonical RFC 8785 (JCS) JSON value.
+    JsonObject,
     /// A native opaque UUID.
     Uuid,
     /// A native signed POSIX-epoch nanosecond Timestamp.
@@ -443,6 +448,7 @@ impl ValueType {
             (Self::BoundedQuantity(bounded), Value::Quantity(quantity)) => bounded.admits(quantity),
             (Self::Text(declared), Value::Text(text)) => text.text_type() == declared,
             (Self::String, Value::String(_)) => true,
+            (Self::Bytes, Value::Bytes(_)) | (Self::JsonObject, Value::JsonObject(_)) => true,
             (Self::Uuid, Value::Uuid(_)) | (Self::Timestamp, Value::Timestamp(_)) => true,
             (Self::Enum(shape), Value::Enum(member)) => {
                 shape.rank(member.variant()) == Some(member.rank())
@@ -490,6 +496,8 @@ impl ValueType {
                 | Self::CarriedQuantity(_)
                 | Self::Text(_)
                 | Self::String
+                | Self::Bytes
+                | Self::JsonObject
                 | Self::Uuid
                 | Self::Timestamp
                 | Self::Enum(_)
@@ -508,6 +516,8 @@ impl ValueType {
                 | Value::Quantity(_)
                 | Value::Text(_)
                 | Value::String(_)
+                | Value::Bytes(_)
+                | Value::JsonObject(_)
                 | Value::Uuid(_)
                 | Value::Timestamp(_)
                 | Value::Enum(_)
@@ -560,6 +570,10 @@ pub enum Value {
     Text(Text),
     /// An unbounded native Unicode scalar sequence.
     String(String),
+    /// A native byte sequence.
+    Bytes(Vec<u8>),
+    /// The canonical RFC 8785 (JCS) serialization of a JSON value.
+    JsonObject(JsonObject),
     /// An opaque native UUID.
     Uuid(Uuid),
     /// A signed POSIX-epoch nanosecond Timestamp.
@@ -602,6 +616,8 @@ impl Value {
             | Self::Quantity(_)
             | Self::Text(_)
             | Self::String(_)
+            | Self::Bytes(_)
+            | Self::JsonObject(_)
             | Self::Uuid(_)
             | Self::Timestamp(_)
             | Self::Enum(_)
@@ -650,6 +666,8 @@ fn defer_node(pending: &mut Vec<Value>, value: Value) {
         | Value::Quantity(_)
         | Value::Text(_)
         | Value::String(_)
+        | Value::Bytes(_)
+        | Value::JsonObject(_)
         | Value::Uuid(_)
         | Value::Timestamp(_)
         | Value::Enum(_)
@@ -710,6 +728,8 @@ fn release_children(node: Value, pending: &mut Vec<Value>) {
         | Value::Quantity(_)
         | Value::Text(_)
         | Value::String(_)
+        | Value::Bytes(_)
+        | Value::JsonObject(_)
         | Value::Uuid(_)
         | Value::Timestamp(_)
         | Value::Enum(_)
@@ -969,6 +989,8 @@ fn schedule_value<'a>(stack: &mut Vec<Step<'a>>, value: &'a Value) {
         Value::Quantity(leaf) => ("Quantity", leaf),
         Value::Text(leaf) => ("Text", leaf),
         Value::String(leaf) => ("String", leaf),
+        Value::Bytes(leaf) => ("Bytes", leaf),
+        Value::JsonObject(leaf) => ("JsonObject", leaf),
         Value::Uuid(leaf) => ("Uuid", leaf),
         Value::Timestamp(leaf) => ("Timestamp", leaf),
         Value::Enum(leaf) => ("Enum", leaf),
@@ -1661,6 +1683,27 @@ mod tests {
         assert!(!ValueType::Uuid.admits(&reference));
         assert!(!ValueType::Timestamp.admits(&reference));
         assert!(ValueType::Reference(object_type).admits(&reference));
+    }
+
+    /// FR-149-AC-23/24: Bytes and JsonObject are distinct admitted scalar kinds.
+    #[trace("FSpec-FR-149-AC-23", "FSpec-FR-149-AC-24")]
+    #[test]
+    #[cfg(feature = "json-object")]
+    fn bytes_and_json_object_admission_is_kind_specific() {
+        let bytes = Value::Bytes(vec![0x00, 0xff]);
+        let json_object =
+            Value::JsonObject(JsonObject::from_json_text("{\"a\":1}").expect("valid JSON value"));
+
+        assert!(ValueType::Bytes.admits(&bytes));
+        assert!(ValueType::JsonObject.admits(&json_object));
+        assert!(!ValueType::Bytes.admits(&json_object));
+        assert!(!ValueType::JsonObject.admits(&bytes));
+        assert!(!ValueType::String.admits(&bytes));
+        assert!(!ValueType::Bytes.admits(&Value::String("00ff".to_owned())));
+        assert_eq!(ValueType::Bytes, ValueType::Bytes.clone());
+        assert_ne!(ValueType::Bytes, ValueType::JsonObject);
+        assert_eq!(bytes.occ(), Integer::one());
+        assert_eq!(json_object.occ(), Integer::one());
     }
 
     /// TC-992: String is an unbounded scalar-sequence leaf distinct from

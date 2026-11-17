@@ -19,6 +19,8 @@ path = "src/lib.rs"
 # this through a dev-dependency, which resolver 2 turns on only for test
 # builds. A normal or build dependency must never enable it.
 test-support = []
+json = ["dep:serde_json"]
+json-object = ["json", "dep:serde", "dep:ryu-js"]
 
 [dependencies]
 # Inline comparison frames are initialized only as the cursor visits them.
@@ -34,6 +36,9 @@ triomphe = { version = "0.1.17", default-features = false }
 spin = { version = "0.9.8", default-features = false, features = ["mutex", "spin_mutex"] }
 # The Unicode 17 text definition requires 0.1.25's tables; 0.1.26 uses Unicode 18.
 unicode-normalization = { version = "=0.1.25", default-features = false }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
+serde = { version = "1.0", default-features = false, features = ["alloc"], optional = true }
+ryu-js = { version = "1.0.3", default-features = false, optional = true }
 
 [dev-dependencies]
 allocation-counter = "0.8.1"
