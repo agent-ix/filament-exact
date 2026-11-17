@@ -130,6 +130,7 @@ fn get(limits: &ScalarLimits, kind: LimitKind) -> u64 {
         LimitKind::ValueOccurrences => limits.value_occurrences,
         LimitKind::WorkUnits => limits.work_units,
         LimitKind::ResultUnits => limits.result_units,
+        LimitKind::LiveOccurrences => unreachable!("session limits are not scalar limits"),
     }
 }
 
@@ -145,6 +146,7 @@ fn set(limits: &mut ScalarLimits, kind: LimitKind, value: u64) {
         LimitKind::ValueOccurrences => limits.value_occurrences = value,
         LimitKind::WorkUnits => limits.work_units = value,
         LimitKind::ResultUnits => limits.result_units = value,
+        LimitKind::LiveOccurrences => unreachable!("session limits are not scalar limits"),
     }
 }
 

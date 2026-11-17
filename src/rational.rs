@@ -263,9 +263,11 @@ impl RationalDomain {
 
     /// A domain containing every reduced `x op y` for members `x` of `self`
     /// and nonzero-divisor members `y` of `other`, derived from interval
-    /// arithmetic on the unreduced parts. Reduction keeps the numerator's
-    /// sign and never grows either part, so the numerator lies between zero
-    /// and the unreduced extreme, and the denominator in `[1, max]`.
+    /// arithmetic on the unreduced parts. Reduction keeps a nonzero
+    /// numerator's sign and never grows either part, so a strictly positive
+    /// numerator starts at one, a strictly negative numerator ends at minus
+    /// one, and a zero-straddling numerator retains zero. The denominator is
+    /// in `[1, max]`.
     pub fn result_of(&self, operator: ArithmeticOperator, other: &Self) -> Self {
         let (numerator, denominator) = match operator {
             ArithmeticOperator::Multiply => (
@@ -308,11 +310,19 @@ impl RationalDomain {
             }
         };
         let zero = Integer::zero();
-        Self {
-            numerator: ordered(
+        let one = Integer::one();
+        let reduced_numerator = if numerator.lower() > &zero {
+            ordered(one, numerator.upper().clone())
+        } else if numerator.upper() < &zero {
+            ordered(numerator.lower().clone(), one.neg())
+        } else {
+            ordered(
                 numerator.lower().clone().min(zero.clone()),
                 numerator.upper().clone().max(zero),
-            ),
+            )
+        };
+        Self {
+            numerator: reduced_numerator,
             denominator: ordered(Integer::one(), denominator.max(Integer::one())),
         }
     }
@@ -380,5 +390,45 @@ mod tests {
         .unwrap();
         assert!(domain.contains(&Rational::from_integer(Integer::from(5_u64))));
         assert!(!domain.contains(&Rational::from_integer(Integer::from(11_u64))));
+    }
+
+    #[test]
+    fn result_of_keeps_strict_numerator_sign_bounds() {
+        let domain = |lower, upper| {
+            RationalDomain::new(
+                IntegerInterval::new(Integer::from(lower), Integer::from(upper)).unwrap(),
+                IntegerInterval::new(Integer::one(), Integer::one()).unwrap(),
+            )
+            .unwrap()
+        };
+
+        let positive = domain(1_i64, 9_i64);
+        let positive_square = positive.result_of(ArithmeticOperator::Multiply, &positive);
+        assert_eq!(
+            positive_square.numerator(),
+            &IntegerInterval::new(Integer::one(), Integer::from(81_u64)).unwrap()
+        );
+
+        let negative = domain(-9_i64, -1_i64);
+        let negative_product = negative.result_of(ArithmeticOperator::Multiply, &positive);
+        assert_eq!(
+            negative_product.numerator(),
+            &IntegerInterval::new(Integer::from(-81_i64), Integer::from(-1_i64)).unwrap()
+        );
+
+        let mixed = domain(-2_i64, 3_i64);
+        let mixed_product = mixed.result_of(ArithmeticOperator::Multiply, &mixed);
+        assert_eq!(
+            mixed_product.numerator(),
+            &IntegerInterval::new(Integer::from(-6_i64), Integer::from(9_i64)).unwrap()
+        );
+
+        let zero_straddling = domain(0_i64, 3_i64);
+        let zero_product =
+            zero_straddling.result_of(ArithmeticOperator::Multiply, &zero_straddling);
+        assert_eq!(
+            zero_product.numerator(),
+            &IntegerInterval::new(Integer::zero(), Integer::from(9_u64)).unwrap()
+        );
     }
 }

@@ -36,6 +36,7 @@ fn set(mut base: ScalarLimits, kind: LimitKind, value: u64) -> ScalarLimits {
         LimitKind::ValueOccurrences => base.value_occurrences = value,
         LimitKind::WorkUnits => base.work_units = value,
         LimitKind::ResultUnits => base.result_units = value,
+        LimitKind::LiveOccurrences => unreachable!("session limits are not scalar limits"),
     }
     base
 }

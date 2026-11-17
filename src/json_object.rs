@@ -2,6 +2,7 @@
 //! A JSON value retained as canonical RFC 8785 text.
 
 use alloc::string::String;
+#[cfg(feature = "json-object")]
 use alloc::string::ToString;
 #[cfg(feature = "json-object")]
 use alloc::vec::Vec;

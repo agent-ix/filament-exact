@@ -9,9 +9,9 @@
 //! semantic value kernel ([`Value`]/[`ValueType`] and every value-family
 //! module it composes: `numeric`, `rational`, `decimal`, `text`, `ieee`,
 //! `division`, `comparison`, `equality`, `key`, `quantity`, `reference`).
-//! Every submodule is private; the public surface is exactly the curated
-//! `pub use` facade on this page, so the module names above are plain text,
-//! not links.
+//! Submodules are private except for `node_wire` when the optional `json`
+//! feature is enabled; the other public surface is the curated `pub use`
+//! facade on this page, so the module names above are plain text, not links.
 //!
 //! It does not derive identities from digests or serialize them implicitly.
 //! The default build has no JSON or canonicalization dependencies. Optional
@@ -98,7 +98,7 @@ use vstd::prelude::*;
 /// charge change inside its grid; it does not catch a change outside the grid,
 /// a change to verification cost, or re-recorded expectations without a bump,
 /// which review has to catch.
-pub const KERNEL_VERSION: u32 = 1;
+pub const KERNEL_VERSION: u32 = 2;
 
 mod accounting;
 mod cancel;
@@ -133,6 +133,8 @@ mod native_text;
 #[path = "native_text/kani_proofs.rs"]
 mod native_text_kani_proofs;
 mod node;
+#[cfg(feature = "json")]
+pub mod node_wire;
 mod numeric;
 mod numeric_membership;
 mod numeric_type_equality;
@@ -148,9 +150,10 @@ mod verus_kernel_model;
 #[cfg(verus_keep_ghost)]
 mod verus_std_specs;
 
-// Every submodule above is private and its public surface is exposed only
-// through this curated facade (private `mod`s behind selective `pub use`
-// re-exports) rather than `pub mod` wholesale. `key::compare_keys` is `pub`
+// Every submodule above is private except feature-gated `node_wire`; other
+// public surfaces are exposed only through this curated facade (private `mod`s
+// behind selective `pub use` re-exports) rather than `pub mod` wholesale.
+// `key::compare_keys` is `pub`
 // so a caller that groups adjacent equal elements uses the kernel's own key,
 // and grouping and canonical sort cannot drift apart. The decimal, rational,
 // numeric and equality helpers exported below (`rational::
