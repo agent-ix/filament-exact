@@ -6,6 +6,8 @@
 use vstd::arithmetic::div_mod::*;
 use vstd::prelude::*;
 
+use super::{NativeDecimal, NativeDecimalRefusal};
+
 verus! {
 
 /// `10^n`.
@@ -90,6 +92,79 @@ pub open spec fn strip_zeros(coefficient: i128, scale: u32, places: u32, power: 
         (rust_div(coefficient as int, power as int) as i128, (scale - places) as u32)
     } else {
         (coefficient, scale)
+    }
+}
+
+#[verifier::external_type_specification]
+pub struct ExNativeDecimalRefusal(NativeDecimalRefusal);
+
+/// Specification of the production `normalized_pair`.
+pub open spec fn normalized(coefficient: i128, scale: u32) -> (i128, u32) {
+    if coefficient == 0 {
+        (0, 0)
+    } else {
+        let (c, s) = strip_zeros(coefficient, scale, 32, pow10(32) as i128);
+        let (c, s) = strip_zeros(c, s, 16, pow10(16) as i128);
+        let (c, s) = strip_zeros(c, s, 8, pow10(8) as i128);
+        let (c, s) = strip_zeros(c, s, 4, pow10(4) as i128);
+        let (c, s) = strip_zeros(c, s, 2, pow10(2) as i128);
+        strip_zeros(c, s, 1, pow10(1) as i128)
+    }
+}
+
+/// Specification of the production `admits_normalized`.
+pub open spec fn admits_normalized(bounds: (i128, i128, u32, u32), pair: (i128, u32)) -> bool {
+    let (lower, upper, min_scale, max_scale) = bounds;
+    let (coefficient, scale) = pair;
+    let lifted_scale = if scale > min_scale {
+        scale
+    } else {
+        min_scale
+    };
+    if lifted_scale > max_scale {
+        false
+    } else if coefficient == 0 {
+        lower <= 0 && 0 <= upper
+    } else {
+        let shift = lifted_scale - scale;
+        if shift > 38 {
+            false
+        } else {
+            let lifted = coefficient * pow10(shift as nat);
+            i128::MIN <= lifted <= i128::MAX && lower <= lifted <= upper
+        }
+    }
+}
+
+/// Specification of the production `admits`.
+pub open spec fn admits(bounds: (i128, i128, u32, u32), retained: (i128, u32)) -> bool {
+    admits_normalized(bounds, normalized(retained.0, retained.1))
+}
+
+/// What the production `from_bindings` returns: `OutsideCarrierDomain` for a
+/// scale outside `u32` or a binding the type does not admit, and otherwise
+/// the pair drawn, retained unchanged.
+pub open spec fn from_bindings_post(
+    bounds: (i128, i128, u32, u32),
+    coefficient: i64,
+    scale: i64,
+    r: Result<NativeDecimal, NativeDecimalRefusal>,
+) -> bool {
+    if 0 <= scale <= u32::MAX && admits(bounds, (coefficient as i128, scale as u32)) {
+        r is Ok && r->Ok_0.retained() == (coefficient as i128, scale as u32)
+    } else {
+        r == Err::<NativeDecimal, _>(NativeDecimalRefusal::OutsideCarrierDomain)
+    }
+}
+
+/// Every power of ten in the table is positive and fits signed 128 bits.
+pub proof fn lemma_powers_in_range()
+    ensures
+        forall|n: nat| n <= 38 ==> 1 <= #[trigger] pow10(n) <= 100000000000000000000000000000000000000,
+{
+    assert forall|n: nat| n <= 38 implies 1 <= #[trigger] pow10(n)
+        <= 100000000000000000000000000000000000000 by {
+        lemma_pow10_bound(n);
     }
 }
 

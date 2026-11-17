@@ -68,6 +68,7 @@ pub enum NativeDecimalRefusal {
 
 /// A `Decimal[lo, hi; smin, smax; mode]` type whose bounds fit signed 128
 /// bits.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativeDecimalType {
     lower: i128,
@@ -77,10 +78,12 @@ pub struct NativeDecimalType {
     rounding: RoundingMode,
 }
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl NativeDecimalType {
     /// Check a declaration exactly as the owner's `DecimalType::new` does:
     /// `lower > upper`, `min_scale > max_scale` or `max_scale > u32::MAX` is
     /// `IllTyped` with cause `MalformedDecimalType`.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub fn new(
         lower: i128,
         upper: i128,
@@ -134,6 +137,7 @@ impl NativeDecimalType {
     /// rule. Membership is judged on the normalized pair, never on the
     /// retained one, and this is the only way for the rest of the crate to
     /// ask: the rule cannot be given a pair that has not been normalized.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::admits(self.bounds(), value.retained())))]
     pub(crate) fn admits(&self, value: &NativeDecimal) -> bool {
         self.admits_normalized(value.normalized_pair())
     }
@@ -144,6 +148,7 @@ impl NativeDecimalType {
     /// upper`. A lift that leaves the native width is decided by sign alone
     /// (both bounds fit the width) and is never wrapped, saturated or
     /// materialized.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::admits_normalized(self.bounds(), pair.pair())))]
     fn admits_normalized(&self, pair: NormalizedPair) -> bool {
         let NormalizedPair { coefficient, scale } = pair;
         let lifted_scale = if scale > self.min_scale {
@@ -170,6 +175,7 @@ impl NativeDecimalType {
 
 /// A pair that [`NativeDecimal::normalized_pair`] produced: the only input of
 /// the membership rule.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy)]
 pub(crate) struct NormalizedPair {
     coefficient: i128,
@@ -203,14 +209,42 @@ impl TryFrom<&DecimalType> for NativeDecimalType {
 /// A Decimal in its retained representation: the signed 128-bit coefficient
 /// and `u32` scale as drawn, never normalized. Two values equal in value with
 /// different scales are distinct, and equality is equality of the pair.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct NativeDecimal {
     coefficient: i128,
     scale: u32,
 }
 
+#[cfg(verus_keep_ghost)]
+verus! {
+
+impl NativeDecimal {
+    /// The retained `(coefficient, scale)`, for specifications.
+    pub closed spec fn retained(self) -> (i128, u32) {
+        (self.coefficient, self.scale)
+    }
+}
+
+impl NativeDecimalType {
+    /// `(lower, upper, min_scale, max_scale)`, for specifications.
+    pub closed spec fn bounds(self) -> (i128, i128, u32, u32) {
+        (self.lower, self.upper, self.min_scale, self.max_scale)
+    }
+}
+
+impl NormalizedPair {
+    /// The `(coefficient, scale)` of the pair, for specifications.
+    pub closed spec fn pair(self) -> (i128, u32) {
+        (self.coefficient, self.scale)
+    }
+}
+
+} // verus!
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl NativeDecimal {
     /// Retain any pair exactly. This grants no membership of any type.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r.retained() == (coefficient, scale)))]
     pub const fn from_retained(coefficient: i128, scale: u32) -> Self {
         Self { coefficient, scale }
     }
@@ -219,6 +253,7 @@ impl NativeDecimal {
     /// `i64` scale bindings, retaining exactly the pair drawn. A scale outside
     /// `0..=4294967295` precedes, and a non-member follows, as
     /// `OutsideCarrierDomain`.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures verus_proofs::from_bindings_post(ty.bounds(), coefficient, scale, r)))]
     pub fn from_bindings(
         ty: &NativeDecimalType,
         coefficient: i64,
@@ -236,24 +271,30 @@ impl NativeDecimal {
     }
 
     /// The retained coefficient.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == self.retained().0))]
     pub const fn coefficient(&self) -> i128 {
         self.coefficient
     }
 
     /// The retained scale.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == self.retained().1))]
     pub const fn scale(&self) -> u32 {
         self.scale
     }
 
     /// The least-scale pair equal in value: trailing decimal zeros removed
     /// while the scale is above zero, zero as `(0, 0)`.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::normalized(self.retained().0, self.retained().1)))]
     pub fn normalized(&self) -> (i128, u32) {
         let pair = self.normalized_pair();
         (pair.coefficient, pair.scale)
     }
 
     /// The normalized pair, branded as such for the membership rule.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r.pair() == verus_proofs::normalized(self.retained().0, self.retained().1)))]
     pub(crate) fn normalized_pair(&self) -> NormalizedPair {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_powers_in_range(); }
         if self.coefficient == 0 {
             return NormalizedPair {
                 coefficient: 0,
@@ -272,6 +313,7 @@ impl NativeDecimal {
 
     /// Explicit read-out into the owner's `Decimal`, retaining the pair
     /// without normalizing it. This allocates and is outside the proof path.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub fn to_decimal(&self) -> Decimal {
         Decimal::new(Integer::from(self.coefficient), self.scale)
     }
