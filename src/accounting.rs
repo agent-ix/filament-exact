@@ -104,6 +104,8 @@ pub enum LimitKind {
     WorkUnits,
     /// `result_units`.
     ResultUnits,
+    /// `live_occurrences`, a high-water limit enforced by an evaluation session.
+    LiveOccurrences,
 }
 
 impl LimitKind {
@@ -134,6 +136,7 @@ impl LimitKind {
             Self::ValueOccurrences => "value_occurrences",
             Self::WorkUnits => "work_units",
             Self::ResultUnits => "result_units",
+            Self::LiveOccurrences => "live_occurrences",
         }
     }
 
@@ -162,6 +165,9 @@ impl LimitKind {
             Self::ValueOccurrences => 7,
             Self::WorkUnits => 8,
             Self::ResultUnits => 9,
+            // This session limit stays outside `ALL`; public readers and
+            // request constructors special-case it before indexing arrays.
+            Self::LiveOccurrences => usize::MAX,
         }
     }
 
@@ -177,6 +183,7 @@ impl LimitKind {
             Self::ValueOccurrences => limits.value_occurrences,
             Self::WorkUnits => limits.work_units,
             Self::ResultUnits => limits.result_units,
+            Self::LiveOccurrences => 0,
         }
     }
 }
@@ -480,9 +487,11 @@ impl ChargePoint {
 /// filament:canonical
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Incomplete {
-    /// First unavailable counter in `ScalarLimitsV1` field order.
+    /// First unavailable scalar counter in `ScalarLimitsV1` field order, or
+    /// the evaluation session's `LiveOccurrences` limit.
     pub limit_kind: LimitKind,
-    /// The configured counter limit for an ordinary shortage. For an injected
+    /// The configured counter limit for an ordinary shortage. A session's
+    /// `LiveOccurrences` record carries that session limit. For an injected
     /// denial or cancellation, this is the work consumed before the charge,
     /// equal to [`Self::consumed`] rather than `ScalarLimits::work_units`.
     pub limit: u64,
@@ -711,6 +720,9 @@ impl Charge {
     }
 
     fn push_units(mut self, kind: LimitKind, amount: u64) -> Self {
+        if kind == LimitKind::LiveOccurrences {
+            return self;
+        }
         self.storage = match self.storage {
             ChargeStorage::Common(mut common) => {
                 if common.sizes.first.is_none() {
@@ -782,6 +794,9 @@ impl Charge {
 
     /// A semantic-size amount that may exceed `u64::MAX`.
     pub fn exact_size(self, kind: LimitKind, amount: Integer) -> Self {
+        if kind == LimitKind::LiveOccurrences {
+            return self;
+        }
         match amount.to_u64() {
             Some(units) => self.push_units(kind, units),
             None => {
@@ -875,6 +890,7 @@ impl AdmittedCharge {
             LimitKind::UnitEdges => &mut self.unit_edges,
             LimitKind::ValueOccurrences => &mut self.value_occurrences,
             LimitKind::WorkUnits | LimitKind::ResultUnits => return,
+            LimitKind::LiveOccurrences => return,
         };
         *slot = Some(slot.map_or(amount, |previous| previous.max(amount)));
     }
@@ -903,6 +919,9 @@ impl ChargeAccounting {
 
     /// The accumulated amount for one of the ten scalar limit kinds.
     pub fn amount(&self, kind: LimitKind) -> u64 {
+        if kind == LimitKind::LiveOccurrences {
+            return 0;
+        }
         self.amounts[kind.index()]
     }
 }
@@ -1170,6 +1189,9 @@ impl Meter {
 
     /// Consumed value of one counter.
     pub fn consumed(&self, kind: LimitKind) -> u64 {
+        if kind == LimitKind::LiveOccurrences {
+            return 0;
+        }
         self.counters.consumed[kind.index()]
     }
 
@@ -1386,6 +1408,7 @@ impl Meter {
                     | LimitKind::ValueOccurrences => {
                         *slot = (*slot).max(sizes[kind.index()].unwrap_or(0));
                     }
+                    LimitKind::LiveOccurrences => {}
                 }
             }
         }
