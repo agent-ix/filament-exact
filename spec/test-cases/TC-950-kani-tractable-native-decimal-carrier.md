@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-402-AC-1 through FR-402-AC-12 through the public kernel API, the host differential and the recorded measurement. Every mutant below is a real buildable variant of the shared body in a scratch copy. Each names the input, or the inspection, that fails it; a mutant that no input and no inspection distinguishes from the unmutated body is not admitted. Steps 1 to 4 run on the host; see Status for what has and has not run.
+Verify FR-402-AC-1 through FR-402-AC-15 through the public kernel API, the host differential and the recorded measurement. Every mutant below is a real buildable variant of the shared body in a scratch copy. Each names the input, or the inspection, that fails it; a mutant that no input and no inspection distinguishes from the unmutated body is not admitted. Steps 1 to 4 run on the host; see Status for what has and has not run.
 
 ## Test Procedure
 
@@ -34,6 +34,9 @@ The boundary set, used by steps 1 to 4, is fixed before the constructor is writt
 5. For AC-10, run the host tests `references_agree_with_the_owner_route_over_the_grid` and `least_scale_reference_rejects_wrong_pairs` in `src/native_decimal/tests.rs`. The normalization reference checks the postcondition of FR-402 Behavior 9 by indexed lookup in a constant table of powers of ten, not by a loop. AC-13 is not executable: it waits on a separate Verus track.
 6. Run each mutant of the next section: the input mutants through the checks of steps 1 and 2 by this rule: a mutant whose failing input has a literal expectation in the boundary set (retention, membership, lift, scale-cast, normalized-view, structural-equality, type-constructor and ingress mutants) is run through step 1; the `read-out normalizes` mutant is caught only by step 2 (the `representation()` comparison of AC-6); the `Copy`, function-pointer and allocation mutants are run through step 3; the loop and `cfg(kani)` mutants are Inspection (code review) with no automated step.
 7. For AC-11, once CG's decimal row (IR-259) consumes the delivered carrier, run it under the authorized runner and record the peak memory and its provenance, time, tool version and terminal outcome under IR-1444. Until then this step is not executable and AC-11 stays unexecuted; no fit is claimed in the meantime.
+8. For AC-13, run `make verus` (bound by `verus_proofs_verify` in `tests/verus_gate.rs`) and record the result in the Verus record below.
+9. For AC-14, run `scripts/ir1554_verus_mutants.py` (bound by `verus_mutants_are_killed` in `tests/verus_gate.rs`) and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
+10. For AC-15, run the host test `the_power_table_holds_every_power_of_ten_inside_i128` in `src/native_decimal/tests.rs`.
 
 ### Mutants
 
@@ -72,6 +75,27 @@ The boundary set, used by steps 1 to 4, is fixed before the constructor is writt
 | A `cfg(kani)`-selected body | Inspection (code review), no automated step (a host build never compiles that body) |
 | A `Meter` parameter is added to the constructor | the function-pointer coercion of step 3 does not compile |
 
+## Verus record
+
+Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proof is `src/native_decimal/verus_proofs.rs` (FR-402 Behavior 11).
+
+| Run | Outcome | Time |
+| --- | --- | --- |
+| `make verus` (the whole crate) | `437 verified, 0 errors` | 10 s wall |
+| `scripts/ir1554_verus_mutants.py` | unmutated copy verified; 10 of 10 mutants killed by a failed proof obligation, none UNRELIABLE | 70 s wall for the 11 runs |
+
+| Claim | Theorem | On the production function |
+| --- | --- | --- |
+| The normalized view is the least-scale pair | `lemma_normalized`, `row_normalized` | `NativeDecimal::normalized`, `normalized_pair`, `strip_zeros` |
+| Membership is the owner's rule in exact arithmetic | `lemma_admits_normalized` | `admits_normalized`, `admits` |
+| The constructor admits exactly the members and retains the pair drawn | `row_from_bindings` | `NativeDecimal::from_bindings` |
+
+The normalization proof shows that removing 32, 16, 8, 4, 2 and 1 zeros in turn removes every removable zero: a nonzero signed 128-bit coefficient has at most 38 trailing zeros, and each stage halves the bound on what is left.
+
+Assumption about this crate: the table `POWERS_OF_TEN` holds `10^0` through `10^38`. Step 10 checks it on the host.
+
+Mutants (`scripts/ir1554_verus_mutants.py`), each killed by a failed proof obligation: a stage that ignores the scale; a stage that removes zeros without lowering the scale (code and specification); the 32-zero stage missing (code and specification); the 1-zero stage missing (code and specification); zero keeping its scale; membership refusing the largest scale; membership dropping the upper bound; membership admitting a lift that leaves signed 128 bits; membership admitting every zero; the constructor admitting every zero coefficient.
+
 ## Expected Results
 
 Every boundary binding yields the independently written retained pair, normalized pair or named refusal. The constructor and the owner route agree on the whole set except the listed ingress refusals. Construction allocates nothing, the types are `Copy`, and code review finds no `cfg(kani)`, loop, iterator adapter or heap type. Every mutant fails as named. A timeout, memory exhaustion, missing cover or missing run is inconclusive and never a pass. The measurement of step 7 is a recorded number with its provenance once CG's decimal row consumes the carrier, and is never a prediction.
@@ -79,3 +103,5 @@ Every boundary binding yields the independently written retained pair, normalize
 ## Status
 
 Run on the host: steps 1 to 4 (AC-1 to AC-9, AC-12) and step 5 (AC-10), through `tests/ir1444_native_decimal.rs`, the module doctests and the reference binding in `src/native_decimal/tests.rs`. The boundary tables are shared by the tests and hold the failing input of each mutant, but step 6 (running the mutants) has not been run as a set; one mutant (the 32-place strip removed from the normalized view) was run once by a reviewer and was caught. No Kani harness remains. AC-13 and step 7 (AC-11) have not run.
+
+Steps 8 to 10 (AC-13 to AC-15, IR-1554): the Verus record above and the host test of the power table.
