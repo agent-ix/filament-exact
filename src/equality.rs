@@ -33,6 +33,7 @@ use crate::integer::Integer;
 use crate::outcome::{CheckedInvariantCause, Outcome, Refusal, Stop};
 use crate::value::{FieldValue, Value};
 use alloc::vec;
+use alloc::vec::Vec;
 
 /// The complete occurrence-pair plan of one planned equality.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -438,7 +439,7 @@ mod tests {
 
         assert_eq!(
             plan_equality(&first, &reordered).unwrap().pair_events(),
-            &Integer::from(5)
+            &Integer::from(5_i64)
         );
         assert!(plan_pairs(&first, &reordered).unwrap().equal);
         assert!(!plan_pairs(&first, &changed).unwrap().equal);

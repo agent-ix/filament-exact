@@ -825,7 +825,16 @@ impl<'f, 'g> DebugWriter<'f, 'g> {
                 Step::Union(union) => schedule_union(&mut steps, union),
                 Step::MapEntry(key, value) => schedule(
                     &mut steps,
-                    tuple_steps("MapEntry", Step::Value(key), Step::Value(value)),
+                    [
+                        Step::Text("MapEntry"),
+                        Step::Open(Bracket::Brace),
+                        Step::Text("key: "),
+                        Step::Value(key),
+                        Step::Next,
+                        Step::Text("value: "),
+                        Step::Value(value),
+                        Step::Close(Bracket::Brace),
+                    ],
                 ),
                 Step::Type(value_type) => value_type::schedule_type(&mut steps, value_type),
                 Step::CollectionType(collection_type) => {
