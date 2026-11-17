@@ -51,3 +51,21 @@ Behavior 23 itself is accurate. Medium finding: the FR-405 Status calls the Veru
 | TC-953 steps 11-12, Verus record, Status | examined | `make verus` (the whole crate) `393 verified, 0 errors` 7.0 s wall; 17 of 17 mutants killed by a failed proof obligation, none UNRELIABLE |
 | CG ir1530-general-route-scalar-table.json native IEEE rows | context_only | twelve native rows with verdict not_tractable, provenance "waits on the deductive lane, owner IR-1551" |
 | IR-1562 | context_only | CG: record the Verus verdict for the twelve float not_tractable rows in the tractability table |
+
+## Dispositions
+
+Round 1, fix head e2aa389b (reviewed head 182ab1ce; c20de78c fixed the AC-15 test). Base origin/main moved to a91a3710 (spec-only #183, FR-413/TC-961); the PR merges cleanly onto it. Reviewer re-ran everything in a fresh private worktree under flock /tmp/cargo-slot.lock, with logs in the worktree target/.
+- `make verus`: 396 verified, 0 errors, 7.88 s wall, 0.67 GiB peak.
+- `make verus-mutants`: 5:09 wall, 0.68 GiB peak. The three sets killed 18/18, 10/10 and 33/33. Every kill was a postcondition, precondition, assertion, overflow or loop invariant; none was rlimit, UNRELIABLE, SURVIVED or INVALID.
+- `verus_gate --ignored`: 2 passed. Default `make test`: 2 ignored.
+- `assert(false)` failed in all 16 theorems, `lemma_format_values` included (380 verified, 16 errors). Dropping the upper-bound or the alignment conjunct of `sqrt_inv` fails the proof.
+- Gates: clippy --locked --all-targets -D warnings, make lint, build-no-std, docs and deny pass. fmt-check differs only in the two qsl tests.
+- `cargo test --no-fail-fast`, default and test-support: the failures are the 2/3 lib equality tests, composite_declarations::pairs_without_a_key_stay_unkeyed_and_refuse and union::ieee_union_payload_has_no_key_and_sequence_keeps_occurrences, all known on main. tests/ir1446_native_float.rs passes.
+- The fix diff adds no pin and no tool version. src/native_float.rs, Cargo.toml, Cargo.lock and KERNEL_VERSION are unchanged.
+- spec/reviews/ir-1551-pr181-*.md were byte-identical (cmp) to the round-0 files.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | after: The Verus proof of Behavior 23 ... proves a part of what each of these twelve harnesses checks. It does not stand in for a VERIFIED harness, and the twelve rows stay measured timeout rows; the table after this paragraph states, per row, what is proved and what stays unproved. The 12-row table matches the CG native not_tractable rows exactly. The four Exact rows list "the common set, and the strict refusal". |
+| FND-002 | fixed | after: ... which is a deductive problem. IR-1551 took it to Verus; the Verus record below states what is proved for these rows and what is not. (TC-953 line 123; the Status paragraph is fixed the same way.) |
+| FND-003 | fixed | after: It assumes and does not prove: the prover library's specifications of u64::leading_zeros (with the library axiom axiom_u64_leading_zeros ...), of u128::is_multiple_of (the divide sticky), of the widening u128::from on a u64, of u64::BITS, and of the fixed-width integer shifts, bit operations and casts; the specification of u128::leading_zeros in src/verus_std_specs.rs; ... |

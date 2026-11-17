@@ -69,3 +69,21 @@ The proofs are sound and not vacuous, the trusted base is small and correct, and
 | src/ieee.rs, src/lib.rs, src/native_rational.rs, src/verus_kernel_model.rs | examined | flag-set specifications; proc_macro_hygiene under Verus; pub(crate) proofs module; RoundingMode eq assumption |
 | scripts/ir1551_verus_mutants.py, scripts/ir1544_verus_mutants.py, tests/verus_gate.rs, Makefile | examined | 17 mutants; SEMANTIC adds invariant and shift errors; gate traces FR-405-AC-17/18 |
 | tests/ir1446_native_float.rs:973 | examined | assert!(status.contains("No proof is claimed for a table-row combination")); |
+
+## Dispositions
+
+Round 1, fix head e2aa389b (reviewed head 182ab1ce; c20de78c fixed the AC-15 test). Base origin/main moved to a91a3710 (spec-only #183, FR-413/TC-961); the PR merges cleanly onto it. Reviewer re-ran everything in a fresh private worktree under flock /tmp/cargo-slot.lock, with logs in the worktree target/.
+- `make verus`: 396 verified, 0 errors, 7.88 s wall, 0.67 GiB peak.
+- `make verus-mutants`: 5:09 wall, 0.68 GiB peak. The three sets killed 18/18, 10/10 and 33/33. Every kill was a postcondition, precondition, assertion, overflow or loop invariant; none was rlimit, UNRELIABLE, SURVIVED or INVALID.
+- `verus_gate --ignored`: 2 passed. Default `make test`: 2 ignored.
+- `assert(false)` failed in all 16 theorems, `lemma_format_values` included (380 verified, 16 errors). Dropping the upper-bound or the alignment conjunct of `sqrt_inv` fails the proof.
+- Gates: clippy --locked --all-targets -D warnings, make lint, build-no-std, docs and deny pass. fmt-check differs only in the two qsl tests.
+- `cargo test --no-fail-fast`, default and test-support: the failures are the 2/3 lib equality tests, composite_declarations::pairs_without_a_key_stay_unkeyed_and_refuse and union::ieee_union_payload_has_no_key_and_sequence_keeps_occurrences, all known on main. tests/ir1446_native_float.rs passes.
+- The fix diff adds no pin and no tool version. src/native_float.rs, Cargo.toml, Cargo.lock and KERNEL_VERSION are unchanged.
+- spec/reviews/ir-1551-pr181-*.md were byte-identical (cmp) to the round-0 files.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | after: assert!(status.contains("No Kani proof is claimed for a table-row combination")); (c20de78c). the_status_records_a_verdict_or_table_row_for_every_operation_and_width passes in both feature sets. |
+| FND-002 | fixed | after: The three out-of-scope mutants are dropped. 31 of 33 mutants edit both the code and the spec, and two edit the sqrt loop, which has no spec copy. A theorem, an assertion, an overflow or a loop invariant kills each one. TC-953 states this split. |
+| FND-003 | fixed | after: """Mutants of the native float arithmetic the Verus proofs cover (FR-405 Behavior 23, TC-953). |

@@ -43,3 +43,19 @@ The trace is complete for AC-17 and AC-18. One medium gap: Behavior 23's last se
 | FR-405-AC-18 | examined | Every mutant of `scripts/ir1551_verus_mutants.py` makes a proof of Behavior 23 fail with a failed proof obligation ... |
 | FR-405-AC-15 | examined | No Kani proof is claimed for a combination whose harness has no executed VERIFIED verdict, and the Status records, per operation and width, the verdict or the table row. |
 | FR-405 Behavior 23 | examined | ... The proof covers `decode`, the format helpers, `justify`, `plan_multiply`, `plan_divide`, `plan_square_root`, `integer_square_root`, `product_term`, `term`, `normalised`, `sum`, `plan_fma`, `round_at` and `round`. ... Each proof SHALL fail on a mutant of the function it covers. |
+
+## Dispositions
+
+Round 1, fix head e2aa389b (reviewed head 182ab1ce; c20de78c fixed the AC-15 test). Base origin/main moved to a91a3710 (spec-only #183, FR-413/TC-961); the PR merges cleanly onto it. Reviewer re-ran everything in a fresh private worktree under flock /tmp/cargo-slot.lock, with logs in the worktree target/.
+- `make verus`: 396 verified, 0 errors, 7.88 s wall, 0.67 GiB peak.
+- `make verus-mutants`: 5:09 wall, 0.68 GiB peak. The three sets killed 18/18, 10/10 and 33/33. Every kill was a postcondition, precondition, assertion, overflow or loop invariant; none was rlimit, UNRELIABLE, SURVIVED or INVALID.
+- `verus_gate --ignored`: 2 passed. Default `make test`: 2 ignored.
+- `assert(false)` failed in all 16 theorems, `lemma_format_values` included (380 verified, 16 errors). Dropping the upper-bound or the alignment conjunct of `sqrt_inv` fails the proof.
+- Gates: clippy --locked --all-targets -D warnings, make lint, build-no-std, docs and deny pass. fmt-check differs only in the two qsl tests.
+- `cargo test --no-fail-fast`, default and test-support: the failures are the 2/3 lib equality tests, composite_declarations::pairs_without_a_key_stay_unkeyed_and_refuse and union::ieee_union_payload_has_no_key_and_sequence_keeps_occurrences, all known on main. tests/ir1446_native_float.rs passes.
+- The fix diff adds no pin and no tool version. src/native_float.rs, Cargo.toml, Cargo.lock and KERNEL_VERSION are unchanged.
+- spec/reviews/ir-1551-pr181-*.md were byte-identical (cmp) to the round-0 files.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | after: Every function Behavior 23 lists is the target of at least one mutant: round_at (three), round (three), plan_divide (two), plan_square_root (one), integer_square_root (two), sum (one), product_term (one), justify (one), term (one), normalised (one), each of the fourteen format helpers (one each), decode (one), plan_multiply (one), plan_fma (one). The reviewer's run killed all 33. |
