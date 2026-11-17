@@ -60,4 +60,3 @@ Planless gap analysis of the full repository matrix plus PR #173's changed code 
 | src/lib.rs | examined | Exports MapValue and from_admitted_map. |
 | src/value.rs | examined | Adds Value::Map and matching ValueType admission, occurrence, drop and debug support. |
 | IR-1558 round-form acceptance | examined | Canonical key-byte ordering and round-trip encoding are part of the issue's Done-when text; the issue assigns the FR-650 JCS run form to FSL. |
-

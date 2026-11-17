@@ -37,4 +37,3 @@ Reviewed the frozen PR diff in the five changed Rust files, with the Rust style 
 | src/lib.rs | examined | Re-exports MapValue and from_admitted_map. |
 | src/value.rs | examined | Adds Value::Map, exact MapType admission, occurrence accounting, iterative drop and debug support. |
 | src/value/value_type.rs | context_only | Existing iterative ValueType structural traits already include MapType links. |
-
