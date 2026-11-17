@@ -331,22 +331,43 @@ fn member_declaration_order_does_not_reach_union_key_order() {
 #[trace("FR-379-AC-7")]
 #[test]
 fn ieee_union_payload_has_no_key_and_sequence_keeps_occurrences() {
-    let value = UnionValue::from_admitted(
-        fixture("Measured"),
-        vec![Value::Float(IeeeValue::binary64(0x3ff0_0000_0000_0000))],
-    );
+    let measured = |bits: u64| {
+        UnionValue::from_admitted(
+            fixture("Measured"),
+            vec![Value::Float(IeeeValue::binary64(bits))],
+        )
+    };
+    let value = measured(0x3ff0_0000_0000_0000);
     assert_eq!(compare_keys(&value, &value), None);
     let set = CollectionType::new(
         CollectionKind::Set,
         ValueType::Composite(declaration()),
         None,
     );
-    assert!(matches!(
-        form_grouped(&set, vec![value.clone(), value.clone()], &mut meter()),
-        Outcome::Refused(Refusal::CheckedInvariant {
-            cause: CheckedInvariantCause::CanonicalKeyUnavailable
-        })
-    ));
+    let (positive, negative) = (measured(0), measured(0x8000_0000_0000_0000));
+    let Value::Collection(grouped) =
+        form_grouped(&set, vec![positive.clone(), negative.clone()], &mut meter())
+            .completed()
+            .expect("an IEEE payload has a totalOrder membership key")
+    else {
+        panic!("grouped set")
+    };
+    assert_eq!(
+        format!("{:?}", grouped.elements()),
+        format!("{:?}", [negative, positive])
+    );
+    let Value::Collection(merged) =
+        form_collection(&set, vec![value.clone(), value.clone()], &mut meter())
+            .unwrap()
+            .completed()
+            .unwrap()
+    else {
+        panic!("merged set")
+    };
+    assert_eq!(
+        format!("{:?}", merged.elements()),
+        format!("{:?}", std::slice::from_ref(&value))
+    );
     let sequence = CollectionType::new(
         CollectionKind::Sequence,
         ValueType::Composite(declaration()),
