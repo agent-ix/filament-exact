@@ -536,7 +536,7 @@ pub fn node_key_from_text_with_budget(
                 match name.as_str() {
                     "package" if top.package.is_none() => {
                         top.package = Some(string(text, &mut at, budget).map_err(|error| {
-                            if error == NodeWireError::Denied {
+                            if matches!(error, NodeWireError::Denied | NodeWireError::Allocation) {
                                 error
                             } else {
                                 NodeWireError::Package
@@ -576,7 +576,7 @@ pub fn node_key_from_text_with_budget(
             State::PathStart | State::PathNext => match next {
                 Some(b'"') => {
                     let name = string(text, &mut at, budget).map_err(|error| {
-                        if error == NodeWireError::Denied {
+                        if matches!(error, NodeWireError::Denied | NodeWireError::Allocation) {
                             error
                         } else {
                             NodeWireError::Path

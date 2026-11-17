@@ -98,7 +98,7 @@ use vstd::prelude::*;
 /// charge change inside its grid; it does not catch a change outside the grid,
 /// a change to verification cost, or re-recorded expectations without a bump,
 /// which review has to catch.
-pub const KERNEL_VERSION: u32 = 1;
+pub const KERNEL_VERSION: u32 = 2;
 
 mod accounting;
 mod cancel;
