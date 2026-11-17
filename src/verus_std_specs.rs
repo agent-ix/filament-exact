@@ -92,4 +92,22 @@ pub assume_specification[ core::cmp::Ordering::is_ge ](o: core::cmp::Ordering) -
         r == (o != core::cmp::Ordering::Less),
 ;
 
+/// `i128::wrapping_rem` for a nonzero divisor: the truncating remainder, and
+/// zero for `i128::MIN % -1`.
+pub open spec fn i128_wrapping_rem(x: i128, y: i128) -> i128 {
+    if x == i128::MIN && y == -1 {
+        0
+    } else {
+        vstd::arithmetic::div_mod::rust_rem(x as int, y as int) as i128
+    }
+}
+
+#[verifier::when_used_as_spec(i128_wrapping_rem)]
+pub assume_specification[ i128::wrapping_rem ](x: i128, y: i128) -> (r: i128)
+    requires
+        y != 0,
+    ensures
+        r == i128_wrapping_rem(x, y),
+;
+
 } // verus!

@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-409-AC-1 through FR-409-AC-10. The procedure runs the plan path beside `divide` and `modulo` over `Integer` and beside the plan-free evaluators, inspects the harness and plan source, and records the Kani probe, the verdicts and the peaks. Each mutant below is a buildable variant of the named site in a scratch copy. Each names the input that fails it and the step at which it fails, and a mutant that no input distinguishes is not admitted. A timeout, memory exhaustion, missing cover or missing run is inconclusive and never a pass.
+Verify FR-409-AC-1 through FR-409-AC-12. The procedure runs the plan path beside `divide` and `modulo` over `Integer` and beside the plan-free evaluators, inspects the harness and plan source, and records the Kani probe, the verdicts and the peaks. Each mutant below is a buildable variant of the named site in a scratch copy. Each names the input that fails it and the step at which it fails, and a mutant that no input distinguishes is not admitted. A timeout, memory exhaustion, missing cover or missing run is inconclusive and never a pass.
 
 ## Test Procedure
 
@@ -26,6 +26,8 @@ The grid is fixed before implementation from independent literals, not from the 
 7. For AC-8, record each measured row in the evidence record below, naming operation kind, profile, member, divisor shape and smallest failing width, and check that the kernel holds no other copy. CG copies the rows from here into CG FR-056's table; that copy is CG's step, not this procedure's. Code review searches the kernel for a refusal variant, refusal path or `Meter` behaviour defined for a measured row; none may exist.
 8. For AC-9, run each mutant through steps 2 and 3 and assert it fails at the step named. Then, except for the moved zero guard (host-only: it changes only charge events, which no harness observes), run it under Kani in the harness named, assert FAILED and extract the concrete playback. For an evaluation harness, replay the decoded operands through `divide` or `modulo` over `Integer` and assert that the kernel outcome differs from the mutant's. For a plan harness, replay the decoded intervals through the healthy `NativeIntegerPlan::new` and assert that it refuses, or derives a different capacity, where the mutant constructed.
 9. For AC-10, inspect the Status of FR-409 and of this TC for a verdict or table row per member combination, shape and width, and for no claim without a record.
+10. For AC-11, run `make verus` and record the result in the Verus record below.
+11. For AC-12, run `scripts/ir1556_verus_mutants.py` and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
 
 ### Mutants
 
@@ -150,6 +152,19 @@ The ladder, in full. The probe's width-64 run is the record of `trunc_quotient_s
 | modulo_const_neg1_w64 | Modulo | Euclidean (Modulo) | - | constant -1 | 64 | VERIFIED | 38.3 | 2.01 | 2/2 required | result-interval-skipped FAILED REPLAY-DIFFERS |
 | modulo_const_neg1_w128 | Modulo | Euclidean (Modulo) | - | constant -1 | 128 | VERIFIED | 47.1 | 2.08 | 2/2 required | result-interval-skipped FAILED REPLAY-DIFFERS |
 
+### Verus record
+
+Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proof is `src/native_integer/verus_proofs.rs` (FR-409 Behavior 24).
+
+| Run | Outcome | Time |
+| --- | --- | --- |
+| `make verus` (the whole crate) | `221 verified, 0 errors` | 4.6 s wall |
+| `scripts/ir1556_verus_mutants.py` | unmutated copy verified; 10 of 10 mutants killed by a failed postcondition, none UNRELIABLE | 37 s wall for the 11 runs |
+
+The theorem is the specification of `native_div_rem`, `div_rem_post`: for every `i128` dividend `a` and nonzero divisor `b`, under each profile, the remainder `r` is in the profile's window, a quotient `q` satisfies `a = q b + r`, and the quotient is absent exactly for `i128::MIN / -1`, with remainder zero. It rests on `lemma_truncating`, the facts of Rust's truncating `/` and `%`. This is the relation of every timeout row of the table above (`a - q b` in the window), for every width at once and for symbolic and constant divisors alike. It does not cover the choice of the member, the result interval or the outcome kinds, which the VERIFIED rows and the differential cover.
+
+Mutants (`scripts/ir1556_verus_mutants.py`). A mutant is killed only by a failed proof obligation; a run that only exhausts the solver's resource limit would be reported as UNRELIABLE and fail the script. Each of these fails the postcondition of `native_div_rem`: the truncating return not taken on a zero remainder; the floor step taken on equal signs; the floor step decided by the dividend's sign; the floor quotient not stepped; the floor quotient stepped up; the floor remainder not shifted; the floor pair returned for the Euclidean profile; the Euclidean quotient not stepped; the Euclidean remainder shifted the wrong way; a quotient kept for `i128::MIN / -1`.
+
 ## Expected Results
 
 Every grid case through the plan has the outcome, value, refusal payload and charge events of `divide` or `modulo` over `Integer` and of the plan-free evaluator. The quotient plan at `i128::MIN` with `-1` is a capacity refusal. Every mutant fails at the step named. Each mutant with a Kani harness yields a FAILED verdict whose playback, replayed on the host, differs from the healthy kernel. Each harness ends in one of three states: an executed VERIFIED verdict with its covers reached and its assigned mutant killed; a measured row with its time and peak; or, for a symbolic width above the smallest failing width, not run and covered by that row. No harness is left without a record.
@@ -157,3 +172,5 @@ Every grid case through the plan has the outcome, value, refusal payload and cha
 ## Status
 
 Run under IR-1541. The `Divide` and `Modulo` plan variants exist. The host differential (`tests/ir1541_native_integer_divide.rs`) passes and all 15 host mutants of Behavior 22 are killed. The Behavior 17 probe ran first: truncating quotient at width 8 VERIFIED (47.8 s, 1.67 GiB) and at width 64 timeout (600 s, 1.67 GiB). All 80 Kani harnesses of the ladder reached a terminal state, none FAILED. 42 are VERIFIED with every cover that belongs to the harness reached: the three plan harnesses; the symbolic divisor at width 8 for all seven member combinations; the symbolic divisor at width 16 for truncating quotient and truncating remainder only; every constant `-1` harness at widths 64 and 128; and the constant `7` and `-7` harnesses at width 64 for every combination except Euclidean quotient `-7` (timeout), plus width 128 for truncating quotient (`7`, `-7`) and truncating remainder (`7`). 20 are measured rows with outcome timeout at 600 s: the symbolic divisor at width 16 for floor quotient, Euclidean quotient, floor remainder, Euclidean remainder and `Modulo`, at width 32 for truncating quotient and truncating remainder, at width 64 for truncating quotient (the probe's record), the constant `7`/`-7` harnesses at width 128 not listed as VERIFIED, and Euclidean quotient `-7` at width 64. 18 further symbolic-divisor harnesses are recorded as not run, covered by the smaller-width row of their combination. No harness hit memory exhaustion, and every harness peak is below the 16 GiB ceiling. Each of the 42 VERIFIED harnesses had its assigned mutant run on Kani (54 runs, because some harnesses share a mutant or take two); every run returned FAILED, and every decoded playback, replayed on the healthy kernel and on the mutant from the kept Kani logs, shows the healthy plan equal to the exact oracle and the mutant differing (54 of 54 REPLAY-DIFFERS). An earlier recording showed 23 REPLAY-SAME rows; the cause was the replay script sharing one build directory between the healthy kernel and the mutant copies, so the healthy replay reused the previous mutant's test binary. The script now builds each copy in its own directory and all replays were re-run. FR-409-AC-7 and FR-409-AC-9 are checked by `the_evidence_record_settles_every_harness_with_its_probe_and_mutant`, which reads the evidence record of TC-957; the Kani runs and the playback replays themselves are executed by `scripts/ir1541_ladder.py` and `scripts/ir1541_native_integer_mutants.py` (the replay driver is an ignored test, `replay_a_decoded_playback`, run by that script). A proof is claimed only for a VERIFIED harness; no proof is claimed for a timeout row or for a combination as a whole, and the evidence record of TC-957 is the only copy of the measured rows.
+
+Steps 10 and 11 (AC-11 and AC-12, IR-1556): the Verus record above. The full-width relation is proved on `native_div_rem`; the 20 timeout rows stay recorded as measured rows under Kani.

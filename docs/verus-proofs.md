@@ -1,6 +1,6 @@
 # Verus proofs
 
-`make verus` runs the deductive proofs of this crate with [Verus](https://github.com/verus-lang/verus). They cover claims a bit-level solver does not close: gcd algorithms proved equal, lowest terms, exact 128-bit products. The first user is the native Rational carrier over the full `i64` domain (FR-408 Behavior 18a, TC-956).
+`make verus` runs the deductive proofs of this crate with [Verus](https://github.com/verus-lang/verus). They cover claims a bit-level solver does not close: gcd algorithms proved equal, lowest terms, exact 128-bit products. The first user is the native Rational carrier over the full `i64` domain (FR-408 Behavior 18a, TC-956). The second is the native integer division laws over all of `i128` (FR-409 Behavior 24, TC-957).
 
 The lane is not part of `make ci`, like the Kani lane.
 
@@ -13,7 +13,7 @@ VERUS=/path/to/verus-x86-linux/verus make verus-mutants
 
 `VERUS` names a Verus binary. `scripts/verus.sh` builds the crate's dependencies with the Rust toolchain that binary names (`rustup` must have it), takes the list of dependencies and their built artifacts from cargo, runs Verus on `src/lib.rs`, and fails unless Verus reports no error. A full run takes a few seconds and well under 1 GiB.
 
-`scripts/ir1544_verus_mutants.py` applies each recorded mutant to a scratch copy of `src/` and requires a proof to fail on it. Only a failed proof obligation counts (a postcondition, precondition or assertion that does not hold, or a possible overflow). A run that only exhausts the solver's resource limit gave no verdict; the script reports it as UNRELIABLE and fails.
+`scripts/ir1544_verus_mutants.py` and `scripts/ir1556_verus_mutants.py` apply each recorded mutant to a scratch copy of `src/` and require a proof to fail on it. Only a failed proof obligation counts (a postcondition, precondition or assertion that does not hold, or a possible overflow). A run that only exhausts the solver's resource limit gave no verdict; the script reports it as UNRELIABLE and fails.
 
 ## How a proof attaches to the code
 
@@ -36,8 +36,8 @@ Two files hold everything the proofs take on trust.
 
 | File | Assumption |
 | --- | --- |
-| `src/verus_std_specs.rs` | Specifications of `core` functions that Verus's library does not specify: `i64::unsigned_abs`, `i128::unsigned_abs`, `i128::wrapping_neg`, `u128::leading_zeros`, and `Ordering::is_lt`, `is_le`, `is_gt`, `is_ge`. |
-| `src/verus_kernel_model.rs` | `Meter::charge_units` appends an admitted request to the meter's admitted sequence and leaves the sequence unchanged on a denial. Which requests a given meter admits is not modelled; that is FR-359 and its Kani gate. |
+| `src/verus_std_specs.rs` | Specifications of `core` functions that Verus's library does not specify: `i64::unsigned_abs`, `i128::unsigned_abs`, `i128::wrapping_neg`, `i128::wrapping_rem`, `u128::leading_zeros`, and `Ordering::is_lt`, `is_le`, `is_gt`, `is_ge`. |
+| `src/verus_kernel_model.rs` | `Meter::charge_units` appends an admitted request to the meter's admitted sequence and leaves the sequence unchanged on a denial. Which requests a given meter admits is not modelled; that is FR-359 and its Kani gate. | The derived equality of `DivisionProfile` compares variants.
 
 `#![forbid(unsafe_code)]` becomes `deny` under a Verus run only, because Verus's `assume_specification` expands with `unsafe`; the two files above are the only ones that allow it.
 
