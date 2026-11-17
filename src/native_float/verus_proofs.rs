@@ -2515,6 +2515,12 @@ pub(super) proof fn row_fused_multiply_add(fmt: Fmt, a: u64, b: u64, c: u64, rou
             let (x, y, z) = (decode(fmt, a), decode(fmt, b), decode(fmt, c));
             let exact = sum(rounding, product_term(x, y), term(z));
             &&& plan_fma(fmt, rounding, x, y, z) == Step::Finite(exact)
+            &&& term(z).negative == negative_of(z)
+            &&& finite(z) ==> term(z).mag == significand_of(z) && term(z).exp == exponent_of(z)
+            &&& !finite(z) ==> term(z).mag == 0
+            &&& finite(x) && finite(y) ==> product_term(x, y).mag == significand_of(x) * significand_of(y)
+                && product_term(x, y).exp == exponent_of(x) + exponent_of(y)
+            &&& product_term(x, y).negative == (negative_of(x) != negative_of(y))
             &&& round_pre(fmt, exact)
             &&& round_post(fmt, exact, rounding, round(fmt, exact, rounding))
         }),
@@ -2524,6 +2530,7 @@ pub(super) proof fn row_fused_multiply_add(fmt: Fmt, a: u64, b: u64, c: u64, rou
     lemma_decode_wf(fmt, b);
     lemma_decode_wf(fmt, c);
     lemma_plan_fma(fmt, rounding, x, y, z);
+    lemma_product_safe(x, y);
     let (left, right) = (product_term(x, y), term(z));
     lemma_sum(rounding, left, right);
     if left.mag != 0 && right.mag != 0 {
@@ -2531,6 +2538,53 @@ pub(super) proof fn row_fused_multiply_add(fmt: Fmt, a: u64, b: u64, c: u64, rou
         lemma_normalised(right);
     }
     lemma_round(fmt, sum(rounding, left, right), rounding);
+}
+
+// ---- the format helpers against decode ----------------------------------------------------------
+
+/// The bits of `1.0` in the format.
+pub(super) open spec fn one_bits(fmt: Fmt) -> u64 {
+    if single(fmt) {
+        0x3F80_0000
+    } else {
+        0x3FF0_0000_0000_0000
+    }
+}
+
+/// The format helpers name what `decode` reads: a signed zero, a signed
+/// infinity, the quiet canonical NaN, the largest finite value
+/// `(2^(f+1) - 1) 2^(bias - f)`, the least subnormal `2^quantum_min`, the least
+/// normal `2^emin` with `emin - f = quantum_min`, and one as `2^f 2^(-f)`.
+pub(super) proof fn lemma_format_values(fmt: Fmt, negative: bool)
+    requires
+        wf(fmt),
+    ensures
+        decode(fmt, zero_bits(fmt, negative)) == (Operand::Zero { negative }),
+        decode(fmt, infinity(fmt, negative)) == (Operand::Infinite { negative }),
+        decode(fmt, canonical_nan(fmt)) == (Operand::Nan { signaling: false }),
+        decode(fmt, max_finite(fmt, negative)) == (Operand::Finite {
+            negative,
+            significand: (top(fmt) - 1) as u64,
+            exponent: (bias(fmt) - fraction(fmt)) as i32,
+        }),
+        decode(fmt, 1) == (Operand::Finite { negative: false, significand: 1, exponent: quantum_min(fmt) }),
+        decode(fmt, (fraction_mask(fmt) + 1) as u64) == (Operand::Finite {
+            negative: false,
+            significand: (top(fmt) / 2) as u64,
+            exponent: (emin(fmt) - fraction(fmt)) as i32,
+        }),
+        emin(fmt) - fraction(fmt) == quantum_min(fmt),
+        decode(fmt, one_bits(fmt)) == (Operand::Finite {
+            negative: false,
+            significand: (top(fmt) / 2) as u64,
+            exponent: (-fraction(fmt)) as i32,
+        }),
+{
+    if single(fmt) {
+        assert((0x0u64 & 0x80000000) == 0x0 && ((0x0u64 >> 23u32) & 0xFF) == 0x0 && (0x0u64 & 0x7FFFFF) == 0x0 && (0x80000000u64 & 0x80000000) == 0x80000000 && ((0x80000000u64 >> 23u32) & 0xFF) == 0x0 && (0x80000000u64 & 0x7FFFFF) == 0x0 && (0x7F800000u64 & 0x80000000) == 0x0 && ((0x7F800000u64 >> 23u32) & 0xFF) == 0xFF && (0x7F800000u64 & 0x7FFFFF) == 0x0 && (0xFF800000u64 & 0x80000000) == 0x80000000 && ((0xFF800000u64 >> 23u32) & 0xFF) == 0xFF && (0xFF800000u64 & 0x7FFFFF) == 0x0 && (0x7FC00000u64 & 0x80000000) == 0x0 && ((0x7FC00000u64 >> 23u32) & 0xFF) == 0xFF && (0x7FC00000u64 & 0x7FFFFF) == 0x400000 && (0x7F7FFFFFu64 & 0x80000000) == 0x0 && ((0x7F7FFFFFu64 >> 23u32) & 0xFF) == 0xFE && (0x7F7FFFFFu64 & 0x7FFFFF) == 0x7FFFFF && (0xFF7FFFFFu64 & 0x80000000) == 0x80000000 && ((0xFF7FFFFFu64 >> 23u32) & 0xFF) == 0xFE && (0xFF7FFFFFu64 & 0x7FFFFF) == 0x7FFFFF && (0x1u64 & 0x80000000) == 0x0 && ((0x1u64 >> 23u32) & 0xFF) == 0x0 && (0x1u64 & 0x7FFFFF) == 0x1 && (0x800000u64 & 0x80000000) == 0x0 && ((0x800000u64 >> 23u32) & 0xFF) == 0x1 && (0x800000u64 & 0x7FFFFF) == 0x0 && (0x3F800000u64 & 0x80000000) == 0x0 && ((0x3F800000u64 >> 23u32) & 0xFF) == 0x7F && (0x3F800000u64 & 0x7FFFFF) == 0x0 && (0x400000u64 & 0x400000u64) == 0x400000 && (0x7FFFFFu64 | 0x800000u64) == 0xFFFFFF && (0u64 | 0x800000u64) == 0x800000) by (bit_vector);
+    } else {
+        assert((0x0u64 & 0x8000000000000000) == 0x0 && ((0x0u64 >> 52u32) & 0x7FF) == 0x0 && (0x0u64 & 0xFFFFFFFFFFFFF) == 0x0 && (0x8000000000000000u64 & 0x8000000000000000) == 0x8000000000000000 && ((0x8000000000000000u64 >> 52u32) & 0x7FF) == 0x0 && (0x8000000000000000u64 & 0xFFFFFFFFFFFFF) == 0x0 && (0x7FF0000000000000u64 & 0x8000000000000000) == 0x0 && ((0x7FF0000000000000u64 >> 52u32) & 0x7FF) == 0x7FF && (0x7FF0000000000000u64 & 0xFFFFFFFFFFFFF) == 0x0 && (0xFFF0000000000000u64 & 0x8000000000000000) == 0x8000000000000000 && ((0xFFF0000000000000u64 >> 52u32) & 0x7FF) == 0x7FF && (0xFFF0000000000000u64 & 0xFFFFFFFFFFFFF) == 0x0 && (0x7FF8000000000000u64 & 0x8000000000000000) == 0x0 && ((0x7FF8000000000000u64 >> 52u32) & 0x7FF) == 0x7FF && (0x7FF8000000000000u64 & 0xFFFFFFFFFFFFF) == 0x8000000000000 && (0x7FEFFFFFFFFFFFFFu64 & 0x8000000000000000) == 0x0 && ((0x7FEFFFFFFFFFFFFFu64 >> 52u32) & 0x7FF) == 0x7FE && (0x7FEFFFFFFFFFFFFFu64 & 0xFFFFFFFFFFFFF) == 0xFFFFFFFFFFFFF && (0xFFEFFFFFFFFFFFFFu64 & 0x8000000000000000) == 0x8000000000000000 && ((0xFFEFFFFFFFFFFFFFu64 >> 52u32) & 0x7FF) == 0x7FE && (0xFFEFFFFFFFFFFFFFu64 & 0xFFFFFFFFFFFFF) == 0xFFFFFFFFFFFFF && (0x1u64 & 0x8000000000000000) == 0x0 && ((0x1u64 >> 52u32) & 0x7FF) == 0x0 && (0x1u64 & 0xFFFFFFFFFFFFF) == 0x1 && (0x10000000000000u64 & 0x8000000000000000) == 0x0 && ((0x10000000000000u64 >> 52u32) & 0x7FF) == 0x1 && (0x10000000000000u64 & 0xFFFFFFFFFFFFF) == 0x0 && (0x3FF0000000000000u64 & 0x8000000000000000) == 0x0 && ((0x3FF0000000000000u64 >> 52u32) & 0x7FF) == 0x3FF && (0x3FF0000000000000u64 & 0xFFFFFFFFFFFFF) == 0x0 && (0x8000000000000u64 & 0x8000000000000u64) == 0x8000000000000 && (0xFFFFFFFFFFFFFu64 | 0x10000000000000u64) == 0x1FFFFFFFFFFFFF && (0u64 | 0x10000000000000u64) == 0x10000000000000) by (bit_vector);
+    }
 }
 
 } // verus!
