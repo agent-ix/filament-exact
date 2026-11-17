@@ -16,6 +16,8 @@ help:
 	@echo "  make test             - cargo test"
 	@echo "  make test-exhaustive  - Exhaustive FR-401 composition pair sweep (release, ignored tests)"
 	@echo "  make kani-meter-gate  - Run the units Kani proofs (not part of make ci)"
+	@echo "  make verus            - Run the Verus proofs (not part of make ci; needs VERUS=<binary>)"
+	@echo "  make verus-mutants    - Check that each recorded mutant fails the Verus proofs"
 	@echo "  make build-no-std     - Build for $(NO_STD_TARGET)"
 	@echo "  make build            - Release build"
 	@echo "  make clean            - cargo clean"
@@ -98,3 +100,13 @@ ci: fmt-check lint test build-no-std deny docs
 .PHONY: kani-meter-gate
 kani-meter-gate:
 	cargo test --locked --test meter_kani_gate -- --ignored
+
+# Verus proof lane (docs/verus-proofs.md); intentionally separate from make ci.
+# VERUS names the pinned Verus binary.
+.PHONY: verus
+verus:
+	scripts/verus.sh
+
+.PHONY: verus-mutants
+verus-mutants:
+	python3 scripts/ir1544_verus_mutants.py

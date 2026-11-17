@@ -35,6 +35,8 @@ mod units_reference;
 mod units_tests;
 
 pub(crate) use units::UnitsCharge;
+#[cfg(verus_keep_ghost)]
+pub(crate) use units::{lemma_with_results, units, with_results};
 
 #[cfg(feature = "test-support")]
 const CHARGE_LOG_CAPACITY: usize = 4096;

@@ -47,7 +47,11 @@
 //! owns are in `spec/`.
 
 #![no_std]
-#![forbid(unsafe_code)]
+#![cfg_attr(not(verus_keep_ghost), forbid(unsafe_code))]
+// A Verus run declares trusted specifications of `core` functions, and the
+// prover's macro expands each with `unsafe`. Under that run only, the lint is
+// `deny` so that the one module holding them (`verus_std_specs`) can allow it.
+#![cfg_attr(verus_keep_ghost, deny(unsafe_code))]
 
 extern crate alloc;
 // Unit tests use `std` (e.g. `HashSet` hash-consistency checks); the library
@@ -55,6 +59,12 @@ extern crate alloc;
 #[cfg(test)]
 #[macro_use]
 extern crate std;
+
+// A Verus run (`make verus`, `cfg(verus_keep_ghost)`) needs the prover's
+// prelude at the crate root. No other build sees this import.
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
 
 /// The semantic epoch of the kernel's operations, bumped by hand.
 ///
@@ -128,6 +138,10 @@ mod reference;
 mod reservation;
 mod text;
 mod value;
+#[cfg(verus_keep_ghost)]
+mod verus_kernel_model;
+#[cfg(verus_keep_ghost)]
+mod verus_std_specs;
 
 // Every submodule above is private and its public surface is exposed only
 // through this curated facade (private `mod`s behind selective `pub use`

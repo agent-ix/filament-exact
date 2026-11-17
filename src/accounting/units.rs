@@ -4,11 +4,15 @@
 
 use super::*;
 
+#[cfg(verus_keep_ghost)]
+use vstd::prelude::{verus, verus_spec, verus_verify};
+
 /// Pairs of the single-pair plan of two single-occurrence values.
 const PLAN_PAIRS: u64 = 1;
 /// Work units `equality.plan` requires to remain: its own, the pairs and the retain.
 const PLAN_RESERVATION: u64 = PLAN_PAIRS + 2;
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy)]
 pub(crate) struct UnitsCharge {
     pub(super) point: ChargePoint,
@@ -18,7 +22,48 @@ pub(crate) struct UnitsCharge {
     pub(super) results: u64,
 }
 
+#[cfg(verus_keep_ghost)]
+verus! {
+
+/// The request with these parts, for specifications.
+pub closed spec fn units(
+    point: ChargePoint,
+    first: Option<(LimitKind, u64)>,
+    second: Option<(LimitKind, u64)>,
+    work: u64,
+    results: u64,
+) -> UnitsCharge {
+    UnitsCharge { point, first, second, work, results }
+}
+
+/// `charge` with its result units replaced.
+pub closed spec fn with_results(charge: UnitsCharge, amount: u64) -> UnitsCharge {
+    UnitsCharge { results: amount, ..charge }
+}
+
+pub proof fn lemma_with_results(
+    point: ChargePoint,
+    first: Option<(LimitKind, u64)>,
+    second: Option<(LimitKind, u64)>,
+    work: u64,
+    results: u64,
+    amount: u64,
+)
+    ensures
+        with_results(units(point, first, second, work, results), amount) == units(
+            point,
+            first,
+            second,
+            work,
+            amount,
+        ),
+{
+}
+
+} // verus!
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl UnitsCharge {
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == units(point, None, None, 1, 0)))]
     pub(crate) fn new(point: ChargePoint) -> Self {
         Self {
             point,
@@ -29,6 +74,7 @@ impl UnitsCharge {
         }
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == units(point, Some((kind, amount)), None, 1, 0)))]
     pub(crate) fn one(point: ChargePoint, kind: LimitKind, amount: u64) -> Self {
         Self {
             first: Some((kind, amount)),
@@ -36,6 +82,7 @@ impl UnitsCharge {
         }
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == units(point, Some(first), Some(second), 1, 0)))]
     pub(crate) fn two(
         point: ChargePoint,
         first: (LimitKind, u64),
@@ -49,6 +96,7 @@ impl UnitsCharge {
     }
 
     /// The `equality.plan-form` request of a pair of single-occurrence values.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub(crate) fn equality_plan_form() -> Self {
         Self::one(
             ChargePoint::EqualityPlanForm,
@@ -59,25 +107,30 @@ impl UnitsCharge {
     }
 
     /// The `equality.pair` request of a one-pair plan.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub(crate) fn equality_pair() -> Self {
         Self::new(ChargePoint::EqualityPair)
     }
 
     /// The `equality.result-retain` request.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub(crate) fn equality_result_retain() -> Self {
         Self::new(ChargePoint::EqualityResultRetain).results(1)
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub(crate) fn work(mut self, amount: u64) -> Self {
         self.work = amount;
         self
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == with_results(self, amount)))]
     pub(crate) fn results(mut self, amount: u64) -> Self {
         self.results = amount;
         self
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub(super) fn from_charge(charge: &Charge) -> Option<Self> {
         match &charge.storage {
             ChargeStorage::Common(common) => Some(Self {
