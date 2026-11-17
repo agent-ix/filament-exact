@@ -38,7 +38,7 @@ use core::cmp::Ordering;
 use crate::accounting::{length_amount, Charge, ChargePoint, LimitKind, Meter};
 use crate::equality::plan_membership_pairs;
 use crate::integer::Integer;
-use crate::key::compare_keys;
+use crate::key::compare_membership_keys;
 use crate::outcome::{BoundViolation, CheckedInvariantCause, Outcome, Refusal, Stop};
 use crate::value::{
     drop_nested, Component, ConstructionCause, ConstructionRefusal, Deferred, Value, ValueType,
@@ -692,7 +692,7 @@ fn member_equal_stop(candidate: &Value, member: &Value, meter: &mut Meter) -> Re
 fn sort_by_key(elements: &mut [Value]) -> Result<(), Stop> {
     let unkeyed = Cell::new(false);
     elements.sort_by(|left, right| {
-        compare_keys(left, right).unwrap_or_else(|| {
+        compare_membership_keys(left, right).unwrap_or_else(|| {
             unkeyed.set(true);
             Ordering::Equal
         })
@@ -755,9 +755,10 @@ mod tests {
         ));
     }
 
-    /// Trace: FR-369-AC-2
+    /// A set's canonical float order follows the membership key.
+    #[trace("TC-194", "FR-149-AC-26", "FR-369-AC-2")]
     #[test]
-    fn grouped_float_members_without_keys_report_exact_cause() {
+    fn grouped_float_members_are_sorted_by_membership_key() {
         use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
 
         let collection_type = CollectionType::new(
@@ -769,11 +770,16 @@ mod tests {
             Value::Float(IeeeValue::binary32(0)),
             Value::Float(IeeeValue::binary32(0x3f80_0000)),
         ];
+        let value = form_grouped(&collection_type, members, &mut generous_meter())
+            .completed()
+            .expect("float members have a bit-identity key");
+        let Value::Collection(value) = value else {
+            panic!("grouped result is a collection");
+        };
         assert!(matches!(
-            form_grouped(&collection_type, members, &mut generous_meter()),
-            Outcome::Refused(Refusal::CheckedInvariant {
-                cause: CheckedInvariantCause::CanonicalKeyUnavailable,
-            })
+            value.elements(),
+            [Value::Float(zero), Value::Float(one)]
+                if zero.bits() == 0 && one.bits() == 0x3f80_0000
         ));
     }
 
@@ -934,10 +940,15 @@ mod float_membership_tests {
         }
     }
 
-    #[trace("FR-393-AC-1")]
+    #[trace("TC-194", "FR-149-AC-26", "FR-393-AC-1")]
     #[test]
     fn collection_formation_coalesces_only_identical_float_patterns() {
-        for kind in [CollectionKind::Sequence, CollectionKind::OrderedSet] {
+        for kind in [
+            CollectionKind::Sequence,
+            CollectionKind::Set,
+            CollectionKind::Bag,
+            CollectionKind::OrderedSet,
+        ] {
             let ty = CollectionType::new(
                 kind,
                 ValueType::Float(FloatType::exact(IeeeWidth::Binary64)),
@@ -949,6 +960,8 @@ mod float_membership_tests {
                 0x7ff8000000000002,
                 0,
                 0x8000000000000000,
+                0xfff8000000000001,
+                0xfff8000000000002,
             ];
             let input = patterns
                 .map(|bits| Value::Float(IeeeValue::binary64(bits)))
@@ -973,9 +986,9 @@ mod float_membership_tests {
             assert_eq!(
                 observed.len(),
                 if matches!(kind, CollectionKind::Set | CollectionKind::OrderedSet) {
-                    4
+                    6
                 } else {
-                    5
+                    7
                 }
             );
             for bits in [
@@ -983,17 +996,40 @@ mod float_membership_tests {
                 0x7ff8000000000002,
                 0,
                 0x8000000000000000,
+                0xfff8000000000001,
+                0xfff8000000000002,
             ] {
                 assert!(observed.contains(&bits));
             }
-            if kind == CollectionKind::Sequence {
-                assert_eq!(observed, patterns);
-            }
-            if kind == CollectionKind::OrderedSet {
-                assert_eq!(
+            match kind {
+                CollectionKind::Sequence => assert_eq!(observed, patterns),
+                CollectionKind::OrderedSet => assert_eq!(
                     observed,
-                    [patterns[0], patterns[2], patterns[3], patterns[4]]
-                );
+                    [patterns[0], patterns[2], patterns[3], patterns[4], patterns[5], patterns[6]]
+                ),
+                CollectionKind::Set => assert_eq!(
+                    observed,
+                    [
+                        0xfff8000000000002,
+                        0xfff8000000000001,
+                        0x8000000000000000,
+                        0,
+                        0x7ff8000000000001,
+                        0x7ff8000000000002,
+                    ]
+                ),
+                CollectionKind::Bag => assert_eq!(
+                    observed,
+                    [
+                        0xfff8000000000002,
+                        0xfff8000000000001,
+                        0x8000000000000000,
+                        0,
+                        0x7ff8000000000001,
+                        0x7ff8000000000001,
+                        0x7ff8000000000002,
+                    ]
+                ),
             }
         }
     }
@@ -1087,9 +1123,9 @@ mod float_membership_tests {
         }
     }
 
-    #[trace("FR-393-AC-4")]
+    #[trace("TC-194", "FR-149-AC-25", "FR-393-AC-4")]
     #[test]
-    fn membership_keeps_typed_malformed_refusals_and_ordinary_float_ineligibility() {
+    fn membership_keeps_typed_malformed_refusals_and_float_equality_is_available() {
         let left = Value::Float(IeeeValue::binary32(0));
         for right in [Value::Float(IeeeValue::binary64(0)), Value::Boolean(false)] {
             let mut observed = meter();
@@ -1101,22 +1137,12 @@ mod float_membership_tests {
             ));
             assert_eq!(observed.admission_count(), 1);
         }
-        assert!(matches!(
-            crate::equality::plan_equality(&left, &left),
-            Err(Refusal::CheckedInvariant {
-                cause: CheckedInvariantCause::ValueKindMismatch
-            })
-        ));
+        assert!(crate::equality::plan_equality(&left, &left).is_ok());
         let nested = OptionValue::present(
             ValueType::Float(FloatType::exact(IeeeWidth::Binary32)),
             left,
         )
         .unwrap();
-        assert!(matches!(
-            crate::equality::plan_equality(&nested, &nested),
-            Err(Refusal::CheckedInvariant {
-                cause: CheckedInvariantCause::ValueKindMismatch
-            })
-        ));
+        assert!(crate::equality::plan_equality(&nested, &nested).is_ok());
     }
 }

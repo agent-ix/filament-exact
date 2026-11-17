@@ -181,8 +181,8 @@ pub(crate) struct PlannedPairs {
 
 /// One node of the occurrence-pair tree still to be formed.
 enum Pair<'a> {
-    Values(&'a Value, &'a Value),
-    Slots(&'a FieldValue, &'a FieldValue),
+    Values(&'a Value, &'a Value, LeafRelation),
+    Slots(&'a FieldValue, &'a FieldValue, LeafRelation),
 }
 
 /// Walk the occurrence-pair tree of two values of one static type. Two
@@ -214,25 +214,26 @@ fn plan_pairs_with_relation(
 ) -> Result<PlannedPairs, Refusal> {
     let mut pairs = Integer::zero();
     let mut equal = true;
-    let mut pending = vec![Pair::Values(left, right)];
+    let mut pending = vec![Pair::Values(left, right, relation)];
     while let Some(pair) = pending.pop() {
         pairs = pairs.add(&Integer::one());
-        let (left, right) = match pair {
-            Pair::Slots(FieldValue::Present(left), FieldValue::Present(right)) => (left, right),
-            Pair::Slots(FieldValue::Absent, FieldValue::Absent)
-            | Pair::Slots(FieldValue::Null, FieldValue::Null) => continue,
-            Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _) => {
+        let (left, right, relation) = match pair {
+            Pair::Slots(FieldValue::Present(left), FieldValue::Present(right), relation) => {
+                (left, right, relation)
+            }
+            Pair::Slots(FieldValue::Absent, FieldValue::Absent, _)
+            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => continue,
+            Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _, _) => {
                 equal = false;
                 continue;
             }
-            Pair::Values(left, right) => (left, right),
+            Pair::Values(left, right, relation) => (left, right, relation),
         };
         let leaf = match (left, right) {
-            (Value::Float(l), Value::Float(r))
-                if matches!(relation, LeafRelation::Membership) && l.width() == r.width() =>
-            {
-                l == r
-            }
+            (Value::Float(l), Value::Float(r)) if l.width() == r.width() => match relation {
+                LeafRelation::Ordinary => l.numeric_equal(*r),
+                LeafRelation::Membership => l.bits() == r.bits(),
+            },
             (Value::Boolean(l), Value::Boolean(r)) => l == r,
             (Value::Integer(l), Value::Integer(r)) => l == r,
             (Value::Rational(l), Value::Rational(r)) => l == r,
@@ -263,7 +264,7 @@ fn plan_pairs_with_relation(
             }
             (Value::Option(l), Value::Option(r)) => match (l.payload(), r.payload()) {
                 (Some(l), Some(r)) => {
-                    pending.push(Pair::Values(l, r));
+                    pending.push(Pair::Values(l, r, relation));
                     continue;
                 }
                 (l, r) => l.is_some() == r.is_some(),
@@ -276,7 +277,7 @@ fn plan_pairs_with_relation(
             }
             (Value::Composite(l), Value::Composite(r)) if l.slots().len() == r.slots().len() => {
                 let slots = l.slots().iter().zip(r.slots()).rev();
-                pending.extend(slots.map(|(l, r)| Pair::Slots(l, r)));
+                pending.extend(slots.map(|(l, r)| Pair::Slots(l, r, relation)));
                 continue;
             }
             (Value::Union(l), Value::Union(r)) if l.declaration() == r.declaration() => {
@@ -292,7 +293,7 @@ fn plan_pairs_with_relation(
                             .iter()
                             .zip(r.payload())
                             .rev()
-                            .map(|(l, r)| Pair::Values(l, r)),
+                            .map(|(l, r)| Pair::Values(l, r, relation)),
                     );
                     continue;
                 }
@@ -308,8 +309,13 @@ fn plan_pairs_with_relation(
                 if l.len() != r.len() {
                     false
                 } else {
+                    let element_relation = if kind == crate::collection::CollectionKind::Sequence {
+                        relation
+                    } else {
+                        LeafRelation::Membership
+                    };
                     let ranks = l.iter().zip(r).rev();
-                    pending.extend(ranks.map(|(l, r)| Pair::Values(l, r)));
+                    pending.extend(ranks.map(|(l, r)| Pair::Values(l, r, element_relation)));
                     continue;
                 }
             }
@@ -414,6 +420,93 @@ mod tests {
         let right = Value::Integer(Integer::one());
         let plan = plan_equality(&left, &right).unwrap();
         assert_eq!(plan.pair_events(), &Integer::one());
+    }
+
+    /// Structural equality uses IEEE numeric equality at float leaves: NaN is
+    /// unequal to itself, while signed zero compares equal.
+    #[trace("TC-194", "FR-149-AC-25")]
+    #[test]
+    fn float_leaves_use_ieee_numeric_equality() {
+        use crate::ieee::IeeeValue;
+
+        let equal = |left, right| {
+            plan_equality(&Value::Float(left), &Value::Float(right))
+                .expect("same-width float equality has a plan")
+                .pair_events()
+                == &Integer::one()
+                && {
+                    let mut meter = generous_meter();
+                    planned_equality(&Value::Float(left), &Value::Float(right), &mut meter)
+                        .completed()
+                        .expect("meter admits one pair")
+                }
+        };
+        assert!(equal(
+            IeeeValue::binary64(0),
+            IeeeValue::binary64(0x8000_0000_0000_0000)
+        ));
+        assert!(!equal(
+            IeeeValue::binary64(0x7ff8_0000_0000_0000),
+            IeeeValue::binary64(0x7ff8_0000_0000_0000)
+        ));
+    }
+
+    /// Sequences recurse with numeric float equality, while set members use
+    /// bit identity for both signed zero and NaN payloads.
+    #[trace("TC-194", "FR-149-AC-25", "FR-149-AC-26")]
+    #[test]
+    fn collection_float_equality_selects_its_membership_relation() {
+        use crate::collection::{
+            form_collection, CardinalityBound, CollectionKind, CollectionType,
+        };
+        use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
+        use crate::value::ValueType;
+
+        let make = |kind, bits: &[u64]| {
+            let collection_type = CollectionType::new(
+                kind,
+                ValueType::Float(FloatType::exact(IeeeWidth::Binary64)),
+                Some(CardinalityBound::new(0, 4).expect("valid bound")),
+            );
+            form_collection(
+                &collection_type,
+                bits.iter()
+                    .copied()
+                    .map(|bits| Value::Float(IeeeValue::binary64(bits)))
+                    .collect(),
+                &mut generous_meter(),
+            )
+            .expect("the completed values fit their bounds")
+            .completed()
+            .expect("the collection is admitted")
+        };
+        let equal = |left: &Value, right: &Value| {
+            let mut meter = generous_meter();
+            planned_equality(left, right, &mut meter)
+                .completed()
+                .expect("the equality plan fits the meter")
+        };
+
+        let positive_zero = 0;
+        let negative_zero = 0x8000_0000_0000_0000;
+        let nan = 0x7ff8_0000_0000_0000;
+        let distinct_nan = 0x7ff8_0000_0000_0001;
+        assert!(equal(
+            &make(CollectionKind::Sequence, &[positive_zero]),
+            &make(CollectionKind::Sequence, &[negative_zero])
+        ));
+        assert!(equal(
+            &make(CollectionKind::Set, &[nan]),
+            &make(CollectionKind::Set, &[nan])
+        ));
+        assert!(!equal(
+            &make(CollectionKind::Set, &[positive_zero]),
+            &make(CollectionKind::Set, &[negative_zero])
+        ));
+        assert!(!equal(
+            &make(CollectionKind::Set, &[nan]),
+            &make(CollectionKind::Set, &[distinct_nan])
+        ));
     }
 
     /// TC-992: native String equality compares exact scalar sequences; its
