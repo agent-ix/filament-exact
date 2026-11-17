@@ -190,6 +190,8 @@ enum Pair<'a> {
     Slots(&'a FieldValue, &'a FieldValue, LeafRelation),
 }
 
+type MapEntryMatch<'a> = (&'a Value, &'a Value, &'a Value, &'a Value);
+
 /// Walk the occurrence-pair tree of two values of one static type. Two
 /// composites of different declarations are one pair and unequal: a caller
 /// may hold a conforming descendant where a slot names its ancestor, and the
@@ -398,7 +400,7 @@ fn map_entry_matches_by<'a>(
     left: &'a [(Value, Value)],
     right: &'a [(Value, Value)],
     compare: &mut impl FnMut(&Value, &Value) -> Option<Ordering>,
-) -> Result<Option<Vec<(&'a Value, &'a Value, &'a Value, &'a Value)>>, ()> {
+) -> Result<Option<Vec<MapEntryMatch<'a>>>, ()> {
     if left.len() != right.len() {
         return Ok(None);
     }
