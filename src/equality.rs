@@ -394,7 +394,7 @@ fn plan_pairs_with_relation(
 }
 
 /// Match two entry lists after sorting their borrowed views by key, retaining
-/// the source maps' entry order. `None` means a key pair lacks a canonical
+/// the source maps' entry order. `Err(())` means a key pair lacks a canonical
 /// typed order; `Ok(None)` means the maps have different keys.
 fn map_entry_matches_by<'a>(
     left: &'a [(Value, Value)],
