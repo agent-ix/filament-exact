@@ -5,9 +5,12 @@
 
 use vstd::arithmetic::div_mod::*;
 use vstd::arithmetic::mul::*;
+use vstd::arithmetic::power2::*;
 use vstd::prelude::*;
 
 use super::{NativeDecimal, NativeDecimalRefusal, NativeDecimalType};
+use crate::native_rational::verus_proofs::{bit_len, lemma_leading_zeros};
+use crate::native_float::verus_proofs::lemma_bit_len_range;
 
 verus! {
 
@@ -493,6 +496,156 @@ pub fn row_normalized(value: &NativeDecimal) -> (r: (i128, u32))
         lemma_normalized(value.retained().0, value.retained().1);
     }
     value.normalized()
+}
+
+// ---- sizes: bit and digit lengths (FR-403, IR-1555) --------------------------------------------
+
+/// Specification of the production `bits_of`: the bit length, at least 1.
+pub open spec fn bits_of(magnitude: u128) -> u64 {
+    bit_len(magnitude as nat) as u64
+}
+
+pub proof fn lemma_bits_of(magnitude: u128)
+    ensures
+        magnitude != 0 ==> 128 - magnitude.leading_zeros() == bit_len(magnitude as nat),
+        magnitude.leading_zeros() <= 128,
+        magnitude == 0 ==> magnitude.leading_zeros() == 128,
+        1 <= bit_len(magnitude as nat) <= 128,
+{
+    lemma_leading_zeros(magnitude);
+}
+
+/// The number of decimal digits of a magnitude, at least 1.
+pub open spec fn digit_len(m: nat) -> nat
+    decreases m,
+{
+    if m < 10 {
+        1
+    } else {
+        1 + digit_len(m / 10)
+    }
+}
+
+/// Specification of the production `digits_of`.
+pub open spec fn digits_of(magnitude: u128) -> u64 {
+    digit_len(magnitude as nat) as u64
+}
+
+/// A positive value lies between the powers of ten its digit count names.
+pub proof fn lemma_digit_len_range(m: nat)
+    requires
+        m >= 1,
+    ensures
+        pow10((digit_len(m) - 1) as nat) <= m < pow10(digit_len(m)),
+    decreases m,
+{
+    if m >= 10 {
+        lemma_digit_len_range(m / 10);
+    }
+}
+
+/// A value between `10^(d-1)` and `10^d` has `d` digits.
+pub proof fn lemma_digit_len_unique(m: nat, d: nat)
+    requires
+        d >= 1,
+        pow10((d - 1) as nat) <= m < pow10(d),
+    ensures
+        digit_len(m) == d,
+{
+    lemma_pow10_pos((d - 1) as nat);
+    lemma_digit_len_range(m);
+    let e = digit_len(m);
+    if e < d {
+        lemma_pow10_monotone(e, (d - 1) as nat);
+    }
+    if e > d {
+        lemma_pow10_monotone(d, (e - 1) as nat);
+    }
+}
+
+/// The digit estimate `floor(bits x 1233 / 4096)` is within one of the digit
+/// count: `2^bits <= 10^(e + 1)` and `10^(e - 1) <= 2^(bits - 1)`.
+pub open spec fn estimate_ok(bits: nat) -> bool {
+    let e = (bits * 1233) / 4096;
+    two_pow(bits) <= pow10(e + 1) && (e == 0 || pow10((e - 1) as nat) <= two_pow((bits - 1) as nat))
+}
+
+/// `2^n`, written so that it can be evaluated.
+pub open spec fn two_pow(n: nat) -> nat
+    decreases n,
+{
+    if n == 0 {
+        1
+    } else {
+        2 * two_pow((n - 1) as nat)
+    }
+}
+
+pub proof fn lemma_two_pow(n: nat)
+    ensures
+        two_pow(n) == pow2(n),
+    decreases n,
+{
+    if n == 0 {
+        lemma2_to64();
+    } else {
+        lemma_two_pow((n - 1) as nat);
+        lemma_pow2_unfold(n);
+    }
+}
+
+pub open spec fn estimates_ok(upto: nat) -> bool
+    decreases upto,
+{
+    upto == 0 || (estimate_ok(upto) && estimates_ok((upto - 1) as nat))
+}
+
+pub proof fn lemma_estimates(upto: nat, bits: nat)
+    requires
+        estimates_ok(upto),
+        1 <= bits <= upto,
+    ensures
+        estimate_ok(bits),
+    decreases upto,
+{
+    if bits < upto {
+        lemma_estimates((upto - 1) as nat, bits);
+    }
+}
+
+/// The production `digits_of` counts decimal digits for every `u128`.
+pub proof fn lemma_digits_of(magnitude: u128)
+    ensures
+        ({
+            let bits = (128 - magnitude.leading_zeros()) as usize;
+            let estimate = ((bits * 1233) as usize) >> 12usize;
+            &&& magnitude.leading_zeros() <= 128
+            &&& estimate <= 38
+            &&& magnitude != 0 ==> digit_len(magnitude as nat) == estimate + 1 - (if magnitude < pow10(
+                estimate as nat,
+            ) { 1int } else { 0int })
+        }),
+        1 <= digit_len(magnitude as nat) <= 39,
+{
+    lemma_leading_zeros(magnitude);
+    let bits = (128 - magnitude.leading_zeros()) as usize;
+    vstd::bits::lemma_usize_shr_is_div((bits * 1233) as usize, 12usize);
+    lemma2_to64();
+    let estimate = (bits * 1233) / 4096;
+    if magnitude != 0 {
+        let m = magnitude as nat;
+        lemma_bit_len_range(m);
+        assert(estimates_ok(128)) by (compute_only);
+        lemma_estimates(128, bits as nat);
+        lemma_two_pow(bits as nat);
+        lemma_two_pow((bits - 1) as nat);
+        lemma_pow10_pos(estimate as nat);
+        if m < pow10(estimate as nat) {
+            lemma_digit_len_unique(m, estimate as nat);
+        } else {
+            lemma_digit_len_unique(m, (estimate + 1) as nat);
+        }
+    }
 }
 
 } // verus!

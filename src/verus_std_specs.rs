@@ -110,4 +110,9 @@ pub assume_specification[ i128::wrapping_rem ](x: i128, y: i128) -> (r: i128)
         r == i128_wrapping_rem(x, y),
 ;
 
+pub assume_specification[ <u64 as core::convert::From<bool>>::from ](b: bool) -> (r: u64)
+    ensures
+        r == (if b { 1u64 } else { 0u64 }),
+;
+
 } // verus!

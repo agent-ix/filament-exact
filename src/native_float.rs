@@ -1036,4 +1036,4 @@ fn round(fmt: Fmt, exact: Exact, rounding: RoundingMode) -> (u64, IeeeFlags) {
 }
 
 #[cfg(verus_keep_ghost)]
-mod verus_proofs;
+pub(crate) mod verus_proofs;

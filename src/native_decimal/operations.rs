@@ -15,6 +15,13 @@ use crate::decimal::RoundingMode;
 use crate::native_fraction::gcd256;
 use crate::numeric::OrderingOperator;
 
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
+
+#[cfg(verus_keep_ghost)]
+use super::verus_proofs;
+
 /// The largest shift whose power of ten fits signed 128 bits.
 const MAX_SHIFT: u32 = 38;
 
@@ -212,13 +219,19 @@ fn capacity<T>(found: Option<T>, quantity: NativeDecimalCapacityQuantity) -> Adm
 }
 
 /// `bits(m)` of a magnitude, at least 1.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::bits_of(magnitude), 1 <= r <= 128))]
 pub(super) fn bits_of(magnitude: u128) -> u64 {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_bits_of(magnitude); }
     u64::from((128 - magnitude.leading_zeros()).max(1))
 }
 
 /// `digits(m)` of a magnitude, at least 1, from the bit length and one
 /// comparison with a power of ten.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::digits_of(magnitude), 1 <= r <= 39))]
 pub(super) fn digits_of(magnitude: u128) -> u64 {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_digits_of(magnitude); }
     if magnitude == 0 {
         return 1;
     }
