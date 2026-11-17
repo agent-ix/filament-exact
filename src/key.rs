@@ -382,8 +382,9 @@ mod tests {
         assert_eq!(compare_keys(&left, &right), None);
     }
 
-    /// A same-type `Value::Float` pair has no key, matching
-    /// its exclusion from `=` in `crate::equality`'s leaf match.
+    /// `compare_keys` returns no key for a same-type `Value::Float` pair: a
+    /// float's ordering is the total-order membership key of
+    /// `compare_membership_keys`, which collections use, not an ordinary key.
     #[test]
     fn float_pair_has_no_key() {
         use crate::ieee::IeeeValue;

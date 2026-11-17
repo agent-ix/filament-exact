@@ -33,6 +33,6 @@ Verify [FR-379](../functional/FR-379-carry-a-union-member-and-its-positional-pay
 4. Equal unions are equal with one plus the payload pairs; the others are unequal.
 5. `ValueKindMismatch` for each equality call and `None` for each key.
 6. Alpha before Zulu regardless of payload order; the payload positions decide for one member; the other declaration's `Alpha` union is not admitted and the cross-declaration key is `None` despite the equal identifiers.
-7. The stated element orders from either supply; `CanonicalKeyUnavailable` for the `Set` and a kept pair for the `Sequence`.
+7. The stated element orders from either supply; for the IEEE-payload unions, the `Set` holds distinct payloads in totalOrder membership-key order from either supply order, `form` merges an identical pair to one member, and the `Sequence` keeps every occurrence.
 8. Every call completes; storage grows linearly; the shared child counts twice.
 9. The `Option` is admitted, equal for equal unions, unequal for different members, and keys by the union key.

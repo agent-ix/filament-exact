@@ -519,7 +519,7 @@ fn pairs_without_a_key_stay_unkeyed_and_refuse() {
     };
     let float_set = |grouped: bool| {
         let collection_type = coll_type(CollectionKind::Set);
-        let members = vec![float(), float2()];
+        let members = vec![float2(), float()];
         let outcome = if grouped {
             form_grouped(&collection_type, members, &mut meter())
         } else {
@@ -529,12 +529,13 @@ fn pairs_without_a_key_stay_unkeyed_and_refuse() {
             .completed()
             .expect("float members have a membership key")
         {
-            Value::Collection(set) => set.elements().len(),
+            Value::Collection(set) => set.elements().to_vec(),
             other => panic!("expected a collection, got {other:?}"),
         }
     };
-    assert_eq!(float_set(true), 2);
-    assert_eq!(float_set(false), 2);
+    let ascending = vec![float(), float2()];
+    assert_eq!(format!("{:?}", float_set(true)), format!("{ascending:?}"));
+    assert_eq!(format!("{:?}", float_set(false)), format!("{ascending:?}"));
     for (left, right, expected) in [(p100(), integer, mismatch()), (p100(), bad, mismatch())] {
         let collection_type = coll_type(CollectionKind::Set);
         let grouped = form_grouped(
