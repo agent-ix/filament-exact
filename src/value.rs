@@ -457,7 +457,19 @@ impl ValueType {
             (Self::Collection(declared), Value::Collection(collection)) => {
                 collection.collection_type() == &**declared
             }
-            (Self::Map(declared), Value::Map(map)) => map.map_type() == &**declared,
+            (Self::Map(declared), Value::Map(map)) => {
+                map.map_type() == &**declared
+                    && u64::try_from(map.entries().len())
+                        .ok()
+                        .is_some_and(|count| {
+                            declared
+                                .bound()
+                                .is_none_or(|bound| bound.violation(count).is_none())
+                        })
+                    && map.entries().iter().all(|(key, value)| {
+                        declared.key().admits(key) && declared.values().admits(value)
+                    })
+            }
             (Self::Reference(object_type), Value::Reference(reference)) => {
                 reference.object_type() == object_type
             }

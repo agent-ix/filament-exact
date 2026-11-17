@@ -30,7 +30,7 @@
 
 use crate::accounting::{Charge, ChargePoint, Incomplete, LimitKind, Meter};
 use crate::integer::Integer;
-use crate::key::compare_keys;
+use crate::key::compare_membership_keys;
 use crate::outcome::{CheckedInvariantCause, Outcome, Refusal, Stop};
 use crate::value::{FieldValue, Value};
 use alloc::vec;
@@ -347,7 +347,7 @@ fn plan_pairs_with_relation(
                             |(left_key, left_value, right_key, right_value)| {
                                 [
                                     Pair::MapKeys(left_key, right_key),
-                                    Pair::Values(left_value, right_value),
+                                    Pair::Values(left_value, right_value, relation),
                                 ]
                             },
                         ));
@@ -442,12 +442,7 @@ fn ordered_map_entries_by<'a>(
 /// Compare map keys by their total kernel key, including Float's total-order
 /// key which is intentionally separate from ordinary equality.
 fn compare_map_keys(left: &Value, right: &Value) -> Option<Ordering> {
-    match (left, right) {
-        (Value::Float(left), Value::Float(right)) if left.width() == right.width() => {
-            Some(left.total_order_key().cmp(&right.total_order_key()))
-        }
-        _ => compare_keys(left, right),
-    }
+    compare_membership_keys(left, right)
 }
 
 #[cfg(test)]
@@ -464,9 +459,8 @@ mod tests {
     use crate::collection::{from_admitted_map, MapType};
     use crate::value::ValueType;
 
-    /// FR-650-AC-11: Map equality is independent of supplied entry order, and
-    /// ValueType admits a map value only under its exact declared map type.
-    #[ix_trace_rs::trace("TC-2372", "FR-650-AC-11")]
+    /// Map equality is independent of supplied entry order, and ValueType
+    /// admits a map value only under its declared map type.
     #[test]
     fn map_equality_matches_entries_by_key_and_checks_map_type_admission() {
         let map_type = MapType::new(ValueType::String, ValueType::Integer, None).unwrap();
@@ -490,7 +484,7 @@ mod tests {
 
         assert_eq!(
             plan_equality(&first, &reordered).unwrap().pair_events(),
-            &Integer::from(5_i64)
+            &Integer::from(10_i64)
         );
         assert!(plan_pairs(&first, &reordered).unwrap().equal);
         assert!(!plan_pairs(&first, &changed).unwrap().equal);
