@@ -17,7 +17,7 @@ outcome.
   <img alt="Binary floating point rounds 0.1 + 0.2 to 0.30000000000000004. filament-exact adds the fractions 1/10 and 2/10 exactly and gets 3/10, and when an operation such as 1/2 divided by 0 has no value it returns undefined." src="docs/images/hero-light.svg">
 </picture>
 
-> **Status: public prerelease.** The crate is at version 0.2.0 and is not
+> **Status: public prerelease.** The crate is at version 0.3.0 and is not
 > published (`publish = false`). Its API is still changing. Expect breaking
 > changes.
 
@@ -95,15 +95,16 @@ implicitly. The default build has no JSON or canonicalization dependencies.
 Optional JSON features use `serde_json` with `alloc`; `json-object` also uses
 `serde` and `ryu-js` to parse and retain canonical JSON values. These features
 preserve `no_std` support. Every digest identity is made by wrapping an
-already-computed digest through its `from_digest` constructor. Everything is
-re-exported from the crate root; the modules are private.
+already-computed digest through its `from_digest` constructor. The `node_wire`
+module is public when `json` is enabled; other APIs are re-exported from the
+crate root.
 
 ## Cargo features
 
 | Feature | Effect |
 | --- | --- |
 | `test-support` | Keeps the ordered log of every charge a `Meter` admits (`Meter::admitted_charges`), so tests can assert exact charge sequences. Enable it only from a dev-dependency. |
-| `json` | Enables the optional `serde_json` dependency with `alloc` support for JSON wire features. |
+| `json` | Enables `serde_json` with `alloc` and the public `node_wire` codec for `NodeKey` JSON and text. |
 | `json-object` | Adds canonical JSON object/value parsing through `JsonObject::from_json_text`; it enables `json` and uses optional `serde` and `ryu-js` dependencies. |
 
 ## Filament ecosystem

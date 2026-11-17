@@ -106,6 +106,10 @@ pub enum Undefined {
     /// `value(e)` of `none`. Only direct kernel evaluation of an unlinked
     /// expression can meet it.
     NoneValue,
+    /// An index obligation is unmet, so the element does not exist. Only
+    /// direct kernel evaluation of an unlinked expression can meet it; FSL
+    /// writes this reason as `no-element`.
+    NoElement,
     /// A `sum<N>` seed or running total is not a member of `N`'s domain, so
     /// the fold has no value in `N` (QSpec FR-145). It names no catalog
     /// undefined reason and builds no record. Only a `sum` checked under

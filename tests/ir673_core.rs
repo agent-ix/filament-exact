@@ -232,7 +232,9 @@ fn meter_uses_field_order_and_all_counters_are_queryable() {
                     }
                     LimitKind::UnitEdges => configured.unit_edges = prior[index] + 1,
                     LimitKind::ValueOccurrences => configured.value_occurrences = prior[index] + 1,
-                    LimitKind::WorkUnits | LimitKind::ResultUnits => unreachable!(),
+                    LimitKind::WorkUnits | LimitKind::ResultUnits | LimitKind::LiveOccurrences => {
+                        unreachable!()
+                    }
                 }
             }
         }
@@ -671,6 +673,7 @@ fn limit_kind_vocabulary_matches_scalar_limit_fields() {
             LimitKind::ValueOccurrences => 7,
             LimitKind::WorkUnits => 8,
             LimitKind::ResultUnits => 9,
+            LimitKind::LiveOccurrences => unreachable!("not a scalar counter"),
         };
         assert_eq!(index, position);
         assert_eq!(actual, kind);

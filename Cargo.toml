@@ -1,6 +1,6 @@
 [package]
 name = "filament-exact"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.98"
 description = "The exact-value kernel: checked identity, typestate, outcome and refusal, provenance, and bound value types, with no dependency on any other crate in the Filament ecosystem."
