@@ -17,7 +17,7 @@ outcome.
   <img alt="Binary floating point rounds 0.1 + 0.2 to 0.30000000000000004. filament-exact adds the fractions 1/10 and 2/10 exactly and gets 3/10, and when an operation such as 1/2 divided by 0 has no value it returns undefined." src="docs/images/hero-light.svg">
 </picture>
 
-> **Status: public prerelease.** The crate is at version 0.1.0 and is not
+> **Status: public prerelease.** The crate is at version 0.2.0 and is not
 > published (`publish = false`). Its API is still changing. Expect breaking
 > changes.
 
