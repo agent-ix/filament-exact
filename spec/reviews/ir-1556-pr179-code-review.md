@@ -71,3 +71,11 @@ Gates at head, with CARGO_TARGET_DIR in the worktree:
 | src/verus_kernel_model.rs DivisionProfile eq | examined | `r == (*a == *b)` on a fieldless derived enum |
 | scripts/ir1556_verus_mutants.py, scripts/ir1544_verus_mutants.py run(), Makefile verus-mutants | examined | 10 mutants; the kill counts only SEMANTIC lines; `run(MUTANTS)` refactor |
 | docs/verus-proofs.md | examined | trust-base table rows |
+
+## Dispositions
+
+Round 1, fix head 2be4ec49 (reviewed head 56d9d8b0); base still origin/main 16eba89a. Reviewer re-runs in a fresh private worktree under flock /tmp/cargo-slot.lock. `cargo test --locked --test verus_gate -- --ignored`: 2 passed (verus_proofs_verify, verus_mutants_are_killed), 98.7 s wall. Without the ignore flag the two gate tests are skipped (0 passed, 2 ignored), so the default test path is unchanged. Non-tautology probes: the Euclidean window changed to `0 < r` made verus_proofs_verify FAIL (postcondition not satisfied, 220 verified, 1 errors); an extra equivalent mutant in scripts/ir1556_verus_mutants.py made verus_mutants_are_killed FAIL (reviewer-equivalent-survivor: SURVIVED). Both edits were reverted, and git status is clean. `quoin matrix`: FR-408-AC-13, FR-408-AC-14, FR-409-AC-11 and FR-409-AC-12 are tagged-by-ignored-test, and FR-408-AC-15 is tagged. Gates at 2be4ec49: clippy --locked --all-targets -D warnings, make lint, build-no-std, docs and deny pass. fmt-check differs only in tests/qsl2171_undefined_no_element.rs and tests/qsl2326_live_occurrences_limit.rs. The cargo test failure set is the one that fails identically on origin/main: 2 lib equality tests, plus 1 more with test-support; composite_declarations::pairs_without_a_key_stay_unkeyed_and_refuse; union::ieee_union_payload_has_no_key_and_sequence_keeps_occurrences. tests/ir258_native_rational.rs passes 16. The diff 56d9d8b0..2be4ec49 adds no pin and no tool version. The committed spec/reviews/ir-1556-pr179-*.md copies are byte-identical (cmp) to the reviewer's round-0 files.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | after: / `src/verus_kernel_model.rs` / `Meter::charge_units` appends an admitted request ... that is FR-359 and its Kani gate. The derived equality of `DivisionProfile` compares variants. / |
