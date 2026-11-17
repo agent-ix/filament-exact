@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-413-AC-1 through FR-413-AC-10 with the `filament_exact::node_wire` tests that move from `fsl-foundation::node_wire`, built with the `json` feature: the JSON and compact text forms, the round trip at depth, every `NodeWireError` refusal, and the budgeted reader's admission and cancellation.
+Verify FR-413-AC-1 through FR-413-AC-11 with the `filament_exact::node_wire` tests that move from `fsl-foundation::node_wire`, built with the `json` feature: the JSON and compact text forms, the round trip at depth, every `NodeWireError` refusal, and the budgeted reader's admission and cancellation.
 
 ## Test Procedure
 
