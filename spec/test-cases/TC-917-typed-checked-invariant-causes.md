@@ -38,7 +38,7 @@ coordinated cutover. Scope: FR-369-AC-1, FR-369-AC-2 and FR-369-AC-5.
    outside its declared field type. Assert distinct
    `CollectionElementNotAdmitted` and `DeferredResultNotAdmitted` causes.
 3. Reach collection canonical sorting through `form_grouped` with two already
-   grouped `Float` members, whose canonical key is unavailable. In the
+   grouped members with no canonical key (a composite and an `Integer`). In the
    division module's unit seam, call the real `refused_interval` helper with
    `IntegerDomain::Mathematical`: the public `divide` path cannot produce a
    failed membership for that unbounded domain. Assert

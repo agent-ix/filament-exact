@@ -237,8 +237,12 @@ fn plan_pairs_with_relation(
                 (left, right, relation)
             }
             Pair::Slots(FieldValue::Absent, FieldValue::Absent, _)
-            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => continue,
+            | Pair::Slots(FieldValue::Null, FieldValue::Null, _) => {
+                pairs = pairs.add(&Integer::one());
+                continue;
+            }
             Pair::Slots(FieldValue::Present(_) | FieldValue::Absent | FieldValue::Null, _, _) => {
+                pairs = pairs.add(&Integer::one());
                 equal = false;
                 continue;
             }
@@ -1130,6 +1134,34 @@ mod tests {
             assert_eq!(stopped_meter.admission_count(), 19);
             assert_eq!(stopped_meter.consumed(LimitKind::WorkUnits), 50);
             assert_eq!(stopped_meter.consumed(LimitKind::ResultUnits), 0);
+        }
+    }
+
+    /// A slot pair that is absent, null or mismatched is one pair event, as
+    /// are the root pair and each present slot pair (FR-376-AC-4).
+    #[trace("TC-924", "FR-376-AC-4")]
+    #[test]
+    fn absent_null_and_mismatched_slot_pairs_count_one_pair_each() {
+        let declaration = crate::node::NodeKey::fixture(43);
+        let one = || FieldValue::Present(Value::Integer(Integer::one()));
+        let pair_events = |left: FieldValue, right: FieldValue| {
+            let node = |tail: FieldValue| {
+                crate::value::from_admitted_slots(
+                    declaration.clone(),
+                    vec![one(), tail].into_boxed_slice(),
+                )
+            };
+            let plan = plan_equality(&node(left), &node(right)).unwrap();
+            plan.pair_events().clone()
+        };
+        let three = Integer::from(3_u64);
+        for (left, right) in [
+            (FieldValue::Absent, FieldValue::Absent),
+            (FieldValue::Null, FieldValue::Null),
+            (one(), FieldValue::Absent),
+            (FieldValue::Absent, FieldValue::Null),
+        ] {
+            assert_eq!(pair_events(left, right), three);
         }
     }
 

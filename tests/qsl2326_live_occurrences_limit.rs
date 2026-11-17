@@ -19,8 +19,14 @@ fn tc_960_live_occurrences_is_named_and_outside_all() {
         ACCOUNTING_SOURCE.contains("Self::LiveOccurrences => \"live_occurrences\""),
         "as_str spells the variant live_occurrences"
     );
-    assert_eq!(LimitKind::ALL.len(), 10, "ALL stays the ScalarLimitsV1 counters");
-    assert!(LimitKind::ALL.iter().all(|kind| kind.as_str() != "live_occurrences"));
+    assert_eq!(
+        LimitKind::ALL.len(),
+        10,
+        "ALL stays the ScalarLimitsV1 counters"
+    );
+    assert!(LimitKind::ALL
+        .iter()
+        .all(|kind| kind.as_str() != "live_occurrences"));
     assert_eq!(LimitKind::from_code("live_occurrences"), None);
     for kind in LimitKind::ALL {
         assert_eq!(LimitKind::from_code(kind.as_str()), Some(kind));
