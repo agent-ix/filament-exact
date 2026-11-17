@@ -7,7 +7,7 @@ use vstd::arithmetic::div_mod::*;
 use vstd::arithmetic::mul::*;
 use vstd::prelude::*;
 
-use super::{NativeDecimal, NativeDecimalRefusal};
+use super::{NativeDecimal, NativeDecimalRefusal, NativeDecimalType};
 
 verus! {
 
@@ -393,6 +393,106 @@ pub proof fn lemma_normalized(c: i128, s: u32)
         lemma_stage(m0, s0, magnitude(c5), s5 as nat, 1);
         assert(zeros(magnitude(c6), s6 as nat) == 0);
     }
+}
+
+// ---- membership and the constructor ---------------------------------------------------------
+
+/// The owner's membership rule on a normalized pair, in exact arithmetic
+/// (FR-402 Behavior 5): with `s*` the larger of the scale and `min_scale`, the
+/// pair is a member exactly when `s* <= max_scale` and
+/// `lower <= coefficient 10^(s* - scale) <= upper`.
+pub open spec fn member(bounds: (i128, i128, u32, u32), pair: (i128, u32)) -> bool {
+    let (lower, upper, min_scale, max_scale) = bounds;
+    let (coefficient, scale) = pair;
+    let lifted_scale = if scale > min_scale {
+        scale
+    } else {
+        min_scale
+    };
+    lifted_scale <= max_scale && lower <= coefficient * pow10((lifted_scale - scale) as nat) <= upper
+}
+
+/// The production membership test is the owner's rule: a lift that leaves
+/// signed 128 bits is outside every pair of native bounds.
+pub proof fn lemma_admits_normalized(bounds: (i128, i128, u32, u32), pair: (i128, u32))
+    ensures
+        admits_normalized(bounds, pair) == member(bounds, pair),
+{
+    let (lower, upper, min_scale, max_scale) = bounds;
+    let (coefficient, scale) = pair;
+    let lifted_scale = if scale > min_scale {
+        scale
+    } else {
+        min_scale
+    };
+    if lifted_scale <= max_scale {
+        let shift = (lifted_scale - scale) as nat;
+        let power = pow10(shift);
+        lemma_pow10_pos(shift);
+        if coefficient == 0 {
+            assert(coefficient * power == 0) by (nonlinear_arith)
+                requires
+                    coefficient == 0,
+            ;
+        } else if shift > 38 {
+            lemma_pow10_values();
+            lemma_pow10_monotone(39, shift);
+            assert(pow10(39) == 10 * pow10(38));
+            assert(coefficient * power >= 1000000000000000000000000000000000000000 || coefficient * power
+                <= -1000000000000000000000000000000000000000) by (nonlinear_arith)
+                requires
+                    coefficient != 0,
+                    power >= 1000000000000000000000000000000000000000,
+            ;
+        }
+    }
+}
+
+/// The constructor, for every `i64` coefficient, every `i64` scale and every
+/// native type: a scale outside `u32`, or a binding whose normalized pair is
+/// not a member by the owner's rule, is `OutsideCarrierDomain`; a member is
+/// retained exactly as drawn. `lemma_normalized` says what the normalized pair
+/// is.
+pub fn row_from_bindings(ty: &NativeDecimalType, coefficient: i64, scale: i64) -> (r: Result<
+    NativeDecimal,
+    NativeDecimalRefusal,
+>)
+    ensures
+        0 <= scale <= u32::MAX && member(ty.bounds(), normalized(coefficient as i128, scale as u32))
+            ==> r is Ok && r->Ok_0.retained() == (coefficient as i128, scale as u32),
+        !(0 <= scale <= u32::MAX && member(
+            ty.bounds(),
+            normalized(coefficient as i128, scale as u32),
+        )) ==> r == Err::<NativeDecimal, _>(NativeDecimalRefusal::OutsideCarrierDomain),
+{
+    proof {
+        if 0 <= scale <= u32::MAX {
+            lemma_admits_normalized(ty.bounds(), normalized(coefficient as i128, scale as u32));
+        }
+    }
+    NativeDecimal::from_bindings(ty, coefficient, scale)
+}
+
+/// The normalized view of a carried Decimal, for every signed 128-bit
+/// coefficient and every `u32` scale, is the pair `lemma_normalized`
+/// describes.
+pub fn row_normalized(value: &NativeDecimal) -> (r: (i128, u32))
+    ensures
+        r == normalized(value.retained().0, value.retained().1),
+        value.retained().0 == 0 ==> r == (0i128, 0u32),
+        value.retained().0 != 0 ==> ({
+            let (c, s) = value.retained();
+            let k = (s - r.1) as nat;
+            &&& r.1 <= s
+            &&& (r.0 < 0) == (c < 0)
+            &&& magnitude(c) == magnitude(r.0) * pow10(k)
+            &&& r.1 == 0 || magnitude(r.0) % 10 != 0
+        }),
+{
+    proof {
+        lemma_normalized(value.retained().0, value.retained().1);
+    }
+    value.normalized()
 }
 
 } // verus!
