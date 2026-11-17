@@ -425,13 +425,13 @@ impl ValueType {
     /// a descendant declaration; a caller that admits such a value by its own
     /// conformance rule stores it through the caller-admitted paths
     /// ([`OptionValue::from_admitted`], [`from_admitted_slots`],
-    /// `form` and `form_grouped`). Composite, option
-    /// and collection values carry their declared type, which must be this
+    /// `form` and `form_grouped`). Composite, option, collection and map
+    /// values carry their declared type, which must be this
     /// type; their contents were admitted at construction. An `Enum` shape
     /// admits a `Value::Enum` exactly when the shape's own ranked list agrees
     /// with the member's claimed rank for its variant: a
-    /// pure lookup against the shape, no declaration lookup needed. A
-    /// A map value is admitted by its exact declared `MapType`.
+    /// pure lookup against the shape, no declaration lookup needed. A map
+    /// value is admitted by its exact declared `MapType`.
     pub fn admits(&self, value: &Value) -> bool {
         match (self, value) {
             (Self::Boolean, Value::Boolean(_)) | (Self::Integer, Value::Integer(_)) => true,

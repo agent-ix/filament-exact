@@ -207,7 +207,7 @@ pub struct MapType {
     bound: Option<CardinalityBound>,
 }
 
-/// A completed map value whose entries are in canonical run-key byte order.
+/// A completed map value with its admitted entries retained in input order.
 #[derive(Clone, Debug)]
 pub struct MapValue {
     map_type: MapType,
@@ -221,7 +221,7 @@ impl MapValue {
         &self.map_type
     }
 
-    /// Entries in ascending order of their keys' canonical run-form bytes.
+    /// The map entries in their retained order.
     pub fn entries(&self) -> &[(Value, Value)] {
         &self.entries
     }
@@ -309,9 +309,10 @@ impl MapType {
     }
 }
 
-/// Materialize an already-admitted map without changing its entry order.
-/// The caller owns bound checks, duplicate-key refusal and any canonical
-/// output ordering required by its wire format.
+/// Materialize a map whose entry count, unique keys and admitted key/value
+/// types the caller has already checked. Retains entry order; the caller
+/// owns bound checks, duplicate-key refusal and any canonical output ordering
+/// required by its wire format.
 pub fn from_admitted_map(map_type: MapType, entries: Vec<(Value, Value)>) -> Value {
     let occ = entries.iter().fold(Integer::one(), |occ, (key, value)| {
         occ.add(&key.occ()).add(&value.occ())
