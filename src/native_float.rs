@@ -24,11 +24,17 @@ use crate::decimal::RoundingMode;
 use crate::ieee::{IeeeComparison, IeeeFlag, IeeeFlags, IeeeValue, IeeeWidth};
 use crate::outcome::{Outcome, Refusal, Stop};
 
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
+
 /// The bit the normalised operand magnitude of a sum is placed at.
+#[cfg_attr(verus_keep_ghost, verus_spec)]
 const WIDE_TOP: u32 = 125;
 
 /// The constant trip count of the integer square root: the root of a radicand
 /// below `2^112` is below `2^56`.
+#[cfg_attr(verus_keep_ghost, verus_spec)]
 const SQRT_STEPS: u32 = 56;
 
 /// The refusal of [`NativeFloat::new`].
@@ -190,6 +196,7 @@ fn same_width(first: IeeeWidth, second: IeeeWidth) -> Result<(), IllTyped> {
 
 // ---- format ------------------------------------------------------------------
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy)]
 struct Fmt {
     exponent_bits: u32,
@@ -197,7 +204,9 @@ struct Fmt {
     width_bits: u64,
 }
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl Fmt {
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures verus_proofs::wf(r), r == verus_proofs::fmt_of(width)))]
     const fn of(width: IeeeWidth) -> Self {
         match width {
             IeeeWidth::Binary32 => Self {
@@ -212,56 +221,96 @@ impl Fmt {
             },
         }
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::fraction(self)))]
     const fn fraction(self) -> i32 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         self.fraction_bits as i32
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::bias(self)))]
     const fn bias(self) -> i32 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         (1 << (self.exponent_bits - 1)) - 1
     }
     /// Exponent of the least subnormal quantum.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::quantum_min(self)))]
     const fn quantum_min(self) -> i32 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         1 - self.bias() - self.fraction()
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::emin(self)))]
     const fn emin(self) -> i32 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         1 - self.bias()
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::sign_mask(self)))]
     const fn sign_mask(self) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         1 << (self.exponent_bits + self.fraction_bits)
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::exponent_ones(self)))]
     const fn exponent_ones(self) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         (1 << self.exponent_bits) - 1
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::exponent_mask(self)))]
     const fn exponent_mask(self) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         self.exponent_ones() << self.fraction_bits
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::fraction_mask(self)))]
     const fn fraction_mask(self) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         (1 << self.fraction_bits) - 1
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::quiet_bit(self)))]
     const fn quiet_bit(self) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         1 << (self.fraction_bits - 1)
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::sign(self, negative)))]
     const fn sign(self, negative: bool) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         if negative {
             self.sign_mask()
         } else {
             0
         }
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::infinity(self, negative)))]
     const fn infinity(self, negative: bool) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         self.sign(negative) | self.exponent_mask()
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::max_finite(self, negative)))]
     const fn max_finite(self, negative: bool) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         self.sign(negative)
             | (self.exponent_mask() - (1 << self.fraction_bits))
             | self.fraction_mask()
     }
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::canonical_nan(self)))]
     const fn canonical_nan(self) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         self.exponent_mask() | self.quiet_bit()
     }
 }
 
 // ---- operands ----------------------------------------------------------------
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy)]
 enum Operand {
     Nan {
@@ -281,7 +330,13 @@ enum Operand {
     },
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(fmt), ensures r == verus_proofs::decode(fmt, bits)))]
 fn decode(fmt: Fmt, bits: u64) -> Operand {
+    #[cfg(verus_keep_ghost)]
+    proof! {
+        verus_proofs::lemma_fmt_bits(fmt);
+        verus_proofs::lemma_decode_fields(fmt, bits);
+    }
     let negative = bits & fmt.sign_mask() != 0;
     let biased = (bits >> fmt.fraction_bits) & fmt.exponent_ones();
     let fraction = bits & fmt.fraction_mask();
@@ -312,7 +367,9 @@ fn decode(fmt: Fmt, bits: u64) -> Operand {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl Operand {
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::negative_of(self)))]
     fn negative(self) -> bool {
         match self {
             Self::Infinite { negative }
@@ -322,6 +379,7 @@ impl Operand {
         }
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::negated(self)))]
     fn negated(self) -> Self {
         match self {
             Self::Infinite { negative } => Self::Infinite {
@@ -404,6 +462,7 @@ fn compare(
 // ---- evaluation --------------------------------------------------------------
 
 /// What classification or the exact intermediate decided.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 enum Step {
     /// Decided by classification alone: bits and flags, no rounding.
     Decided(u64, IeeeFlags),
@@ -411,6 +470,7 @@ enum Step {
     Finite(Exact),
 }
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 enum Exact {
     Zero {
         negative: bool,
@@ -423,6 +483,7 @@ enum Exact {
     },
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(fmt), ensures r == verus_proofs::invalid(fmt)))]
 fn invalid(fmt: Fmt) -> Step {
     Step::Decided(
         fmt.canonical_nan(),
@@ -430,6 +491,7 @@ fn invalid(fmt: Fmt) -> Step {
     )
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::decided(bits)))]
 fn decided(bits: u64) -> Step {
     Step::Decided(bits, IeeeFlags::EMPTY)
 }
@@ -557,6 +619,7 @@ fn plan_add(fmt: Fmt, rounding: RoundingMode, a: Operand, b: Operand) -> Step {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(fmt), verus_proofs::operand_bound(a), verus_proofs::operand_bound(b), ensures r == verus_proofs::plan_multiply(fmt, a, b)))]
 fn plan_multiply(fmt: Fmt, a: Operand, b: Operand) -> Step {
     let negative = a.negative() != b.negative();
     match (a, b) {
@@ -581,6 +644,7 @@ fn plan_multiply(fmt: Fmt, a: Operand, b: Operand) -> Step {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(fmt), verus_proofs::operand_wf(fmt, a), verus_proofs::operand_wf(fmt, b), ensures r == verus_proofs::plan_divide(fmt, a, b)))]
 fn plan_divide(fmt: Fmt, a: Operand, b: Operand) -> Step {
     let negative = a.negative() != b.negative();
     match (a, b) {
@@ -624,12 +688,18 @@ fn plan_divide(fmt: Fmt, a: Operand, b: Operand) -> Step {
 }
 
 /// Shift a nonzero significand left until bit `fraction_bits` is set.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::justify_pre(fmt, significand, exponent), ensures verus_proofs::justify_post(fmt, significand, exponent, r)))]
 fn justify(fmt: Fmt, significand: u64, exponent: i32) -> (u64, i32) {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_justify(fmt, significand, exponent); }
     let shift = significand.leading_zeros() - (63 - fmt.fraction_bits);
     (significand << shift, exponent - shift as i32)
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(fmt), verus_proofs::operand_wf(fmt, a), ensures r == verus_proofs::plan_square_root(fmt, a)))]
 fn plan_square_root(fmt: Fmt, a: Operand) -> Step {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_sqrt_plan_safe(fmt, a); }
     match a {
         Operand::Infinite { negative: false } => decided(fmt.infinity(false)),
         Operand::Infinite { negative: true }
@@ -664,21 +734,32 @@ fn plan_square_root(fmt: Fmt, a: Operand) -> Step {
 
 /// `floor(sqrt(radicand))` for a radicand below `2^112`: a fixed
 /// [`SQRT_STEPS`]-step binary digit search.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires radicand < 0x1_0000_0000_0000_0000_0000_0000_0000, ensures r == verus_proofs::isqrt(radicand as nat), r < 0x100_0000_0000_0000, r * r <= radicand))]
 fn integer_square_root(radicand: u128) -> u128 {
     let mut root = 0_u128;
     let mut step = SQRT_STEPS;
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_sqrt_start(radicand); }
     // bound: SQRT_STEPS.
+    #[cfg_attr(verus_keep_ghost, verus_spec(invariant verus_proofs::sqrt_inv(root, step, radicand), decreases step))]
     while step > 0 {
         step -= 1;
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_sqrt_step(root, step, radicand); }
         let trial = root | (1_u128 << step);
         if trial * trial <= radicand {
             root = trial;
         }
     }
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_sqrt_end(root, radicand); }
     root
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(fmt), verus_proofs::operand_bound(a), verus_proofs::operand_bound(b), verus_proofs::operand_bound(c), ensures r == verus_proofs::plan_fma(fmt, rounding, a, b, c)))]
 fn plan_fma(fmt: Fmt, rounding: RoundingMode, a: Operand, b: Operand, c: Operand) -> Step {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_product_safe(a, b); }
     let product_negative = a.negative() != b.negative();
     let product_infinite = match (a, b) {
         (Operand::Infinite { .. }, Operand::Zero { .. })
@@ -694,8 +775,12 @@ fn plan_fma(fmt: Fmt, rounding: RoundingMode, a: Operand, b: Operand, c: Operand
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl Fmt {
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::wf(self), ensures r == verus_proofs::zero_bits(self, negative)))]
     const fn zero_bits(self, negative: bool) -> u64 {
+        #[cfg(verus_keep_ghost)]
+        proof! { verus_proofs::lemma_fmt_bits(self); }
         self.sign(negative)
     }
 }
@@ -703,6 +788,7 @@ impl Fmt {
 // ---- exact sums --------------------------------------------------------------
 
 /// A signed dyadic `mag * 2^exp` whose zero carries an IEEE sign.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy)]
 struct Term {
     negative: bool,
@@ -710,6 +796,7 @@ struct Term {
     exp: i32,
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::term(operand)))]
 fn term(operand: Operand) -> Term {
     match operand {
         Operand::Finite {
@@ -729,7 +816,10 @@ fn term(operand: Operand) -> Term {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::operand_bound(a), verus_proofs::operand_bound(b), ensures r == verus_proofs::product_term(a, b)))]
 fn product_term(a: Operand, b: Operand) -> Term {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_product_safe(a, b); }
     let negative = a.negative() != b.negative();
     match (a, b) {
         (
@@ -757,7 +847,10 @@ fn product_term(a: Operand, b: Operand) -> Term {
 }
 
 /// Move the most significant bit of a nonzero term to [`WIDE_TOP`].
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::term_bound(term), term.mag != 0, ensures verus_proofs::normalised_post(term, r)))]
 fn normalised(term: Term) -> Term {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_normalised(term); }
     let shift = term.mag.leading_zeros() - (127 - WIDE_TOP);
     Term {
         negative: term.negative,
@@ -766,7 +859,10 @@ fn normalised(term: Term) -> Term {
     }
 }
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::term_bound(left), verus_proofs::term_bound(right), ensures r == verus_proofs::sum(rounding, left, right)))]
 fn sum(rounding: RoundingMode, left: Term, right: Term) -> Exact {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_sum_bits(); }
     if left.mag == 0 && right.mag == 0 {
         let negative = if left.negative == right.negative {
             left.negative
@@ -826,12 +922,14 @@ fn sum(rounding: RoundingMode, left: Term, right: Term) -> Exact {
 
 // ---- rounding ----------------------------------------------------------------
 
+#[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == verus_proofs::bit_length(value)))]
 fn bit_length(value: u64) -> i32 {
     (u64::BITS - value.leading_zeros()) as i32
 }
 
 /// Round `q` (two guard bits, or one) onto the grid; the integer multiple and
 /// whether anything was discarded.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::round_at_pre(q, guard_bits), ensures r == verus_proofs::round_at(q, sticky, guard_bits, negative, direction)))]
 fn round_at(
     q: u64,
     sticky: bool,
@@ -839,6 +937,8 @@ fn round_at(
     negative: bool,
     direction: RoundingMode,
 ) -> (u64, bool) {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_round_at_bits(q, guard_bits); }
     let kept = q >> guard_bits;
     let remainder = q - (kept << guard_bits);
     let half = 1_u64 << (guard_bits - 1);
@@ -859,7 +959,10 @@ fn round_at(
 
 /// Round once and encode, with the fresh flag set. Strict `exact` computes its
 /// would-be flags under nearest-even.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires verus_proofs::round_pre(fmt, exact), ensures r == verus_proofs::round(fmt, exact, rounding)))]
 fn round(fmt: Fmt, exact: Exact, rounding: RoundingMode) -> (u64, IeeeFlags) {
+    #[cfg(verus_keep_ghost)]
+    proof! { verus_proofs::lemma_round_safe(fmt, exact, rounding); }
     let (negative, mag, exp, sticky) = match exact {
         Exact::Zero { negative } => return (fmt.sign(negative), IeeeFlags::EMPTY),
         Exact::Real {
@@ -931,3 +1034,6 @@ fn round(fmt: Fmt, exact: Exact, rounding: RoundingMode) -> (u64, IeeeFlags) {
     let bits = fmt.sign(negative) | ((index << fmt.fraction_bits) + kept);
     (bits, flags)
 }
+
+#[cfg(verus_keep_ghost)]
+mod verus_proofs;

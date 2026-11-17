@@ -111,3 +111,4 @@ verus:
 verus-mutants:
 	python3 scripts/ir1544_verus_mutants.py
 	python3 scripts/ir1556_verus_mutants.py
+	python3 scripts/ir1551_verus_mutants.py

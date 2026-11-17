@@ -21,6 +21,7 @@ fn script(path: &str) -> Command {
 /// Every proof verifies: Verus reports no error on the production source.
 #[trace("TC-956", "FR-408-AC-13")]
 #[trace("TC-957", "FR-409-AC-11")]
+#[trace("TC-953", "FR-405-AC-17")]
 #[test]
 #[ignore = "runs Verus (a few seconds); set VERUS and run with `make verus`"]
 fn verus_proofs_verify() {
@@ -37,12 +38,14 @@ fn verus_proofs_verify() {
 /// that only exhausts the solver's resource limit fails the script.
 #[trace("TC-956", "FR-408-AC-14")]
 #[trace("TC-957", "FR-409-AC-12")]
+#[trace("TC-953", "FR-405-AC-18")]
 #[test]
 #[ignore = "runs Verus once per mutant (a few minutes); set VERUS and run with `make verus-mutants`"]
 fn verus_mutants_are_killed() {
     for mutants in [
         "scripts/ir1544_verus_mutants.py",
         "scripts/ir1556_verus_mutants.py",
+        "scripts/ir1551_verus_mutants.py",
     ] {
         let output = script(mutants).output().expect("start the mutant script");
         let log = String::from_utf8_lossy(&output.stdout);

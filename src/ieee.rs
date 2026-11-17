@@ -31,6 +31,10 @@ use crate::integer::Integer;
 use crate::outcome::{Outcome, Refusal, Stop, Undefined};
 use crate::rational::{Rational, RationalDomain};
 
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
+
 /// The IEEE profile definition identity.
 pub const IEEE_DEFINITION: &str = "filament.value.ieee754-2019-default/v1";
 
@@ -202,6 +206,7 @@ pub enum IeeeFlag {
     Inexact,
 }
 
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl IeeeFlag {
     /// Every flag in vocabulary order.
     pub const ALL: [Self; 5] = [
@@ -213,6 +218,7 @@ impl IeeeFlag {
     ];
 
     /// Normative spelling.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Invalid => "invalid",
@@ -223,6 +229,7 @@ impl IeeeFlag {
         }
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == flag_mask(self)))]
     fn mask(self) -> u8 {
         match self {
             Self::Invalid => 1,
@@ -235,30 +242,92 @@ impl IeeeFlag {
 }
 
 /// A fresh, operation-local flag set. There is no sticky global state.
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct IeeeFlags(u8);
 
+#[cfg(verus_keep_ghost)]
+verus! {
+
+/// The bit of a flag, for specifications.
+pub open spec fn flag_mask(flag: IeeeFlag) -> u8 {
+    match flag {
+        IeeeFlag::Invalid => 1,
+        IeeeFlag::DivideByZero => 2,
+        IeeeFlag::Overflow => 4,
+        IeeeFlag::Underflow => 8,
+        IeeeFlag::Inexact => 16,
+    }
+}
+
+impl IeeeFlags {
+    /// The empty set, for specifications.
+    pub closed spec fn spec_empty() -> IeeeFlags {
+        IeeeFlags(0)
+    }
+
+    /// The set with `flag` added, for specifications.
+    pub closed spec fn spec_with(self, flag: IeeeFlag) -> IeeeFlags {
+        IeeeFlags(self.0 | flag_mask(flag))
+    }
+
+    /// Whether `flag` is raised, for specifications.
+    pub closed spec fn has(self, flag: IeeeFlag) -> bool {
+        self.0 & flag_mask(flag) != 0
+    }
+
+    /// Whether no flag is raised, for specifications.
+    pub closed spec fn none(self) -> bool {
+        self.0 == 0
+    }
+}
+
+/// The flag set behaves as a set of flags.
+pub proof fn lemma_flags(flags: IeeeFlags, added: IeeeFlag, flag: IeeeFlag)
+    ensures
+        IeeeFlags::spec_empty().none(),
+        !IeeeFlags::spec_empty().has(flag),
+        flags.spec_with(added).has(flag) == (flag == added || flags.has(flag)),
+        !flags.spec_with(added).none(),
+        flags.none() ==> !flags.has(flag),
+{
+    let (x, a, f) = (flags.0, flag_mask(added), flag_mask(flag));
+    assert(0u8 & f == 0) by (bit_vector);
+    assert(((x | a) & f != 0) == ((a & f != 0) || (x & f != 0))) by (bit_vector);
+    assert((a == 1 || a == 2 || a == 4 || a == 8 || a == 16) ==> (x | a) != 0) by (bit_vector);
+    assert((a == 1 || a == 2 || a == 4 || a == 8 || a == 16) && (f == 1 || f == 2 || f == 4 || f == 8
+        || f == 16) ==> ((a & f != 0) == (a == f))) by (bit_vector);
+}
+
+} // verus!
+
+#[cfg_attr(verus_keep_ghost, verus_verify)]
 impl IeeeFlags {
     /// The empty set.
+    #[cfg_attr(verus_keep_ghost, verus_spec(ensures IeeeFlags::EMPTY == IeeeFlags::spec_empty()))]
     pub const EMPTY: Self = Self(0);
 
     /// Whether `flag` is raised.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == self.has(flag)))]
     pub fn contains(self, flag: IeeeFlag) -> bool {
         self.0 & flag.mask() != 0
     }
 
     /// Whether no flag is raised.
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == self.none()))]
     pub fn is_empty(self) -> bool {
         self.0 == 0
     }
 
     /// The raised flags in vocabulary order.
+    #[cfg_attr(verus_keep_ghost, verus_verify(external))]
     pub fn iter(self) -> impl Iterator<Item = IeeeFlag> {
         IeeeFlag::ALL
             .into_iter()
             .filter(move |flag| self.contains(*flag))
     }
 
+    #[cfg_attr(verus_keep_ghost, verus_spec(r => ensures r == self.spec_with(flag)))]
     pub(crate) fn with(self, flag: IeeeFlag) -> Self {
         Self(self.0 | flag.mask())
     }

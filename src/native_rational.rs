@@ -359,4 +359,4 @@ mod kani_proofs;
 #[cfg(kani)]
 mod reference;
 #[cfg(verus_keep_ghost)]
-mod verus_proofs;
+pub(crate) mod verus_proofs;
