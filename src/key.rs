@@ -13,17 +13,9 @@
 //! relation to ancestry, declaration names or slot contents. Two composites of
 //! one declaration continue by slots in declaration order.
 //!
-//! **`Value::Float` has no key, matching its exclusion from `=`.**
-//! [`crate::equality`]'s ordinary leaf relation excludes `Value::Float` the same
-//! way this module's `leaf` function does -- both fall through to their
-//! catch-all refusal arm. IEEE equality (`NaN != NaN`, `-0.0 == 0.0`) is not
-//! the total-order `=` this key and the generic equality plan give every
-//! other leaf type, so IEEE comparison stays [`crate::compare_ieee`]'s own
-//! `IeeeComparison` (`NumericEqual`/`TotalOrder`/`BitIdentical`), never this
-//! key or `=`. Collection membership separately compares float leaves by
-//! bit identity, but this key still has no float ordering. Thus ordered-set
-//! coalescing can use that membership relation; set/bag formation still
-//! refuses when canonical ordering requires a float key.
+//! A float has no key under ordinary numeric equality because NaN is not
+//! reflexive. Collection membership has its own total key: float leaves order
+//! by width and bit pattern, matching the membership relation's bit identity.
 //!
 //! `Value::Enum` is [`crate::value::EnumMember`] here -- a bare
 //! [`crate::identity::VariantId`] paired with its zero-based canonical rank --
@@ -43,11 +35,17 @@ use crate::value::{FieldValue, Value};
 
 /// One pending key comparison.
 enum Task<'a> {
-    Values(&'a Value, &'a Value),
-    Slots(&'a FieldValue, &'a FieldValue),
+    Values(&'a Value, &'a Value, KeyRelation),
+    Slots(&'a FieldValue, &'a FieldValue, KeyRelation),
     /// The proper-prefix tiebreak of two element lists whose common prefix
     /// has equal keys.
     Lengths(usize, usize),
+}
+
+#[derive(Clone, Copy)]
+enum KeyRelation {
+    Equality,
+    Membership,
 }
 
 /// Compare the canonical keys of two values of one declared type. Two
@@ -61,18 +59,32 @@ enum Task<'a> {
 /// [`crate::form_grouped`] and in `Contains`, so it must order exactly as
 /// [`crate::form`]'s canonical sort does.
 pub fn compare_keys(left: &Value, right: &Value) -> Option<Ordering> {
-    let mut tasks = vec![Task::Values(left, right)];
+    compare_keys_with_relation(left, right, KeyRelation::Equality)
+}
+
+/// Compare canonical keys under the collection-membership relation, where
+/// float leaves use bit identity rather than numeric equality.
+pub(crate) fn compare_membership_keys(left: &Value, right: &Value) -> Option<Ordering> {
+    compare_keys_with_relation(left, right, KeyRelation::Membership)
+}
+
+fn compare_keys_with_relation(
+    left: &Value,
+    right: &Value,
+    relation: KeyRelation,
+) -> Option<Ordering> {
+    let mut tasks = vec![Task::Values(left, right, relation)];
     while let Some(task) = tasks.pop() {
         let ordering = match task {
             Task::Lengths(left, right) => left.cmp(&right),
-            Task::Slots(left, right) => match (left, right) {
+            Task::Slots(left, right, relation) => match (left, right) {
                 (FieldValue::Present(left), FieldValue::Present(right)) => {
-                    tasks.push(Task::Values(left, right));
+                    tasks.push(Task::Values(left, right, relation));
                     continue;
                 }
                 (left, right) => slot_rank(left).cmp(&slot_rank(right)),
             },
-            Task::Values(left, right) => match leaf(left, right, &mut tasks)? {
+            Task::Values(left, right, relation) => match leaf(left, right, relation, &mut tasks)? {
                 Some(ordering) => ordering,
                 None => continue,
             },
@@ -98,9 +110,15 @@ fn slot_rank(slot: &FieldValue) -> u8 {
 fn leaf<'a>(
     left: &'a Value,
     right: &'a Value,
+    relation: KeyRelation,
     tasks: &mut Vec<Task<'a>>,
 ) -> Option<Option<Ordering>> {
     let ordering = match (left, right) {
+        (Value::Float(left), Value::Float(right))
+            if matches!(relation, KeyRelation::Membership) && left.width() == right.width() =>
+        {
+            left.bits().cmp(&right.bits())
+        }
         (Value::Boolean(left), Value::Boolean(right)) => left.cmp(right),
         (Value::Integer(left), Value::Integer(right)) => left.cmp(right),
         (Value::Rational(left), Value::Rational(right)) => left.cmp(right),
@@ -137,7 +155,7 @@ fn leaf<'a>(
         (Value::Reference(left), Value::Reference(right)) => left.cmp(right),
         (Value::Option(left), Value::Option(right)) => match (left.payload(), right.payload()) {
             (Some(left), Some(right)) => {
-                tasks.push(Task::Values(left, right));
+                tasks.push(Task::Values(left, right, relation));
                 return Some(None);
             }
             (left, right) => left.is_some().cmp(&right.is_some()),
@@ -153,7 +171,7 @@ fn leaf<'a>(
             if left.slots().len() == right.slots().len() =>
         {
             let slots = left.slots().iter().zip(right.slots()).rev();
-            tasks.extend(slots.map(|(left, right)| Task::Slots(left, right)));
+            tasks.extend(slots.map(|(left, right)| Task::Slots(left, right, relation)));
             return Some(None);
         }
         (Value::Union(left), Value::Union(right)) if left.declaration() == right.declaration() => {
@@ -173,7 +191,7 @@ fn leaf<'a>(
                         .iter()
                         .zip(right.payload())
                         .rev()
-                        .map(|(left, right)| Task::Values(left, right)),
+                        .map(|(left, right)| Task::Values(left, right, relation)),
                 );
                 return Some(None);
             }
@@ -183,10 +201,16 @@ fn leaf<'a>(
             ordering
         }
         (Value::Collection(left), Value::Collection(right)) => {
+            let relation =
+                if left.collection_type().kind() == crate::collection::CollectionKind::Sequence {
+                    relation
+                } else {
+                    KeyRelation::Membership
+                };
             let (left, right) = (left.elements(), right.elements());
             tasks.push(Task::Lengths(left.len(), right.len()));
             let elements = left.iter().zip(right).rev();
-            tasks.extend(elements.map(|(left, right)| Task::Values(left, right)));
+            tasks.extend(elements.map(|(left, right)| Task::Values(left, right, relation)));
             return Some(None);
         }
         (
