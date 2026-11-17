@@ -4,6 +4,7 @@
 //! (`cfg(verus_keep_ghost)`).
 
 use vstd::arithmetic::div_mod::*;
+use vstd::arithmetic::mul::*;
 use vstd::prelude::*;
 
 use super::{NativeDecimal, NativeDecimalRefusal};
@@ -165,6 +166,113 @@ pub proof fn lemma_powers_in_range()
     assert forall|n: nat| n <= 38 implies 1 <= #[trigger] pow10(n)
         <= 100000000000000000000000000000000000000 by {
         lemma_pow10_bound(n);
+    }
+}
+
+// ---- trailing zeros -------------------------------------------------------------------
+
+/// The magnitude of a coefficient.
+pub open spec fn magnitude(c: i128) -> nat {
+    if c < 0 {
+        (-(c as int)) as nat
+    } else {
+        c as nat
+    }
+}
+
+/// How many trailing decimal zeros a nonzero magnitude `m` can give up while
+/// the scale `s` stays at or above zero.
+pub open spec fn zeros(m: nat, s: nat) -> nat
+    decreases s,
+{
+    if m != 0 && s > 0 && m % 10 == 0 {
+        1 + zeros(m / 10, (s - 1) as nat)
+    } else {
+        0
+    }
+}
+
+/// `p` zeros can be removed exactly when the scale allows `p` and `10^p`
+/// divides the magnitude.
+pub proof fn lemma_zeros_at_least(m: nat, s: nat, p: nat)
+    requires
+        m != 0,
+    ensures
+        (zeros(m, s) >= p) == (s >= p && m % pow10(p) == 0),
+    decreases p,
+{
+    if p == 0 {
+        assert(m % 1 == 0);
+    } else {
+        let rest = pow10((p - 1) as nat);
+        lemma_pow10_pos((p - 1) as nat);
+        lemma_mod_breakdown(m as int, 10, rest as int);
+        assert(m % (10 * rest) == 10 * ((m / 10) % rest) + m % 10);
+        lemma_mod_bound((m / 10) as int, rest as int);
+        if s > 0 && m % 10 == 0 {
+            lemma_fundamental_div_mod(m as int, 10);
+            assert(m / 10 != 0);
+            lemma_zeros_at_least(m / 10, (s - 1) as nat, (p - 1) as nat);
+        }
+    }
+}
+
+/// Removing `p` of the removable zeros leaves the rest removable.
+pub proof fn lemma_zeros_after(m: nat, s: nat, p: nat)
+    requires
+        m != 0,
+        zeros(m, s) >= p,
+    ensures
+        s >= p,
+        m / pow10(p) != 0,
+        m == (m / pow10(p)) * pow10(p),
+        zeros(m / pow10(p), (s - p) as nat) == zeros(m, s) - p,
+    decreases p,
+{
+    lemma_zeros_at_least(m, s, p);
+    lemma_pow10_pos(p);
+    lemma_fundamental_div_mod(m as int, pow10(p) as int);
+    lemma_mul_is_commutative((m / pow10(p)) as int, pow10(p) as int);
+    if m / pow10(p) == 0 {
+        assert(pow10(p) * (m / pow10(p)) == 0) by (nonlinear_arith)
+            requires
+                m / pow10(p) == 0,
+        ;
+    }
+    if p > 0 {
+        let rest = pow10((p - 1) as nat);
+        lemma_pow10_pos((p - 1) as nat);
+        lemma_fundamental_div_mod(m as int, 10);
+        assert(zeros(m, s) == 1 + zeros(m / 10, (s - 1) as nat));
+        assert(m / 10 != 0);
+        lemma_zeros_after(m / 10, (s - 1) as nat, (p - 1) as nat);
+        lemma_div_denominator(m as int, 10, rest as int);
+        assert(pow10(p) == 10 * rest);
+        assert((m / 10) / rest == m / pow10(p));
+        assert(((s - 1) as nat - (p - 1) as nat) as nat == (s - p) as nat);
+        assert(zeros(m / pow10(p), (s - p) as nat) == zeros(m / 10, (s - 1) as nat) - (p - 1));
+    } else {
+        assert(pow10(0) == 1);
+        assert(m / pow10(0) == m) by (nonlinear_arith)
+            requires
+                pow10(0) == 1,
+        ;
+        assert(zeros(m / pow10(p), (s - p) as nat) == zeros(m, s));
+    }
+}
+
+/// A nonzero magnitude below `2^127` has at most 38 trailing zeros.
+pub proof fn lemma_zeros_bound(m: nat, s: nat)
+    requires
+        0 < m <= 0x8000_0000_0000_0000_0000_0000_0000_0000,
+    ensures
+        zeros(m, s) <= 38,
+{
+    if zeros(m, s) >= 39 {
+        lemma_zeros_at_least(m, s, 39);
+        lemma_pow10_values();
+        assert(pow10(39) == 10 * pow10(38));
+        lemma_mod_is_zero(m, pow10(39));
     }
 }
 
