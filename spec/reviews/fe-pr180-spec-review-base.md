@@ -53,3 +53,20 @@ FAIL on consistency. The PR fixes FR-377, TC-925 and FR-379-AC-7, but FR-379's o
 | FR-369 CanonicalKeyUnavailable row | examined | spec/functional/FR-369-typed-checked-invariant-causes.md:44 | Collection ordering cannot obtain the canonical key of a member |
 | QSpec FR-149-AC-26 | context_only | filament-specification spec/functional/type-model/FR-149-apply-complete-equality-matrix.md:446 | `set[+0, -0] = set[-0, +0]` is true |
 | QSpec FR-144-AC-6, AC-25 | context_only | filament-specification spec/functional/type-model/FR-144-preserve-complete-collection-algebra.md:477,496 | a set, bag or ordered-set element type holding a float is admitted, keyed by the FR-148 `totalOrder` key |
+
+## New findings (disposition pass 1)
+
+| ID | Severity | Summary | Refs |
+| --- | --- | --- | --- |
+| FND-005 | low | The fix rewrote TC-917 step 3 to 'two already grouped members with no canonical key (a composite and an `Integer`)', but no test tagged TC-917 or FR-369-AC-2 does that. The only `CanonicalKeyUnavailable` producer test is `pairs_without_a_key_stay_unkeyed_and_refuse` (tagged TC-925, FR-377-AC-6). `grouped_float_members_are_sorted_by_membership_key` (src/collection.rs:885) still carries FR-369-AC-2 while asserting float sorting, and its message 'float members have a bit-identity key' is stale. Retag or add the TC-917 step 3 control, and drop FR-369-AC-2 from the float-sort test. | spec/test-cases/TC-917-typed-checked-invariant-causes.md:40 |
+
+## Dispositions
+
+Round 1, verified against fix commit 13f6a73a. A grep of spec/, src/ and tests/ finds no other stale float-refusal or 'bit-identity order' text; the one leftover is the expect message noted in FND-005.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | FR-379 Behavior 7 now gives IEEE-payload unions a totalOrder membership key: `form_grouped` holds distinct payloads in key order, `form` merges an identical pair, and `Sequence` keeps every occurrence. This is consistent with AC-7. |
+| FND-002 | fixed | TC-927 expected result 7 now states the totalOrder set order, the merge of an identical pair and the kept sequence occurrences. |
+| FND-003 | fixed | FR-393 says ordinary float equality is a separate relation admitted by QSpec FR-149-AC-25 (statement and Behavior), and FR-393-AC-4 now reads 'ordinary equality plans direct and nested float operands'. That matches the test tagged FR-393-AC-4. |
+| FND-004 | fixed | FR-377 Behavior 6 and AC-6, TC-925 step 6, FR-379 Behavior 7 and AC-7 say 'totalOrder membership-key order' and cite QSpec FR-144-AC-6, FR-144-AC-25 and FR-149-AC-26. |

@@ -74,3 +74,13 @@ Mutants on the counting arms (`--features test-support`):
 | union IEEE payload test | examined | tests/union.rs:330-372 | form_grouped(&set, vec![value.clone(), value.clone()], ..) ... assert_eq!(grouped.elements().len(), 2) |
 | fmt-only test edits | examined | tests/qsl2171_undefined_no_element.rs, tests/qsl2326_live_occurrences_limit.rs | rustfmt line wrapping only |
 | form_grouped precondition | context_only | src/collection.rs:682-691 | Form a collection from occurrences that are already distinct members |
+
+## Dispositions
+
+Round 1, verified against fix commit 13f6a73a (`git diff d436f9c0..13f6a73a`). Gates at 13f6a73a all pass: fmt-check, lint, test (606 default, 619 with test-support), build-no-std, docs and deny, and `git status` is clean. Mutants: removing the sort in `sort_by_key` and disabling member merging in `coalesce` each fail the rewritten tests.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | tests/union.rs now forms a `Set` through `form_grouped` from distinct `+0`/`-0` payloads supplied as `[positive, negative]` and asserts `[negative, positive]` (totalOrder). It also asserts that `form_collection` merges an identical pair to one member. The no-sort and no-merge mutants both fail this test. |
+| FND-002 | fixed | `float_set` supplies `[float2(), float()]` and asserts ascending `[float(), float2()]` through both `form_grouped` and `form`. The no-sort mutant fails `pairs_without_a_key_stay_unkeyed_and_refuse`. |
+| FND-003 | fixed | The doc comment of `float_pair_has_no_key` now says `compare_keys` has no float key and that collections order floats by `compare_membership_keys`. |

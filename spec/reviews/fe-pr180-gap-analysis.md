@@ -51,3 +51,12 @@ PASS with one medium gap. The restored count is spec-backed: FR-376-AC-4 keeps t
 | FR-410-AC-1 map pair count | examined | src/equality.rs:500-530 | plan_equality(&first, &reordered).unwrap().pair_events() == 5 |
 | FR-377-AC-6 | examined | spec/functional/FR-377-composite-canonical-key-across-declarations.md:51 | the distinct float pair instead forms through `form_grouped` and `form` |
 | FR-379-AC-7 | examined | spec/functional/FR-379-carry-a-union-member-and-its-positional-payload-as-a-kernel-value.md:59 | A union with an IEEE payload has no `compare_keys` key, forms through `form_grouped` for a `Set` |
+
+## Dispositions
+
+Round 1, verified against fix commit 13f6a73a.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | The new test `absent_null_and_mismatched_slot_pairs_count_one_pair_each` (TC-924, FR-376-AC-4) asserts `pair_events == 3` for Absent/Absent, Null/Null, Present/Absent and Absent/Null tail slots. Re-run mutants: removing the mismatched-slot add now fails this test (it survived in round 0), and removing the Absent/Null add fails it together with the three E21 tests. |
+| FND-002 | fixed | FR-375 line 21 now describes eight-node composite lists (head `Integer` slot, tail slot, last tail `Absent`): 16 value pairs plus the Absent/Absent tail pair = 17. |
