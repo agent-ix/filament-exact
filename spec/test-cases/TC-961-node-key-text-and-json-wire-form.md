@@ -11,7 +11,7 @@ relationships:
 
 ## Description
 
-Verify FR-413-AC-1 through FR-413-AC-10 with the `filament_exact::node_wire` tests that move from `fsl-foundation::node_wire`, built with the `json` feature: the JSON and compact text forms, the round trip at depth, every `NodeWireError` refusal, and the budgeted reader's admission and cancellation.
+Verify FR-413-AC-1 through FR-413-AC-11 by test and FR-413-AC-12 by inspection, with the `filament_exact::node_wire` tests that move from `fsl-foundation::node_wire`, built with the `json` feature: the JSON and compact text forms, the round trip at depth, every `NodeWireError` refusal, and the budgeted reader's admission, cancellation and a reservation-denying budget (`Denied`, AC-11). AC-12 is checked by reading the module: every codec-owned buffer is reserved with `try_reserve` and a failure maps to `Allocation`, because a failed `try_reserve` cannot be injected in a test.
 
 ## Test Procedure
 
