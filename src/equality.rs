@@ -245,7 +245,6 @@ fn plan_pairs_with_relation(
             Pair::Values(left, right, relation) => (left, right, relation),
         };
         pairs = pairs.add(&Integer::one());
-        pairs = pairs.add(&Integer::one());
         let leaf = match (left, right) {
             (Value::Float(l), Value::Float(r)) if l.width() == r.width() => match relation {
                 LeafRelation::Ordinary => l.numeric_equal(*r),
@@ -522,7 +521,7 @@ mod tests {
 
         assert_eq!(
             plan_equality(&first, &reordered).unwrap().pair_events(),
-            &Integer::from(10_i64)
+            &Integer::from(5_i64)
         );
         assert!(plan_pairs(&first, &reordered).unwrap().equal);
         assert!(!plan_pairs(&first, &changed).unwrap().equal);
