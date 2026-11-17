@@ -49,6 +49,10 @@ use crate::comparison::{IllTyped, IllTypedCause};
 use crate::decimal::{Decimal, DecimalType, RoundingMode};
 use crate::integer::Integer;
 
+#[cfg(verus_keep_ghost)]
+#[allow(unused_imports)]
+use vstd::prelude::*;
+
 /// The two refusals of the carrier (FR-402 Behavior 6).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum NativeDecimalRefusal {
@@ -276,6 +280,7 @@ impl NativeDecimal {
 /// Remove `places` trailing zeros (`power` is `10^places`) when the scale
 /// allows and the coefficient is divisible by `power`. Applied for 32, 16, 8,
 /// 4, 2, 1 in turn, the removed counts are the binary digits of the total.
+#[cfg_attr(verus_keep_ghost, verus_spec(r => requires power > 0, ensures r == verus_proofs::strip_zeros(coefficient, scale, places, power)))]
 fn strip_zeros(coefficient: i128, scale: u32, places: u32, power: i128) -> (i128, u32) {
     if scale >= places && coefficient % power == 0 {
         (coefficient / power, scale - places)
@@ -285,9 +290,12 @@ fn strip_zeros(coefficient: i128, scale: u32, places: u32, power: i128) -> (i128
 }
 
 /// The largest `n` with `10^n` inside signed 128 bits.
+#[cfg_attr(verus_keep_ghost, verus_spec)]
 const MAX_NATIVE_POWER: u32 = 38;
 
 /// `10^0` through `10^38`, the powers inside signed 128 bits.
+#[cfg_attr(verus_keep_ghost, verus_spec(ensures verus_proofs::powers_table(POWERS_OF_TEN)))]
+#[cfg_attr(verus_keep_ghost, verifier::external_body)]
 const POWERS_OF_TEN: [i128; 39] = {
     let mut table = [1_i128; 39];
     let mut index = 1;
@@ -300,6 +308,8 @@ const POWERS_OF_TEN: [i128; 39] = {
 
 mod operations;
 mod readout;
+#[cfg(verus_keep_ghost)]
+mod verus_proofs;
 
 pub use operations::{
     AdmittedNativeDecimalOperation, NativeDecimalCapacityQuantity, NativeDecimalCapacityRefusal,
