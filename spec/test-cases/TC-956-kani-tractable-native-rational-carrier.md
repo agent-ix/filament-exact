@@ -26,9 +26,9 @@ Verify FR-408-AC-1 through FR-408-AC-15 through the public kernel API, a literal
 9. For AC-11, execute the harnesses of FR-408 Behavior 18 under the authorized Kani runner (`timeout 900`) and record the outcome, time and peak memory in the evidence record below; confirm every cover of a verified harness is reached and each mutant fails. The Kani arithmetic harnesses check the aggregate `integer_bits` high-water, the counters and the admission count; the `rational-arithmetic.normalize` amount on its own is owned by steps 6 and 7, because it never exceeds the arithmetic amount.
 10. Run each mutant through the step it names.
 11. For AC-12, run the host sweep over every numerator in `[-600, 600]` and denominator in `[1, 600]` (the tier covers up to 255; the rest take the `u64` tier), run the two tier harnesses of the evidence record, and run `scripts/ir258_u8_tier_mutants.py` (host mutants of the tier) and `scripts/ir258_u8_tier_mutants.py --kani-rows` (the arithmetic mutants against the Kani rows).
-12. For AC-13, run `make verus` and record the result, time and peak memory in the Verus record below.
-13. For AC-14, run `make verus-mutants` and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
-14. For AC-15, run the Kani harness `native_rational_equal_all_parts_is_structural` under the runner of step 9 and its mutant (`equality-numerators-only`), and record both.
+12. For AC-13, run `make verus` (bound by `verus_proofs_verify` in `tests/verus_gate.rs`) and record the result, time and peak memory in the Verus record below.
+13. For AC-14, run `make verus-mutants` (bound by `verus_mutants_are_killed` in `tests/verus_gate.rs`) and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
+14. For AC-15, run the Kani harness `native_rational_equal_all_parts_is_structural` under the runner of step 9 and its mutant (`equality-numerators-only`), and record both; `the_tier_harnesses_are_verified_with_covers_and_every_kani_mutant_is_recorded_failing` checks the two records.
 
 ### Mutants
 

@@ -26,8 +26,8 @@ The grid is fixed before implementation from independent literals, not from the 
 7. For AC-8, record each measured row in the evidence record below, naming operation kind, profile, member, divisor shape and smallest failing width, and check that the kernel holds no other copy. CG copies the rows from here into CG FR-056's table; that copy is CG's step, not this procedure's. Code review searches the kernel for a refusal variant, refusal path or `Meter` behaviour defined for a measured row; none may exist.
 8. For AC-9, run each mutant through steps 2 and 3 and assert it fails at the step named. Then, except for the moved zero guard (host-only: it changes only charge events, which no harness observes), run it under Kani in the harness named, assert FAILED and extract the concrete playback. For an evaluation harness, replay the decoded operands through `divide` or `modulo` over `Integer` and assert that the kernel outcome differs from the mutant's. For a plan harness, replay the decoded intervals through the healthy `NativeIntegerPlan::new` and assert that it refuses, or derives a different capacity, where the mutant constructed.
 9. For AC-10, inspect the Status of FR-409 and of this TC for a verdict or table row per member combination, shape and width, and for no claim without a record.
-10. For AC-11, run `make verus` and record the result in the Verus record below.
-11. For AC-12, run `scripts/ir1556_verus_mutants.py` and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
+10. For AC-11, run `make verus` (bound by `verus_proofs_verify` in `tests/verus_gate.rs`) and record the result in the Verus record below.
+11. For AC-12, run `scripts/ir1556_verus_mutants.py` (bound by `verus_mutants_are_killed` in `tests/verus_gate.rs`) and confirm every mutant is reported killed by a failed proof obligation and none as UNRELIABLE.
 
 ### Mutants
 
