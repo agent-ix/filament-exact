@@ -81,8 +81,8 @@ Run by `scripts/verus.sh` (`make verus`) on the source of this change. The proof
 
 | Run | Outcome | Time |
 | --- | --- | --- |
-| `make verus` (the whole crate) | `437 verified, 0 errors` | 10 s wall |
-| `scripts/ir1554_verus_mutants.py` | unmutated copy verified; 10 of 10 mutants killed by a failed proof obligation, none UNRELIABLE | 70 s wall for the 11 runs |
+| `make verus` (the whole crate) | `440 verified, 0 errors` | 7 s wall |
+| `scripts/ir1554_verus_mutants.py` | unmutated copy verified; 12 of 12 mutants killed by a failed proof obligation, none UNRELIABLE | 81 s wall for the 13 runs |
 
 | Claim | Theorem | On the production function |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ The normalization proof shows that removing 32, 16, 8, 4, 2 and 1 zeros in turn 
 
 Assumption about this crate: the table `POWERS_OF_TEN` holds `10^0` through `10^38`. Step 10 checks it on the host.
 
-Mutants (`scripts/ir1554_verus_mutants.py`), each killed by a failed proof obligation: a stage that ignores the scale; a stage that removes zeros without lowering the scale (code and specification); the 32-zero stage missing (code and specification); the 1-zero stage missing (code and specification); zero keeping its scale; membership refusing the largest scale; membership dropping the upper bound; membership admitting a lift that leaves signed 128 bits; membership admitting every zero; the constructor admitting every zero coefficient.
+Mutants (`scripts/ir1554_verus_mutants.py`), each killed by a failed proof obligation. Ten edit a production function together with the specification function that copies its body, so the function still equals its specification and a theorem is what fails: in `strip_zeros`, a stage that ignores the scale and a stage that removes zeros without lowering the scale; in `normalized_pair`, the 32-zero stage missing, the 1-zero stage missing, and zero keeping its scale; in `admits`, the pair not normalized before the membership test; in `admits_normalized`, the largest scale refused, the upper bound dropped, a lift that leaves signed 128 bits admitted, and every zero admitted. Two edit the code alone, where the postcondition is a statement and not a copy of the body: `normalized` returning the retained scale, and `from_bindings` admitting every zero coefficient. Every function Behavior 11 lists is the target of at least one mutant.
 
 ## Expected Results
 
