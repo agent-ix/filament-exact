@@ -110,4 +110,79 @@ pub assume_specification[ i128::wrapping_rem ](x: i128, y: i128) -> (r: i128)
         r == i128_wrapping_rem(x, y),
 ;
 
+pub assume_specification[ <u64 as core::convert::From<bool>>::from ](b: bool) -> (r: u64)
+    ensures
+        r == (if b { 1u64 } else { 0u64 }),
+;
+
+/// `bool::then_some`: the value when the condition holds.
+pub assume_specification<T>[ bool::then_some ](b: bool, t: T) -> (r: Option<T>)
+    ensures
+        r == (if b { Some(t) } else { None::<T> }),
+;
+
+/// `i128::checked_neg`: every value but the least has a negation.
+pub assume_specification[ i128::checked_neg ](x: i128) -> (r: Option<i128>)
+    ensures
+        r == (if x == i128::MIN { None::<i128> } else { Some((-x) as i128) }),
+;
+
+/// `i128::div_euclid` for a positive divisor: the floor quotient.
+pub assume_specification[ i128::div_euclid ](x: i128, y: i128) -> (r: i128)
+    requires
+        y > 0,
+    ensures
+        r == (x as int) / (y as int),
+;
+
+/// `i128::rem_euclid` for a positive divisor: the nonnegative remainder.
+pub assume_specification[ i128::rem_euclid ](x: i128, y: i128) -> (r: i128)
+    requires
+        y > 0,
+    ensures
+        r == (x as int) % (y as int),
+;
+
+/// `i128::signum`.
+pub assume_specification[ i128::signum ](x: i128) -> (r: i128)
+    ensures
+        r == (if x > 0 { 1i128 } else if x == 0 { 0i128 } else { -1i128 }),
+;
+
+/// `Ordering::reverse`.
+pub open spec fn ordering_reverse(o: core::cmp::Ordering) -> core::cmp::Ordering {
+    match o {
+        core::cmp::Ordering::Less => core::cmp::Ordering::Greater,
+        core::cmp::Ordering::Equal => core::cmp::Ordering::Equal,
+        core::cmp::Ordering::Greater => core::cmp::Ordering::Less,
+    }
+}
+
+#[verifier::when_used_as_spec(ordering_reverse)]
+pub assume_specification[ core::cmp::Ordering::reverse ](o: core::cmp::Ordering) -> (r: core::cmp::Ordering)
+    ensures
+        r == ordering_reverse(o),
+;
+
+/// `u128::trailing_zeros`, by the recursion the prover's library uses for the
+/// narrower widths: 128 for zero, 0 for an odd value, otherwise one more than
+/// for half the value.
+pub open spec fn u128_trailing_zeros(i: u128) -> u32
+    decreases i,
+{
+    if i == 0 {
+        128
+    } else if i % 2 == 1 {
+        0
+    } else {
+        (1 + u128_trailing_zeros(i / 2)) as u32
+    }
+}
+
+#[verifier::when_used_as_spec(u128_trailing_zeros)]
+pub assume_specification[ u128::trailing_zeros ](i: u128) -> (r: u32)
+    ensures
+        r == u128_trailing_zeros(i),
+;
+
 } // verus!
