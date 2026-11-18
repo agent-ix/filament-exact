@@ -53,3 +53,10 @@ Two low findings. The proof scope is stated honestly and nothing overclaims.
 | TC-951 Verus record | examined | `make verus` 630 verified, 0 errors; 53 of 53 mutants killed by a failed proof obligation, none UNRELIABLE; claims (a)-(f) table; mutant table; 10^39 candidate excluded |
 | docs/verus-proofs.md | examined | The fifth is the native Decimal operations and ordering over the full width (FR-403 Behavior 41, TC-951). Trust table row for src/verus_std_specs.rs. |
 | FR-403 Behavior 3 | context_only | the kernel SHALL refuse admission exactly when at least one of the following holds for the owner's plan of the same operation, operands and type. In order: (a) ... |
+
+## Dispositions
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | Round 1, fix head bad06e13. The TC-951 Description now verifies AC-1 to AC-14 beside the owner route, AC-15 and AC-16 by the Verus runs (steps 12 and 13), and AC-17 and AC-18 by inspection (steps 14 and 15). |
+| FND-002 | fixed | Round 1, fix head bad06e13. AC-17 is split into AC-17 (no Kani proof claimed) and AC-18 (the Status states coverage). TC-951 steps 9, 14 and 15 and its Status match the split. `quoin matrix` lists AC-17 and AC-18 as Inspection (`method-without-symbol`). No stale step or AC reference remains. |

@@ -57,3 +57,9 @@ The proof is sound for the stated domain. It is not vacuous, its trusted base is
 | scripts/ir1555_verus_mutants.py | examined | 53 mutants |
 | tests/verus_gate.rs | examined | FR-403-AC-15 / AC-16 tags on the ignored gate tests; ir1555 script in the loop |
 | Makefile, docs/verus-proofs.md, src/native_float.rs, src/native_integer.rs | examined | verus-mutants target; trust table; pub(crate) gated proof modules |
+
+## Dispositions
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | Round 1, fix head bad06e13. The `strip_fives` spec now names `pow5(32)` to `pow5(1)`, not the `FIVE_LADDER` numbers. `strip_fives` also ensures the mathematical `fives_stripped` and calls `lemma_pow5_ladder` and `lemma_strip_fives`. The code-only `five-ladder-entry-wrong` now fails both postconditions (operations.rs:557 and 558), and neither is a copy or an rlimit. `assert(false)` after the ghost block fails. A spec rung of `pow5(7)` and a weakened `fives_stripped` each fail a postcondition. The compiled code is unchanged: the delta is attributes and a gated `proof!` block only. `make verus`: 630 verified, 0 errors. The 7 strip and loss mutants rerun: all killed by a failed obligation. |
