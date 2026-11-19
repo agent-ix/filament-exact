@@ -467,7 +467,7 @@ mod tests {
         );
     }
 
-    /// TC-962 (FR-414-AC-1): malformed text-to-number input has its own
+    /// TC-962: malformed text-to-number input has its own
     /// undefined reason and is not a completed, refused or incomplete outcome.
     #[trace("TC-962", "FR-414-AC-1")]
     #[test]
