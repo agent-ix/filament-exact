@@ -115,6 +115,9 @@ pub enum Undefined {
     /// undefined reason and builds no record. Only a `sum` checked under
     /// `CheckMode::Kernel` can meet it.
     SumOutOfDomain,
+    /// A text-to-number conversion has text that is not a number for its target;
+    /// this is the FSpec reason `malformed-number`.
+    MalformedNumber,
 }
 
 /// The closed internal-fault causes shared by checked kernel operations,
@@ -462,6 +465,28 @@ mod tests {
             .completed(),
             None
         );
+    }
+
+    /// TC-962 (FR-414-AC-1): malformed text-to-number input has its own
+    /// undefined reason and is not a completed, refused or incomplete outcome.
+    #[trace("TC-962", "FR-414-AC-1")]
+    #[test]
+    fn tc_962_malformed_number_is_a_distinct_undefined_reason() {
+        let reason = Undefined::MalformedNumber;
+        let outcome = Outcome::<i32>::Undefined(reason.clone());
+
+        assert_eq!(reason.clone(), reason);
+        assert_ne!(reason, Undefined::DivisionByZero);
+        assert_ne!(reason, Undefined::IeeeNotFinite);
+        assert_ne!(reason, Undefined::EmptyReduction);
+        assert_ne!(reason, Undefined::NoneValue);
+        assert_ne!(reason, Undefined::NoElement);
+        assert_ne!(reason, Undefined::SumOutOfDomain);
+        assert!(matches!(
+            outcome,
+            Outcome::Undefined(Undefined::MalformedNumber)
+        ));
+        assert_eq!(outcome.completed(), None);
     }
 
     /// TC-428 (FR-096-AC-8): every catalogued kernel refusal returns the
