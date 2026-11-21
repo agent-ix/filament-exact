@@ -551,6 +551,7 @@ fn charge_point_vocabulary_is_unique_and_round_trips() {
             ChargePoint::ALL[64],
             ChargePoint::FrameRedefinesLink
         ));
+        assert!(matches!(ChargePoint::ALL[65], ChargePoint::ModelCandidate));
     };
     let mut seen = HashSet::new();
     for point in ChargePoint::ALL {
@@ -620,13 +621,14 @@ fn charge_point_vocabulary_is_unique_and_round_trips() {
             ChargePoint::TemporalVisit => "temporal.visit",
             ChargePoint::FrameWrite => "frame.write",
             ChargePoint::FrameRedefinesLink => "frame.redefines-link",
+            ChargePoint::ModelCandidate => "model.candidate",
         };
         assert!(seen.insert(point), "duplicate {point:?}");
         assert_eq!(point.as_str(), name);
         assert_eq!(ChargePoint::from_code(name), Some(point));
     }
-    assert_eq!(seen.len(), 65);
-    assert_eq!(ChargePoint::ALL.len(), 65);
+    assert_eq!(seen.len(), 66);
+    assert_eq!(ChargePoint::ALL.len(), 66);
     assert_eq!(ChargePoint::FrameWrite.as_str(), "frame.write");
     assert_eq!(
         ChargePoint::FrameRedefinesLink.as_str(),

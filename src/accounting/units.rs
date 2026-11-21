@@ -180,6 +180,11 @@ impl Meter {
                 charge_point: point,
             });
         }
+        self.with_work_scope(|meter| meter.charge_units_checked(charge))
+    }
+
+    fn charge_units_checked(&mut self, charge: UnitsCharge) -> Result<(), Incomplete> {
+        let point = charge.point;
         let mut sizes = [None; LimitKind::COUNT];
         let mut first_fail: Option<(LimitKind, u64)> = None;
         #[cfg(feature = "test-support")]
@@ -203,7 +208,7 @@ impl Meter {
             return Err(self.incomplete(kind, Integer::from(amount), point));
         }
         let cumulative = |kind: LimitKind, addition: u64| {
-            self.consumed(kind)
+            self.counters.consumed[kind.index()]
                 .checked_add(addition)
                 .filter(|total| *total <= kind.limit(&self.counters.limits))
                 .ok_or_else(|| self.incomplete(kind, Integer::from(addition), point))
@@ -244,7 +249,6 @@ impl Meter {
 
     fn charge_plan_one_pair_inner(&mut self) -> Result<(), Incomplete> {
         let point = ChargePoint::EqualityPlan;
-        let kind = LimitKind::ValueOccurrences;
         if let Some(consumed) = self.injected_denial(point) {
             return Err(Incomplete {
                 limit_kind: LimitKind::WorkUnits,
@@ -254,12 +258,18 @@ impl Meter {
                 charge_point: point,
             });
         }
+        self.with_work_scope(Self::charge_plan_one_pair_checked)
+    }
+
+    fn charge_plan_one_pair_checked(&mut self) -> Result<(), Incomplete> {
+        let point = ChargePoint::EqualityPlan;
+        let kind = LimitKind::ValueOccurrences;
         if PLAN_PAIRS > kind.limit(&self.counters.limits) {
             return Err(self.incomplete(kind, Integer::from(PLAN_PAIRS), point));
         }
         let remaining = |kind: LimitKind| {
             kind.limit(&self.counters.limits)
-                .saturating_sub(self.consumed(kind))
+                .saturating_sub(self.counters.consumed[kind.index()])
         };
         if PLAN_RESERVATION > remaining(LimitKind::WorkUnits) {
             return Err(self.incomplete(
@@ -275,13 +285,13 @@ impl Meter {
         sizes[kind.index()] = Some(PLAN_PAIRS);
         self.capture_charge(
             &sizes,
-            self.consumed(LimitKind::WorkUnits) + 1,
-            self.consumed(LimitKind::ResultUnits),
+            self.counters.consumed[LimitKind::WorkUnits.index()] + 1,
+            self.counters.consumed[LimitKind::ResultUnits.index()],
         );
         let slot = &mut self.counters.consumed[kind.index()];
         *slot = (*slot).max(PLAN_PAIRS);
         let work = &mut self.counters.consumed[LimitKind::WorkUnits.index()];
-        *work = work.saturating_add(1);
+        *work += 1;
         self.admit(
             point,
             #[cfg(feature = "test-support")]

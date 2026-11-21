@@ -171,7 +171,7 @@ pub use accounting::AdmittedCharge;
 pub use accounting::{
     length_amount, Charge, ChargeAccounting, ChargeAdmission, ChargeCapture, ChargeEvent,
     ChargePoint, Incomplete, InjectedDenial, LimitKind, Meter, ScalarLimits,
-    TruncatedChargeCapture,
+    TruncatedChargeCapture, WorkScope,
 };
 pub use cancel::{Cancel, CancelCause, ChargeCount};
 pub use collection::{
