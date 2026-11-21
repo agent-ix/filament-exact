@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Shared-work tests using the real meter transitions.
+use ix_trace_rs::trace;
+
 use super::*;
 
 fn limits(work_units: u64) -> ScalarLimits {
@@ -22,6 +24,7 @@ fn candidate(work: u64) -> Charge {
 }
 
 /// Trace: FR-359-AC-13
+#[trace("FR-359-AC-13")]
 #[test]
 fn separate_meters_share_original_bound_across_clone_and_drop() {
     let scope = WorkScope::new(limits(5));
@@ -53,6 +56,7 @@ fn separate_meters_share_original_bound_across_clone_and_drop() {
 }
 
 /// Trace: FR-359-AC-14
+#[trace("FR-359-AC-14")]
 #[test]
 fn plan_reserves_shared_remainder_but_commits_one() {
     for native in [false, true] {
@@ -85,6 +89,7 @@ fn plan_reserves_shared_remainder_but_commits_one() {
 }
 
 /// Trace: FR-359-AC-15
+#[trace("FR-359-AC-15")]
 #[test]
 fn local_size_and_later_result_denials_roll_back_shared_work() {
     for general in [false, true] {
@@ -123,6 +128,7 @@ fn local_size_and_later_result_denials_roll_back_shared_work() {
 }
 
 /// Trace: FR-359-AC-16
+#[trace("FR-359-AC-16")]
 #[test]
 fn exact_oversized_work_and_results_preserve_prefix_and_priority() {
     let scope = WorkScope::new(limits(u64::MAX));
@@ -149,6 +155,7 @@ fn exact_oversized_work_and_results_preserve_prefix_and_priority() {
 }
 
 /// Trace: FR-359-AC-17
+#[trace("FR-359-AC-17")]
 #[test]
 fn cancellation_observer_can_read_scope_and_denials_do_not_spend_work() {
     let scope = WorkScope::new(limits(6));
@@ -180,6 +187,7 @@ fn cancellation_observer_can_read_scope_and_denials_do_not_spend_work() {
 }
 
 /// Trace: FR-359-AC-18
+#[trace("FR-359-AC-18")]
 #[test]
 fn interval_capture_counts_only_this_meters_increments() {
     let scope = WorkScope::new(limits(10));
@@ -203,6 +211,7 @@ fn interval_capture_counts_only_this_meters_increments() {
 }
 
 /// Trace: FR-359-AC-19
+#[trace("FR-359-AC-19")]
 #[test]
 fn unscoped_clones_remain_independent_and_value_equal() {
     let mut meter = Meter::new(limits(3));
@@ -216,6 +225,7 @@ fn unscoped_clones_remain_independent_and_value_equal() {
 }
 
 /// Trace: FR-359-AC-18
+#[trace("FR-359-AC-18")]
 #[test]
 fn concurrent_meters_cannot_overdraw_one_entitlement() {
     fn assert_sync<T: Send + Sync>() {}
@@ -245,6 +255,7 @@ fn concurrent_meters_cannot_overdraw_one_entitlement() {
 }
 
 /// Trace: FR-359-AC-15
+#[trace("FR-359-AC-15")]
 #[test]
 fn equality_plan_result_denial_does_not_commit_reservation_or_size() {
     for native in [false, true] {
