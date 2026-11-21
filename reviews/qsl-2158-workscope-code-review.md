@@ -192,3 +192,12 @@ dispositions:
 ## Disposition verdict (round 1)
 
 PASS for the assigned PR change: all original findings in this method are fixed; zero new findings. The original review and verdict above remain historical and unmodified. Existing unrelated repository matrix gaps are not resolved by this disposition, which makes no whole-repository assurance claim.
+
+## Tracker publication
+
+Published privately to QSL-2158 after the user hold and explicit root release. No GitHub findings, label or issue-state changes were made. Earlier pending-publication statements describe the historical draft state.
+
+- Initial method review: comment `c0b116ae-b115-4ff4-8282-d2050c3bbb7f`, created 2026-11-21T19:44:01.318Z; batch read-back passed with exact body and parsed YAML.
+- Round 1 dispositions: comment `c0177ab0-edee-4d9e-919a-ddc0c0b4b42d`, created 2026-11-21T19:44:34.464Z; batch read-back passed with exact body and parsed YAML.
+
+All returned records passed YAML parsing and finding-set parity. Initial comments match the examined scope in this artifact; disposition comments contain a nonempty fixed after_excerpt for every original finding. No duplicate marker was present in the authorized initial latest-100 comment batch.

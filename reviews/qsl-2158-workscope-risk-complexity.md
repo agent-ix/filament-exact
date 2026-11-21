@@ -154,3 +154,11 @@ scope:
     one-unit increment is committed. The scope supplies atomic accounting rather than
     worker scheduling.'
 ```
+
+## Tracker publication
+
+Published privately to QSL-2158 after the user hold and explicit root release. No GitHub findings, label or issue-state changes were made. Earlier pending-publication statements describe the historical draft state.
+
+- Initial method review: comment `75c34f86-8bb7-4831-b616-f5a9826c24ba`, created 2026-11-21T19:44:24.946Z; batch read-back passed with exact body and parsed YAML.
+
+All returned records passed YAML parsing and finding-set parity. Initial comments match the examined scope in this artifact; disposition comments contain a nonempty fixed after_excerpt for every original finding. No duplicate marker was present in the authorized initial latest-100 comment batch.
