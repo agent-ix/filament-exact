@@ -335,7 +335,8 @@ pub enum ChargePoint {
     FrameWrite,
     /// `frame.redefines-link`: one caller-owned `redefines` link traversal.
     FrameRedefinesLink,
-    /// `model.candidate`: caller-owned candidate generation work.
+    /// `model.candidate`: caller-owned candidate generation and canonical plan policy key work
+    /// and capacity retention.
     ModelCandidate,
 }
 

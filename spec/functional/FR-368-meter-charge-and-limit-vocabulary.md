@@ -22,6 +22,13 @@ The `ChargePoint` vocabulary SHALL append `FrameWrite` (`frame.write`) at index 
 
 `ModelCandidate`, spelled `model.candidate`, names caller-owned candidate generation, including argument vectors, candidate states and result pairs. A batch requests its actual count through ordinary work charging. It is appended at index 65; earlier point identities and order remain unchanged.
 
+`ModelCandidate` also admits canonical plan policy key work and capacity retention through two explicit alternatives, with no semantic-size requests:
+
+- `Charge::new(ChargePoint::ModelCandidate).work(Integer::from(N))` charges `WorkUnits += N` and zero result units for actual node and byte visits, before traversal, encoding, decoding, comparison or copying.
+- `Charge::new(ChargePoint::ModelCandidate).work(Integer::zero()).results(B)` charges zero work and `ResultUnits += B` before each storage growth. `B` is the full new requested capacity in bytes, computed with checked arithmetic, including scratch, output and owned key copies; it is neither a capacity delta nor a typed-value occurrence count. Successful reservations accumulate without refunds.
+
+Each search, replay or checker session SHALL use its established evaluation ledger and original `Cancel` for these charges, preserving ordinary atomic admission and first-denial behavior. Per-key or per-instance meters SHALL NOT reset either allowance. `WorkScope` shares work only and does not share the result ledger. Existing candidate-count charging, model-only `max_state_key_bytes` and `IdentityLimits` remain unchanged.
+
 ## Acceptance Criteria
 
 | ID | Criteria | Verification |
