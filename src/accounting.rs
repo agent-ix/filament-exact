@@ -15,12 +15,16 @@
 use crate::cancel::Cancel;
 use crate::integer::Integer;
 use alloc::boxed::Box;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::fmt;
 use core::num::NonZeroU64;
+use spin::Mutex;
 
 #[cfg(test)]
 mod ieee_units_tests;
+#[cfg(test)]
+mod work_scope_tests;
 
 // The monolithic three-charge schedule harness exhausts memory and is not claimed by FR-359-AC-9
 // (see `units_proofs`). Keep its source, but exclude the module even when Kani selects a harness directly.
@@ -331,11 +335,13 @@ pub enum ChargePoint {
     FrameWrite,
     /// `frame.redefines-link`: one caller-owned `redefines` link traversal.
     FrameRedefinesLink,
+    /// `model.candidate`: caller-owned candidate generation work.
+    ModelCandidate,
 }
 
 impl ChargePoint {
     /// Every named point, grouped by family in normative order.
-    pub const ALL: [Self; 65] = [
+    pub const ALL: [Self; 66] = [
         Self::DecimalOperands,
         Self::DecimalScaleExpansion,
         Self::DecimalArithmetic,
@@ -401,6 +407,7 @@ impl ChargePoint {
         Self::TemporalVisit,
         Self::FrameWrite,
         Self::FrameRedefinesLink,
+        Self::ModelCandidate,
     ];
 
     /// Normative identifier.
@@ -471,6 +478,7 @@ impl ChargePoint {
             Self::TemporalVisit => "temporal.visit",
             Self::FrameWrite => "frame.write",
             Self::FrameRedefinesLink => "frame.redefines-link",
+            Self::ModelCandidate => "model.candidate",
         }
     }
 
@@ -1014,6 +1022,46 @@ pub struct TruncatedChargeCapture {
     pub prefix: ChargeCapture,
 }
 
+/// A shared work entitlement with fresh local counters for each ordinary meter.
+///
+/// Clones share the original work bound and admitted prefix. Equality compares
+/// handle identity, rather than the changing consumed amount. Dropping a meter
+/// never refunds work. The scope provides atomic accounting, not worker ordering.
+#[derive(Clone, Debug)]
+pub struct WorkScope {
+    limits: ScalarLimits,
+    work: Arc<Mutex<u64>>,
+}
+
+impl PartialEq for WorkScope {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.work, &other.work)
+    }
+}
+impl Eq for WorkScope {}
+
+impl WorkScope {
+    /// Fix the original limits and start with no admitted work.
+    pub fn new(limits: ScalarLimits) -> Self {
+        Self {
+            limits,
+            work: Arc::new(Mutex::new(0)),
+        }
+    }
+
+    /// A fresh ordinary meter sharing only this scope's work consumption.
+    pub fn meter(&self) -> Meter {
+        let mut meter = Meter::new(self.limits);
+        meter.work_scope = Some(self.clone());
+        meter
+    }
+
+    /// The admitted work prefix across all meters from this scope.
+    pub fn consumed_work(&self) -> u64 {
+        *self.work.lock()
+    }
+}
+
 /// A per-request scalar meter.
 ///
 /// By default, a production meter keeps a count, not an event log. Its ten
@@ -1026,6 +1074,7 @@ pub struct TruncatedChargeCapture {
 /// filament:canonical
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Meter {
+    work_scope: Option<WorkScope>,
     counters: Counters,
     charge_accounting: Option<ChargeAccounting>,
     charge_capture: Option<ChargeCapture>,
@@ -1057,6 +1106,7 @@ impl Meter {
     /// A fresh meter with nothing consumed.
     pub fn new(limits: ScalarLimits) -> Self {
         Self {
+            work_scope: None,
             counters: Counters {
                 limits,
                 consumed: [0; LimitKind::COUNT],
@@ -1187,12 +1237,44 @@ impl Meter {
         &self.counters.limits
     }
 
-    /// Consumed value of one counter.
+    /// Consumed value of one counter; scoped work observes the shared prefix.
     pub fn consumed(&self, kind: LimitKind) -> u64 {
         if kind == LimitKind::LiveOccurrences {
             return 0;
         }
+        if kind == LimitKind::WorkUnits {
+            if let Some(scope) = &self.work_scope {
+                return scope.consumed_work();
+            }
+        }
         self.counters.consumed[kind.index()]
+    }
+
+    // Only counter validation and commitment run under this guard. Cancellation
+    // (including its observer callback) is polled before entering this method.
+    // Seed the existing atomic transition with the shared prefix; retain only
+    // this meter's own increments locally so interval capture cannot double count.
+    fn with_work_scope(
+        &mut self,
+        charge: impl FnOnce(&mut Self) -> Result<(), Incomplete>,
+    ) -> Result<(), Incomplete> {
+        let Some(scope) = self.work_scope.clone() else {
+            return charge(self);
+        };
+        let mut shared = scope.work.lock();
+        let index = LimitKind::WorkUnits.index();
+        let local = self.counters.consumed[index];
+        let before = *shared;
+        self.counters.consumed[index] = before;
+        let result = charge(self);
+        let admitted = if result.is_ok() {
+            *shared = self.counters.consumed[index];
+            *shared - before
+        } else {
+            0
+        };
+        self.counters.consumed[index] = local + admitted;
+        result
     }
 
     /// How many charges this meter has admitted.
@@ -1218,7 +1300,7 @@ impl Meter {
         Incomplete {
             limit_kind: kind,
             limit: kind.limit(&self.counters.limits),
-            consumed: self.consumed(kind),
+            consumed: self.counters.consumed[kind.index()],
             next_charge: next,
             charge_point: point,
         }
@@ -1286,6 +1368,14 @@ impl Meter {
         let point = charge.point;
         let general = charge.into_general();
         self.check_injected(point, &general.work_units)?;
+        self.with_work_scope(|meter| meter.charge_general_checked(point, general))
+    }
+
+    fn charge_general_checked(
+        &mut self,
+        point: ChargePoint,
+        general: GeneralCharge,
+    ) -> Result<(), Incomplete> {
         // Keep validation and per-admission maxima local until every counter
         // is known to fit. An earlier field wins even when requested later;
         // an equal field keeps its first failing request.
@@ -1315,7 +1405,7 @@ impl Meter {
         let cumulative = |kind: LimitKind, amount: &ChargeAmount| {
             amount
                 .units()
-                .and_then(|addition| self.consumed(kind).checked_add(addition))
+                .and_then(|addition| self.counters.consumed[kind.index()].checked_add(addition))
                 .filter(|total| *total <= kind.limit(&self.counters.limits))
                 .ok_or_else(|| self.incomplete(kind, amount.integer(), point))
         };
@@ -1471,6 +1561,15 @@ impl Meter {
         let point = ChargePoint::EqualityPlan;
         let reservation = pairs.add(&Integer::from(2_u64));
         self.check_injected(point, &ChargeAmount::exact(reservation.clone()))?;
+        self.with_work_scope(|meter| meter.charge_plan_checked(pairs, reservation))
+    }
+
+    fn charge_plan_checked(
+        &mut self,
+        pairs: &Integer,
+        reservation: Integer,
+    ) -> Result<(), Incomplete> {
+        let point = ChargePoint::EqualityPlan;
         let kind = LimitKind::ValueOccurrences;
         let size = pairs
             .to_u64()
@@ -1478,7 +1577,7 @@ impl Meter {
             .ok_or_else(|| self.incomplete(kind, pairs.clone(), point))?;
         let remaining = |kind: LimitKind| {
             Integer::from(kind.limit(&self.counters.limits))
-                .sub(&Integer::from(self.consumed(kind)))
+                .sub(&Integer::from(self.counters.consumed[kind.index()]))
         };
         if reservation > remaining(LimitKind::WorkUnits) {
             return Err(self.incomplete(LimitKind::WorkUnits, reservation, point));
@@ -1490,13 +1589,13 @@ impl Meter {
         sizes[kind.index()] = Some(size);
         self.capture_charge(
             &sizes,
-            self.consumed(LimitKind::WorkUnits) + 1,
-            self.consumed(LimitKind::ResultUnits),
+            self.counters.consumed[LimitKind::WorkUnits.index()] + 1,
+            self.counters.consumed[LimitKind::ResultUnits.index()],
         );
         let slot = &mut self.counters.consumed[kind.index()];
         *slot = (*slot).max(size);
         let work = &mut self.counters.consumed[LimitKind::WorkUnits.index()];
-        *work = work.saturating_add(1);
+        *work += 1;
         self.admit(
             point,
             #[cfg(feature = "test-support")]
