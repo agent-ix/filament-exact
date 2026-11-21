@@ -149,3 +149,46 @@ scope:
     one-unit increment is committed. The scope supplies atomic accounting rather than
     worker scheduling.'
 ```
+
+## Dispositions
+
+Round 1; independently inspected head f698357016bab5caecfbcecc01b4e56ff5ad56c0.
+
+| FND | outcome | reason |
+| --- | --- | --- |
+| FND-001 | fixed | Real Rust trace attributes now bind the relevant criterion; independently verified in the computed matrix at f698357016bab5caecfbcecc01b4e56ff5ad56c0. |
+
+## Disposition evidence (round 1)
+
+The actual source now imports ix_trace_rs::trace and applies nine real trace attributes. Independent quire matrix confirms FR-359-AC-13..19 tagged through nine binders (AC-15 and AC-18 have two each). All nine test bodies are unchanged after removing the new import/attributes, and production/spec/catalog files are byte-identical to the first-reviewed head. No new defect was found.
+
+Titan at f698357016bab5caecfbcecc01b4e56ff5ad56c0: default accounting::work_scope_tests rc0/9 passed/0 failed/0 ignored; test-support same prefix rc0/9 passed/0 failed/0 ignored. Prior d1bcce010f226c75c25b1ed171f02ee981e9ab03 compile rc0 and catalog rc0/1 pass remain attributed to that earlier head; production/catalog/test bodies are unchanged. No local Cargo command ran.
+
+```yaml
+dispositions:
+- fnd: FND-001
+  outcome: fixed
+  after_excerpt: 'use ix_trace_rs::trace;
+
+    #[trace("FR-359-AC-13")]
+
+    #[trace("FR-359-AC-14")]
+
+    #[trace("FR-359-AC-15")]
+
+    #[trace("FR-359-AC-16")]
+
+    #[trace("FR-359-AC-17")]
+
+    #[trace("FR-359-AC-18")]
+
+    #[trace("FR-359-AC-19")]
+
+    #[trace("FR-359-AC-18")]
+
+    #[trace("FR-359-AC-15")]'
+```
+
+## Disposition verdict (round 1)
+
+PASS for the assigned PR change: all original findings in this method are fixed; zero new findings. The original review and verdict above remain historical and unmodified. Existing unrelated repository matrix gaps are not resolved by this disposition, which makes no whole-repository assurance claim.
