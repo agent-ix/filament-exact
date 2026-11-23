@@ -161,6 +161,7 @@ fn leaf<'a>(
             ordering
         }
         (Value::Reference(left), Value::Reference(right)) => left.cmp(right),
+        (Value::ClockReference(left), Value::ClockReference(right)) => left.cmp(right),
         (Value::Option(left), Value::Option(right)) => match (left.payload(), right.payload()) {
             (Some(left), Some(right)) => {
                 tasks.push(Task::Values(left, right, relation));
@@ -242,6 +243,7 @@ fn leaf<'a>(
             | Value::String(_)
             | Value::Bytes(_)
             | Value::JsonObject(_)
+            | Value::ClockReference(_)
             | Value::Uuid(_)
             | Value::Timestamp(_)
             | Value::Enum(_)

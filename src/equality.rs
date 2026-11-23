@@ -286,6 +286,18 @@ fn plan_pairs_with_relation(
                 }
                 l == r
             }
+            (Value::ClockReference(l), Value::ClockReference(r)) => {
+                if l.text() != r.text() {
+                    false
+                } else if l.universe() != r.universe() {
+                    return Err(Refusal::ForeignReference {
+                        required: l.universe().clone(),
+                        supplied: r.universe().clone(),
+                    });
+                } else {
+                    true
+                }
+            }
             (Value::Option(l), Value::Option(r)) => match (l.payload(), r.payload()) {
                 (Some(l), Some(r)) => {
                     pending.push(Pair::Values(l, r, relation));
@@ -392,6 +404,7 @@ fn plan_pairs_with_relation(
                 | Value::String(_)
                 | Value::Bytes(_)
                 | Value::JsonObject(_)
+                | Value::ClockReference(_)
                 | Value::Uuid(_)
                 | Value::Timestamp(_)
                 | Value::Enum(_)
