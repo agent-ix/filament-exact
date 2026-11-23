@@ -246,6 +246,20 @@ mod tests {
         }
     }
 
+    fn text_type() -> crate::TextType {
+        crate::TextType::new(0, 400, crate::TextProfile::UnicodeScalars).expect("bounds")
+    }
+
+    /// A Text value holding `A`.
+    fn text_value() -> Value {
+        let payload = crate::TextPayload::from_utf8(A.as_bytes()).expect("UTF-8");
+        Value::Text(
+            crate::admit_text(&payload, &text_type(), &mut Meter::new(limits()))
+                .completed()
+                .expect("admitted text"),
+        )
+    }
+
     fn noncanonical() -> ConstructionRefusal {
         ConstructionRefusal {
             component: Component::Value,
@@ -275,6 +289,7 @@ mod tests {
             ValueType::String,
             ValueType::Bytes,
             ValueType::JsonObject,
+            ValueType::Text(text_type()),
         ] {
             assert!(!other.admits(&clock));
         }
@@ -286,6 +301,7 @@ mod tests {
         let json = JsonObject::from_json_text(&format!("{:?}", A)).unwrap();
         for other in [
             object,
+            text_value(),
             Value::String(String::from(A)),
             Value::Bytes(A.as_bytes().to_vec()),
             Value::JsonObject(json),
@@ -387,7 +403,7 @@ mod tests {
     fn rule_3_refuses_non_utf8_and_non_jcs_json_components() {
         let components: alloc::vec::Vec<&str> = A.split('/').collect();
         let mut non_utf8 = components.clone();
-        non_utf8[2] = "ff";
+        non_utf8[3] = "ff";
         let mut spaced = components.clone();
         let spaced_j = hex("[ ]");
         spaced[6] = &spaced_j;
@@ -502,7 +518,7 @@ mod tests {
             EffectiveId::fixture(6),
             ObjectId::new(A).unwrap(),
         ));
-        for other in [object, Value::String(String::from(A))] {
+        for other in [object, text_value(), Value::String(String::from(A))] {
             assert_eq!(plan_equality(&base, &other), Err(mismatch.clone()));
             assert_eq!(plan_equality(&other, &base), Err(mismatch.clone()));
         }
@@ -579,13 +595,19 @@ mod tests {
     }
 
     /// Trace: FR-415-AC-6, TC-963
+    ///
+    /// The kernel has no variable-size function for any value kind (Bytes,
+    /// JsonObject and the others included): the caller charges the size
+    /// through `Charge::size`, passing the text's byte length. The kernel's
+    /// share of the rule is the occurrence count and the text accessor the
+    /// caller reads.
     #[test]
-    fn a_clock_reference_counts_one_occurrence_and_its_text_length() {
+    fn a_clock_reference_counts_one_occurrence_and_exposes_its_text() {
         let value = val(u1(), A);
         assert_eq!(value.occ(), Integer::one());
         let Value::ClockReference(reference) = &value else {
             panic!("a clock reference");
         };
-        assert_eq!(reference.text().len(), 279);
+        assert_eq!(reference.text().as_bytes(), A.as_bytes());
     }
 }

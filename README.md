@@ -105,7 +105,7 @@ crate root.
 | --- | --- |
 | `test-support` | Keeps the ordered log of every charge a `Meter` admits (`Meter::admitted_charges`), so tests can assert exact charge sequences. Enable it only from a dev-dependency. |
 | `json` | Enables `serde_json` with `alloc` and the public `node_wire` codec for `NodeKey` JSON and text. |
-| `json-object` | Adds canonical JSON object/value parsing through `JsonObject::from_json_text`; it enables `json` and uses optional `serde` and `ryu-js` dependencies. |
+| `json-object` | Adds canonical JSON object/value parsing through `JsonObject::from_json_text`, and gates `ClockPlaceReference::new`, the only constructor of a clock-place reference (without the feature the type can be held, compared and read but not built); it enables `json` and uses optional `serde` and `ryu-js` dependencies. |
 
 ## Filament ecosystem
 
