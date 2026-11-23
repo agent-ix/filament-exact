@@ -10,6 +10,8 @@ NO_STD_TARGET ?= thumbv7em-none-eabi
 .PHONY: help
 help:
 	@echo "Available targets:"
+	@echo "  make figures          - Regenerate docs/images from docs/images/figures.json (ixd build)"
+	@echo "  make figures-check    - Fail when docs/images are stale; writes nothing"
 	@echo "  make fmt              - Format with rustfmt"
 	@echo "  make fmt-check        - Verify formatting (CI gate)"
 	@echo "  make lint             - Clippy with -D warnings"
@@ -114,3 +116,19 @@ verus-mutants:
 	python3 scripts/ir1551_verus_mutants.py
 	python3 scripts/ir1554_verus_mutants.py
 	python3 scripts/ir1555_verus_mutants.py
+
+# =============================================================================
+# Documentation figures
+# =============================================================================
+# docs/images/figures.json defines the figures; ixd-figures (agent-ix/ix-diagrams) renders them.
+# Install it with: cargo install --git https://github.com/agent-ix/ix-diagrams ix-diagrams
+
+IXD ?= ixd
+
+.PHONY: figures
+figures:
+	$(IXD) build docs/images/figures.json --out docs/images
+
+.PHONY: figures-check
+figures-check:
+	$(IXD) build docs/images/figures.json --out docs/images --check
