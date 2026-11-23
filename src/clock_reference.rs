@@ -135,12 +135,12 @@ fn is_canonical_place_id(text: &str) -> bool {
 #[cfg(feature = "json-object")]
 fn decode_component(component: &str) -> Option<serde_json::Value> {
     let digits = component.as_bytes();
-    if digits.is_empty() || digits.len() % 2 != 0 {
+    if digits.is_empty() || !digits.len().is_multiple_of(2) {
         return None;
     }
     let mut octets = alloc::vec::Vec::with_capacity(digits.len() / 2);
-    for pair in digits.chunks_exact(2) {
-        octets.push((hex_value(pair[0])? << 4) | hex_value(pair[1])?);
+    for [high, low] in digits.as_chunks::<2>().0 {
+        octets.push((hex_value(*high)? << 4) | hex_value(*low)?);
     }
     let json_text = String::from_utf8(octets).ok()?;
     let canonical = crate::JsonObject::from_json_text(&json_text).ok()?;
