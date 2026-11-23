@@ -34,7 +34,9 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    Text, String, Bytes and JsonObject values that hold `A`. Compare two
    `ValueType::ClockReference` values. Build `Option<ClockReference>`,
    `Sequence<ClockReference>[0, 3]` and `Map<String, ClockReference>` values
-   holding `c`, and call `MapType::new` with key type `ClockReference`.
+   holding `c`, call `MapType::new` with key type `ClockReference`, and build a
+   `Map<ClockReference, Integer>` value from the entries `A(K="c/e") -> 1`
+   and `A(K="c/d") -> 2`, in that insertion order, then read its entries.
 2. For AC-2, construct `A` and `A(T=Tq, J=[["slot","1","7"]])` under `U1`.
    Then construct each refused text AC-2 lists: `A` with its first hex
    letter uppercased; `A` with prefix `place/v1/`; `A` without its fifth
@@ -42,7 +44,10 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    with its third component shortened by one digit; `A` with one digit
    replaced by `g`; `A(K="")`; `A(K=1)`; `A(T=[])`;
    `A(J=[["slot","0","0"]])`; `A(J=[["slot","01","0"]])`; `A` with its fifth
-   component `5b205d` (`[ ]`); and `A` with its second component `ff`.
+   component `5b205d` (`[ ]`); `A` with its second component `ff`;
+   `A(T=Tq, J=[])`; `A(T=Tq, J=[["slot","0","7"]])`;
+   `A(T=Tq, J=[["slot","1"]])`; `A(T=Tq, J=[["slots","1","7"]])`; and
+   `A(P="x")`.
 3. For AC-3, for each text step 2 accepts, read the value's text and
    universe, construct a second value from them, plan equality between the
    two values and compare their keys.
@@ -51,7 +56,9 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    URI `ix://i/C/y`, and `A(P=["source","a","i","ix://i/other"])`, recording
    the planned pair count and charges. Plan equality between `A` under `U1`
    and `A` under `U2`. Plan equality between `c` and the object reference of
-   step 1, a Text holding `A` and a String holding `A`.
+   step 1, a Text holding `A` and a String holding `A`. Plan equality between
+   `A` under `U1` and `A(K="c/e")` under `U2`, recording the pair count and
+   charges.
 5. For AC-5, under `U1` compare keys of `A(K="c")` and `A(K="c/d")`, of
    `A(K="c/d")` and `A(K="c/e")`, of `A(P=["source","a","i","ix://i/b"], K="c/e")`
    and `A(K="c/d")`, of `A` under `U1` and `A` under `U2`, of `A` and `A`,
@@ -67,14 +74,16 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
 
 1. Only `ValueType::ClockReference` admits `c`; it rejects the object
    reference and the four text-bearing values; the two types are equal; the
-   three wrapper values build and admit; `MapType::new` builds the map type.
+   three wrapper values build and admit; `MapType::new` builds the map type;
+   the map value is admitted and its entries read `"c/d"` then `"c/e"`.
 2. Both accepted texts construct. Every refused text returns
    `ConstructionRefusal { component: Component::Value, cause:
    PlaceIdNoncanonical }` with no value and no `CheckedInvariant` fault.
 3. The text output equals the supplied text byte for byte, the universe
    output equals `U1`, equality is `true` and the key is `Equal`.
-4. `A` against `A` is `true` and the three variants are `false`, each with
-   the Boolean-leaf pair count and charges. `U1` against `U2` returns
+4. `A` against `A` is `true`, the three variants are `false`, and `A` under
+   `U1` against `A(K="c/e")` under `U2` is `false`, each with the Boolean-leaf
+   pair count and charges. `A` under `U1` against `A` under `U2` returns
    `Refusal::ForeignReference` whose `code()` is `foreign_reference` and
    `cause()` is `foreign-universe`, with no completed Boolean. The three
    mixed-kind plans return `CheckedInvariant { cause: ValueKindMismatch }`.
