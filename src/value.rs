@@ -42,6 +42,7 @@
 //!   for a caller that has independently checked a value against its own
 //!   registry, mirroring [`OptionValue::from_admitted`]'s identical role.
 
+use crate::clock_reference::ClockPlaceReference;
 use crate::JsonObject;
 use alloc::sync::Arc;
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
@@ -372,6 +373,8 @@ pub enum ValueType {
     Bytes,
     /// A canonical RFC 8785 (JCS) JSON value.
     JsonObject,
+    /// A clock-place reference: the universe and canonical `place/v2` place id text.
+    ClockReference,
     /// A native opaque UUID.
     Uuid,
     /// A native signed POSIX-epoch nanosecond Timestamp.
@@ -449,6 +452,7 @@ impl ValueType {
             (Self::Text(declared), Value::Text(text)) => text.text_type() == declared,
             (Self::String, Value::String(_)) => true,
             (Self::Bytes, Value::Bytes(_)) | (Self::JsonObject, Value::JsonObject(_)) => true,
+            (Self::ClockReference, Value::ClockReference(_)) => true,
             (Self::Uuid, Value::Uuid(_)) | (Self::Timestamp, Value::Timestamp(_)) => true,
             (Self::Enum(shape), Value::Enum(member)) => {
                 shape.rank(member.variant()) == Some(member.rank())
@@ -498,6 +502,7 @@ impl ValueType {
                 | Self::String
                 | Self::Bytes
                 | Self::JsonObject
+                | Self::ClockReference
                 | Self::Uuid
                 | Self::Timestamp
                 | Self::Enum(_)
@@ -518,6 +523,7 @@ impl ValueType {
                 | Value::String(_)
                 | Value::Bytes(_)
                 | Value::JsonObject(_)
+                | Value::ClockReference(_)
                 | Value::Uuid(_)
                 | Value::Timestamp(_)
                 | Value::Enum(_)
@@ -574,6 +580,8 @@ pub enum Value {
     Bytes(Vec<u8>),
     /// The canonical RFC 8785 (JCS) serialization of a JSON value.
     JsonObject(JsonObject),
+    /// A clock-place reference value, compared and keyed by its place identity.
+    ClockReference(ClockPlaceReference),
     /// An opaque native UUID.
     Uuid(Uuid),
     /// A signed POSIX-epoch nanosecond Timestamp.
@@ -618,6 +626,7 @@ impl Value {
             | Self::String(_)
             | Self::Bytes(_)
             | Self::JsonObject(_)
+            | Self::ClockReference(_)
             | Self::Uuid(_)
             | Self::Timestamp(_)
             | Self::Enum(_)
@@ -668,6 +677,7 @@ fn defer_node(pending: &mut Vec<Value>, value: Value) {
         | Value::String(_)
         | Value::Bytes(_)
         | Value::JsonObject(_)
+        | Value::ClockReference(_)
         | Value::Uuid(_)
         | Value::Timestamp(_)
         | Value::Enum(_)
@@ -730,6 +740,7 @@ fn release_children(node: Value, pending: &mut Vec<Value>) {
         | Value::String(_)
         | Value::Bytes(_)
         | Value::JsonObject(_)
+        | Value::ClockReference(_)
         | Value::Uuid(_)
         | Value::Timestamp(_)
         | Value::Enum(_)
@@ -991,6 +1002,7 @@ fn schedule_value<'a>(stack: &mut Vec<Step<'a>>, value: &'a Value) {
         Value::String(leaf) => ("String", leaf),
         Value::Bytes(leaf) => ("Bytes", leaf),
         Value::JsonObject(leaf) => ("JsonObject", leaf),
+        Value::ClockReference(leaf) => ("ClockReference", leaf),
         Value::Uuid(leaf) => ("Uuid", leaf),
         Value::Timestamp(leaf) => ("Timestamp", leaf),
         Value::Enum(leaf) => ("Enum", leaf),
@@ -1509,6 +1521,9 @@ pub enum ConstructionCause {
     DuplicateMember,
     /// UUID text is not lowercase ASCII `8-4-4-4-12` hexadecimal.
     UuidNoncanonical,
+    /// A clock-place reference text does not meet the five canonical `place/v2` encoding
+    /// rules of FR-415.
+    PlaceIdNoncanonical,
     /// Timestamp text is not canonical signed ASCII decimal.
     TimestampNoncanonical,
     /// Canonical Timestamp text is outside the signed `i128` range.

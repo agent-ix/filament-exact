@@ -66,7 +66,9 @@ keys a `Set<Reference<Clock>>` in one deterministic order.
    `Map` wrap `ValueType::ClockReference` as they wrap any other leaf type.
    `MapType::new` accepts it as a leaf key type, as it accepts the object
    `Reference` key (FR-386-AC-9), and a map value keyed by clock-place
-   references holds its entries in the Behavior 6 key order. The language
+   references is admitted and retains the supplied entry order, as FR-386 and
+   FR-410 state for every key type; the Behavior 6 total order is used where a
+   canonical order is required (key comparison, canonical forms). The language
    never reaches this key: FSpec FR-415 "Clock collections" refuses a
    `Reference` map key `ill_typed`/`operator-ineligible` at the map type's key
    type, before any kernel value exists. The kernel keeps the key admissible
@@ -152,10 +154,10 @@ keys a `Set<Reference<Clock>>` in one deterministic order.
    equality is `true` exactly when Behavior 5 returns `true`, and the Rust
    order is the Behavior 6 order.
 8. **Size accounting.** A clock-place reference counts one occurrence (`occ`
-   is one, as for an object reference). Its variable size is the byte length
-   of its place id text, charged through the semantic-size path that FR-385
-   Behavior 6 uses for a JsonObject canonical text. The universe adds no
-   variable size.
+   is one, as for an object reference). The kernel defines no size function for
+   any value kind, so its part is `occ` and the `text()` accessor. The caller
+   charges the variable size, the byte length of `text()`, through
+   `Charge::size`. The universe adds no variable size.
 9. **No intrinsic domain.** The kernel does not enumerate
    `ValueType::ClockReference`: its finite domain is the set of clock places
    in scope, which only the caller's declared model knows. The caller builds
@@ -175,12 +177,12 @@ keys a `Set<Reference<Clock>>` in one deterministic order.
 
 | ID | Criteria | Verification |
 | --- | --- | --- |
-| FR-415-AC-1 | A clock-place reference is admitted by `ValueType::ClockReference` and by no other type: `ValueType::Reference(e)`, `Text`, `String`, `Bytes` and `JsonObject` each reject it. `ValueType::ClockReference` rejects an object `Value::Reference` of the same universe whose object identity is the same place id text, and rejects Text, String, Bytes and JsonObject values that hold that text. Two `ValueType::ClockReference` values are equal types. `Option<ClockReference>`, `Sequence<ClockReference>[0, 3]` and `Map<String, ClockReference>` build and admit values whose payload, elements or map values are clock-place references. `MapType::new` with key type `ClockReference` builds a map type, and a `Map<ClockReference, Integer>` value built from the keys `A(K="c/e")` and `A(K="c/d")` (TC-963 fixture notation), in that insertion order, is admitted and holds the `"c/d"` entry before the `"c/e"` entry. | Test (TC-963) |
+| FR-415-AC-1 | A clock-place reference is admitted by `ValueType::ClockReference` and by no other type: `ValueType::Reference(e)`, `Text`, `String`, `Bytes` and `JsonObject` each reject it. `ValueType::ClockReference` rejects an object `Value::Reference` of the same universe whose object identity is the same place id text, and rejects Text, String, Bytes and JsonObject values that hold that text. Two `ValueType::ClockReference` values are equal types. `Option<ClockReference>`, `Sequence<ClockReference>[0, 3]` and `Map<String, ClockReference>` build and admit values whose payload, elements or map values are clock-place references. `MapType::new` with key type `ClockReference` builds a map type, and a `Map<ClockReference, Integer>` value built from the keys `A(K="c/e")` and `A(K="c/d")` (TC-963 fixture notation), in that insertion order, is admitted and retains the supplied order, so its entries read `"c/e"` then `"c/d"`, while `compare_keys` still orders `"c/d"` before `"c/e"`. | Test (TC-963) |
 | FR-415-AC-2 | `ClockPlaceReference::new` builds a value from the literal `place/v2` text of FSL FR-230-AC-43, and from the same text with `J` replaced by the hex of `[["slot","1","7"]]` where `T` is `Tq`, a field entry followed by one `collection` entry at position 1 (the slot form of FSL FR-106-AC-81). It returns `PlaceIdNoncanonical`, with no value and no `CheckedInvariant` fault, for: the AC-43 text with one hex letter in uppercase; with `place/v1/` as prefix; with four components; with a trailing `/`; with an empty component; with an odd-length or non-hex component; with `K` the hex of `""`; with `K` the hex of a JSON number `1`; with `T` the hex of `[]`; with `J` the hex of `[["slot","0","0"]]` (a slot entry where `T` has no `collection` entry); with `J` the hex of `[["slot","01","0"]]`; with `J` the hex of `[ ]` (whitespace, not JCS); with a component whose octets are not UTF-8; with `T` = `Tq` and `J` the hex of `[]` (missing slot entry); with `T` = `Tq` and `J` the hex of `[["slot","0","7"]]` (wrong `pathPosition`); with `T` = `Tq` and `J` the hex of `[["slot","1"]]` (two strings); with `T` = `Tq` and `J` the hex of `[["slots","1","7"]]` (first string not `"slot"`); and with `P` the hex of `"x"` (not an array). | Test (TC-963) |
 | FR-415-AC-3 | For each text AC-2 accepts, the value's text output equals the supplied text byte for byte, its universe output equals the supplied universe, and `ClockPlaceReference::new` over those two outputs gives a value whose equality with the original is `true` and whose key is `Equal`. | Test (TC-963) |
 | FR-415-AC-4 | In one universe, two values of the AC-43 text are equal under the one-terminal-pair schedule. The AC-43 text against the same text with `K` = `"c/e"`, or with the `field` member URI `ix://i/C/y`, or with a different `P` population URI, is `false`. The AC-43 text in one universe against `A(K="c/e")` in another universe is `false`. The planned pair count and charges of every pair in this criterion equal the Boolean-leaf schedule. Two values of the AC-43 text in different universes return `Refusal::ForeignReference` with code `foreign_reference` and cause `foreign-universe`, and no completed Boolean. A direct plan pairing a clock-place reference with an object `Value::Reference`, a Text or a String returns `CheckedInvariant { cause: ValueKindMismatch }`. | Test (TC-963) |
 | FR-415-AC-5 | In one universe, `compare_keys` orders `K` = `"c"` before `K` = `"c/d"` and `"c/d"` before `"c/e"`, with the other components equal. It orders two values that differ in `P` by `P` before considering `K`. It orders by universe first when universes differ. Equal texts in one universe have key `Equal`. A clock-place reference against an object reference returns `None`. The kernel exposes no ordering operator over clock-place references. A `Set<ClockReference>` built from these values in any insertion order holds them in this key order. | Test (TC-963) |
-| FR-415-AC-6 | A clock-place reference has `occ` one and a variable size equal to the byte length of its place id text, so the AC-43 text accounts 279 bytes. Existing object-reference, scalar, composite, Bytes, JsonObject, UUID and Timestamp admission, equality, key and accounting vectors keep their results. | Test (TC-963) |
+| FR-415-AC-6 | A clock-place reference has `occ` one and returns its place id text through `text()`; the caller charges the byte length of that text through `Charge::size`, which is 279 bytes for the AC-43 text. Existing object-reference, scalar, composite, Bytes, JsonObject, UUID and Timestamp admission, equality, key and accounting vectors keep their results. | Test (TC-963) |
 
 ## Dependencies
 

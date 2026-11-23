@@ -36,7 +36,8 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `Sequence<ClockReference>[0, 3]` and `Map<String, ClockReference>` values
    holding `c`, call `MapType::new` with key type `ClockReference`, and build a
    `Map<ClockReference, Integer>` value from the entries `A(K="c/e") -> 1`
-   and `A(K="c/d") -> 2`, in that insertion order, then read its entries.
+   and `A(K="c/d") -> 2`, in that insertion order, then read its entries and compare the keys of the
+   two.
 2. For AC-2, construct `A` and `A(T=Tq, J=[["slot","1","7"]])` under `U1`.
    Then construct each refused text AC-2 lists: `A` with its first hex
    letter uppercased; `A` with prefix `place/v1/`; `A` without its fifth
@@ -66,7 +67,7 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `ClockPlaceReference` and `Value` for an ordering operator. Build a
    `Set<ClockReference>` from the first three values in each of two
    insertion orders.
-6. For AC-6, read `occ` and the accounted variable size of `c`, then rerun
+6. For AC-6, read `occ` and `text()` of `c`, taking the text's byte length as the caller's charge, then rerun
    the existing object-reference, scalar, composite, Bytes, JsonObject, UUID
    and Timestamp admission, equality, key and accounting vectors.
 
@@ -75,7 +76,8 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
 1. Only `ValueType::ClockReference` admits `c`; it rejects the object
    reference and the four text-bearing values; the two types are equal; the
    three wrapper values build and admit; `MapType::new` builds the map type;
-   the map value is admitted and its entries read `"c/d"` then `"c/e"`.
+   the map value is admitted and its entries read `"c/e"` then `"c/d"` (the supplied order), and
+   `compare_keys` orders `"c/d"` before `"c/e"`.
 2. Both accepted texts construct. Every refused text returns
    `ConstructionRefusal { component: Component::Value, cause:
    PlaceIdNoncanonical }` with no value and no `CheckedInvariant` fault.
@@ -92,5 +94,5 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `A(K="c/d")` although its `K` is greater; `U1` against `U2` follows the
    `UniverseId` order; `A` against `A` is `Equal`; the mixed pair is `None`.
    No ordering operator exists. Both sets hold the three values in key order.
-6. `occ` is one and the variable size is 279 bytes; every existing vector
+6. `occ` is one and `text()` is `A`, whose byte length 279 is the caller's `Charge::size`; every existing vector
    keeps its result.

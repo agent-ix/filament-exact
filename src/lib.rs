@@ -102,6 +102,7 @@ pub const KERNEL_VERSION: u32 = 2;
 
 mod accounting;
 mod cancel;
+mod clock_reference;
 mod collection;
 mod comparison;
 mod decimal;
@@ -174,6 +175,7 @@ pub use accounting::{
     TruncatedChargeCapture, WorkScope,
 };
 pub use cancel::{Cancel, CancelCause, ChargeCount};
+pub use clock_reference::ClockPlaceReference;
 pub use collection::{
     build_typed_prestate, construct_collection, form, form_collection, form_grouped, from_admitted,
     from_admitted_map, inspect_typed_poststate, member_equal, CardinalityBound, CollectionKind,
