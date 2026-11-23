@@ -92,3 +92,9 @@ Correct and mergeable. The five rules match FR-415 Behavior 3 and FSL FR-230
 exactly, equality, key order, derived traits and occurrence count match
 FR-415 Behaviors 5-8, and there is no panic path or invariant bypass. FND-001
 is a doc nit.
+
+## Dispositions
+
+| FND | Outcome | Reason |
+| --- | --- | --- |
+| FND-001 | fixed | Round 1, head 41141e54 (commit 27097394): the README `json-object` row now names `ClockPlaceReference::new` as gated and says the type can be held, compared and read but not built without the feature. |

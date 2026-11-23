@@ -47,3 +47,13 @@ Coverage is complete except for three small vector gaps (FND-001 to FND-003)
 and a size assertion that cannot fail (FND-004, a spec-wording question).
 FND-005 is a real spec conflict between FR-415-AC-1 and FR-410 that needs an
 arch ruling; it does not block this PR.
+
+## Dispositions
+
+| FND | Outcome | Reason |
+| --- | --- | --- |
+| FND-001 | fixed | Round 1, head 41141e54: the non-UTF-8 vector now sets `components[3]` (K), as TC-963 step 2 names. |
+| FND-002 | fixed | Round 1: `ValueType::Text` rejects the clock reference and `ValueType::ClockReference` rejects an admitted Text value holding `A`. |
+| FND-003 | fixed | Round 1: the mixed-kind plan test pairs with a Text value in both directions. |
+| FND-004 | still-open | The can't-fail assertion was dropped and the test renamed, so the size clause of FR-415 Behavior 8 / AC-6 ("the AC-43 text accounts 279 bytes", "charged through the semantic-size path") is now untested, while the spec still states it as a kernel outcome. Fix: amend Behavior 8, AC-6 and TC-963 step 6 to say the kernel's share is `occ` one plus the `text()` accessor and that the caller charges `text().len()` through `Charge::size`; or the lead records accepted-no-change. |
+| FND-005 | fixed | Round 1 (commit 41141e54, arch ruling): FR-415 Behavior 1, AC-1 and TC-963 now say a clock-keyed map keeps the supplied order, matching FR-410 Behavior 1 / AC-1 and `from_admitted_map`; the test asserts entries `c/e` then `c/d` and `compare_keys(c/d, c/e) == Less`. No map code changed. |

@@ -154,10 +154,10 @@ keys a `Set<Reference<Clock>>` in one deterministic order.
    equality is `true` exactly when Behavior 5 returns `true`, and the Rust
    order is the Behavior 6 order.
 8. **Size accounting.** A clock-place reference counts one occurrence (`occ`
-   is one, as for an object reference). Its variable size is the byte length
-   of its place id text, charged through the semantic-size path that FR-385
-   Behavior 6 uses for a JsonObject canonical text. The universe adds no
-   variable size.
+   is one, as for an object reference). The kernel defines no size function for
+   any value kind, so its part is `occ` and the `text()` accessor. The caller
+   charges the variable size, the byte length of `text()`, through
+   `Charge::size`. The universe adds no variable size.
 9. **No intrinsic domain.** The kernel does not enumerate
    `ValueType::ClockReference`: its finite domain is the set of clock places
    in scope, which only the caller's declared model knows. The caller builds
@@ -182,7 +182,7 @@ keys a `Set<Reference<Clock>>` in one deterministic order.
 | FR-415-AC-3 | For each text AC-2 accepts, the value's text output equals the supplied text byte for byte, its universe output equals the supplied universe, and `ClockPlaceReference::new` over those two outputs gives a value whose equality with the original is `true` and whose key is `Equal`. | Test (TC-963) |
 | FR-415-AC-4 | In one universe, two values of the AC-43 text are equal under the one-terminal-pair schedule. The AC-43 text against the same text with `K` = `"c/e"`, or with the `field` member URI `ix://i/C/y`, or with a different `P` population URI, is `false`. The AC-43 text in one universe against `A(K="c/e")` in another universe is `false`. The planned pair count and charges of every pair in this criterion equal the Boolean-leaf schedule. Two values of the AC-43 text in different universes return `Refusal::ForeignReference` with code `foreign_reference` and cause `foreign-universe`, and no completed Boolean. A direct plan pairing a clock-place reference with an object `Value::Reference`, a Text or a String returns `CheckedInvariant { cause: ValueKindMismatch }`. | Test (TC-963) |
 | FR-415-AC-5 | In one universe, `compare_keys` orders `K` = `"c"` before `K` = `"c/d"` and `"c/d"` before `"c/e"`, with the other components equal. It orders two values that differ in `P` by `P` before considering `K`. It orders by universe first when universes differ. Equal texts in one universe have key `Equal`. A clock-place reference against an object reference returns `None`. The kernel exposes no ordering operator over clock-place references. A `Set<ClockReference>` built from these values in any insertion order holds them in this key order. | Test (TC-963) |
-| FR-415-AC-6 | A clock-place reference has `occ` one and a variable size equal to the byte length of its place id text, so the AC-43 text accounts 279 bytes. Existing object-reference, scalar, composite, Bytes, JsonObject, UUID and Timestamp admission, equality, key and accounting vectors keep their results. | Test (TC-963) |
+| FR-415-AC-6 | A clock-place reference has `occ` one and returns its place id text through `text()`; the caller charges the byte length of that text through `Charge::size`, which is 279 bytes for the AC-43 text. Existing object-reference, scalar, composite, Bytes, JsonObject, UUID and Timestamp admission, equality, key and accounting vectors keep their results. | Test (TC-963) |
 
 ## Dependencies
 

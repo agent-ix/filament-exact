@@ -67,7 +67,7 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `ClockPlaceReference` and `Value` for an ordering operator. Build a
    `Set<ClockReference>` from the first three values in each of two
    insertion orders.
-6. For AC-6, read `occ` and the accounted variable size of `c`, then rerun
+6. For AC-6, read `occ` and `text()` of `c`, taking the text's byte length as the caller's charge, then rerun
    the existing object-reference, scalar, composite, Bytes, JsonObject, UUID
    and Timestamp admission, equality, key and accounting vectors.
 
@@ -94,5 +94,5 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `A(K="c/d")` although its `K` is greater; `U1` against `U2` follows the
    `UniverseId` order; `A` against `A` is `Equal`; the mixed pair is `None`.
    No ordering operator exists. Both sets hold the three values in key order.
-6. `occ` is one and the variable size is 279 bytes; every existing vector
+6. `occ` is one and `text()` is `A`, whose byte length 279 is the caller's `Charge::size`; every existing vector
    keeps its result.
