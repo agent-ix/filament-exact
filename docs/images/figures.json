@@ -1,0 +1,55 @@
+{
+  "figures": [
+    {
+      "id": "hero",
+      "width": 980, "height": 264,
+      "label": "Binary floating point rounds 0.1 + 0.2 to 0.30000000000000004. filament-exact adds the fractions 1/10 and 2/10 exactly and gets 3/10, and when an operation such as 1/2 divided by 0 has no value it returns undefined.",
+      "items": [
+        {"k":"box","at":[0,0,200,56],"role":"ink","title":"0.1 + 0.2","subs":["input"]},
+        {"k":"line","points":[[200,28],[297,28]]},
+        {"k":"box","at":[300,0,260,56],"role":"logic","title":"binary float","subs":["rounds every step"]},
+        {"k":"line","points":[[560,28],[657,28]],"role":"logic","weight":2.4},
+        {"k":"box","at":[660,0,320,56],"role":"evidence","title":"0.30000000000000004","subs":["close, but not 0.3"]},
+        {"k":"box","at":[0,80,200,56],"role":"ink","title":"1/10 + 2/10","subs":["input"]},
+        {"k":"line","points":[[200,108],[297,108]]},
+        {"k":"box","at":[300,80,260,56],"role":"model","title":"exact rational","subs":["fraction in lowest terms"]},
+        {"k":"line","points":[[560,108],[657,108]],"role":"model","weight":2.4},
+        {"k":"box","at":[660,80,320,56],"role":"evidence","title":"3/10","subs":["exactly 0.3"]},
+        {"k":"box","at":[0,160,200,56],"role":"ink","title":"1/2 ÷ 0","subs":["input"]},
+        {"k":"line","points":[[200,188],[297,188]]},
+        {"k":"box","at":[300,160,260,56],"role":"model","title":"exact rational","subs":["no value exists"]},
+        {"k":"line","points":[[560,188],[657,188]],"role":"model","weight":2.4},
+        {"k":"box","at":[660,160,320,56],"role":"evidence","title":"undefined","subs":["division by zero"]},
+        {"k":"legend","at":[0,258],"entries":[["ink","input","box"],["logic","rounding arithmetic","box"],["model","exact arithmetic","box"],["evidence","answer","box"]]}
+      ]
+    },
+    {
+      "id": "outcomes",
+      "width": 980, "height": 232,
+      "label": "Every exact operation returns exactly one Outcome: Completed with a value, Undefined when no value exists, Refused when the value is not admitted by the declared type, or Incomplete when a metered limit stopped it. There is no partial value.",
+      "items": [
+        {"k":"box","at":[0,84,170,56],"role":"logic","title":"an operation","subs":["exact arithmetic"]},
+        {"k":"line","points":[[170,112],[190,112]],"role":"logic","arrow":false},
+        {"k":"line","points":[[190,28],[190,196]],"role":"logic","arrow":false},
+        {"k":"line","points":[[190,28],[237,28]],"role":"model"},
+        {"k":"box","at":[240,0,170,50],"role":"model","title":"Completed"},
+        {"k":"text","at":[440,22],"text":"a value","role":"model","font":"title"},
+        {"k":"text","at":[440,40],"text":"the exact result, no rounding","role":"muted","size":12},
+        {"k":"line","points":[[190,84],[237,84]],"role":"evidence"},
+        {"k":"box","at":[240,56,170,50],"role":"evidence","title":"Undefined"},
+        {"k":"text","at":[440,78],"text":"no value exists","role":"evidence","font":"title"},
+        {"k":"text","at":[440,96],"text":"division by zero · NaN · empty reduction","role":"muted","size":12},
+        {"k":"line","points":[[190,140],[237,140]],"role":"evidence"},
+        {"k":"box","at":[240,112,170,50],"role":"evidence","title":"Refused"},
+        {"k":"text","at":[440,134],"text":"value not admitted","role":"evidence","font":"title"},
+        {"k":"text","at":[440,152],"text":"outside the declared integer or decimal range","role":"muted","size":12},
+        {"k":"line","points":[[190,196],[237,196]],"role":"evidence"},
+        {"k":"box","at":[240,168,170,50],"role":"evidence","title":"Incomplete"},
+        {"k":"text","at":[440,190],"text":"budget ran out","role":"evidence","font":"title"},
+        {"k":"text","at":[440,208],"text":"a named limit stopped it · no partial value","role":"muted","size":12}
+      ]
+    },
+    {"id":"ecosystem","construct":{"name":"ecosystem","here":"filament-exact"}}
+  ]
+}
+
