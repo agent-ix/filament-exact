@@ -350,7 +350,19 @@ mod tests {
         let Value::Map(map) = map else {
             panic!("a map value");
         };
-        assert_eq!(map.entries().len(), 2);
+        let keys: alloc::vec::Vec<&str> = map
+            .entries()
+            .iter()
+            .map(|(key, _)| match key {
+                Value::ClockReference(key) => key.text(),
+                _ => panic!("a clock-reference key"),
+            })
+            .collect();
+        assert_eq!(keys, [a_with(r#""c/e""#), a_with(r#""c/d""#)]);
+        assert_eq!(
+            compare_keys(&map.entries()[1].0, &map.entries()[0].0),
+            Some(Ordering::Less)
+        );
     }
 
     /// Trace: FR-415-AC-2, TC-963
