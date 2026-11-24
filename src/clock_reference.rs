@@ -31,7 +31,7 @@ impl ClockPlaceReference {
         &self.universe
     }
 
-    /// The place id text, byte for byte as supplied to [`Self::new`].
+    /// The place id text, byte for byte as supplied to `Self::new`.
     pub fn text(&self) -> &str {
         &self.text
     }

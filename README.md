@@ -88,16 +88,17 @@ exhaust memory.
 | Composite values | `Value`, `ValueType`, records, tuples, unions, collections, `ObjectReference` |
 | Equality and keys | `plan_equality`, `compare_keys`, one canonical key and one equality for every value |
 | Results and limits | `Outcome`, `Undefined`, `Refusal`, `Meter`, `ScalarLimits`, `Cancel` |
-| Identity and provenance | `NodeKey`, `EffectiveId` and the other digest identities, `Location` |
+| Identity and provenance | `NodeKey`, `EffectiveId` and the other structural identities, `Location` |
 
 The crate does not derive identities from digests or serialize them
 implicitly. The default build has no JSON or canonicalization dependencies.
 Optional JSON features use `serde_json` with `alloc`; `json-object` also uses
 `serde` and `ryu-js` to parse and retain canonical JSON values. These features
-preserve `no_std` support. Every digest identity is made by wrapping an
-already-computed digest through its `from_digest` constructor. The `node_wire`
-module is public when `json` is enabled; other APIs are re-exported from the
-crate root.
+preserve `no_std` support. Identities are structural: each is built from its
+components, not from a digest. `NodeKey::new` validates its identifier;
+`OriginalDeclarationKey::new`, `EffectiveId::new` and `UnitId::declared` carry
+caller-admitted components. The `node_wire` module is public when `json` is
+enabled; other APIs are re-exported from the crate root.
 
 ## Cargo features
 
