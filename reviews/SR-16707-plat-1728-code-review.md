@@ -22,3 +22,11 @@ PASS with three low findings. Rust review ran as the language lane of this metho
 | FND-001 | low | Identity table row still calls the identities "digest identities", contradicting the rewritten paragraph | README.md:91 |
 | FND-002 | low | "checked components" overstates three of the four named constructors, which perform no check | README.md:96-99 |
 | FND-003 | low | Rewritten paragraph breaks the file's line wrap (one line ~88 columns) | README.md:99-100 |
+
+## Dispositions
+
+| FND | Outcome | Reason |
+| --- | --- | --- |
+| FND-001 | fixed | Verified in 725fe03d: README.md:91 now reads "the other structural identities". |
+| FND-002 | fixed | Verified in 725fe03d: README.md:96-99 says only `NodeKey::new` validates; the other three carry caller-admitted components. |
+| FND-003 | fixed | Verified in 725fe03d: the rewrapped paragraph has no line over 80 columns. |
