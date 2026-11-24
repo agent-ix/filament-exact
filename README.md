@@ -94,9 +94,10 @@ The crate does not derive identities from digests or serialize them
 implicitly. The default build has no JSON or canonicalization dependencies.
 Optional JSON features use `serde_json` with `alloc`; `json-object` also uses
 `serde` and `ryu-js` to parse and retain canonical JSON values. These features
-preserve `no_std` support. Every digest identity is made by wrapping an
-already-computed digest through its `from_digest` constructor. The `node_wire`
-module is public when `json` is enabled; other APIs are re-exported from the
+preserve `no_std` support. Identities are structural: each is built from its
+checked components (`NodeKey::new`, `OriginalDeclarationKey::new`,
+`EffectiveId::new`, `UnitId::declared` and so on), not from a digest. The
+`node_wire` module is public when `json` is enabled; other APIs are re-exported from the
 crate root.
 
 ## Cargo features

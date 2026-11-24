@@ -1069,7 +1069,7 @@ impl WorkScope {
 /// consumed counters, limits and admission counts are fixed-size. The meter
 /// optionally holds a fixed-size interval aggregate and a separately enabled,
 /// caller-bounded event capture. It also shares the caller's [`Cancel`] handle.
-/// The diagnostic admitted-charge log ([`Meter::admitted_charges`]) exists only
+/// The diagnostic admitted-charge log (`Meter::admitted_charges`) exists only
 /// under the `test-support` feature, which only a dev-dependency may enable.
 ///
 /// filament:canonical
