@@ -550,17 +550,18 @@ mod tests {
         let right = val(u2(), A);
         let different = val(u2(), &a_with(r#""c/e""#));
 
-        let left_option = Value::Option(alloc::sync::Arc::new(crate::OptionValue::from_admitted(
+        let left_option = crate::OptionValue::from_admitted(
             ValueType::ClockReference,
             Some(left.clone()),
-        )));
-        let right_option = Value::Option(alloc::sync::Arc::new(crate::OptionValue::from_admitted(
+        );
+        let right_option = crate::OptionValue::from_admitted(
             ValueType::ClockReference,
             Some(right.clone()),
-        )));
-        let different_option = Value::Option(alloc::sync::Arc::new(
-            crate::OptionValue::from_admitted(ValueType::ClockReference, Some(different.clone())),
-        ));
+        );
+        let different_option = crate::OptionValue::from_admitted(
+            ValueType::ClockReference,
+            Some(different.clone()),
+        );
         assert_eq!(equal(&left_option, &right_option), Outcome::Completed(true));
         assert_eq!(equal(&left_option, &different_option), Outcome::Completed(false));
 
