@@ -207,10 +207,10 @@ mod tests {
 
     use super::ClockPlaceReference;
     use crate::{
+        compare_keys, form, from_admitted, from_admitted_map, plan_equality, planned_equality,
         CardinalityBound, CheckedInvariantCause, CollectionKind, CollectionType, Component,
         ConstructionCause, ConstructionRefusal, EffectiveId, Integer, JsonObject, MapType, Meter,
         ObjectId, ObjectReference, Outcome, Refusal, ScalarLimits, UniverseId, Value, ValueType,
-        compare_keys, form, from_admitted, from_admitted_map, plan_equality, planned_equality,
     };
 
     const P: &str = r#"["source","a","i","ix://i/calls"]"#;
@@ -546,8 +546,7 @@ mod tests {
     fn cross_universe_clock_identity_is_preserved_when_nested_and_in_sets() {
         let left = val(u1(), A);
         let right = val(u2(), A);
-        let sequence_type =
-            CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None);
+        let sequence_type = CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None);
         let nested_left = from_admitted(sequence_type.clone(), vec![left.clone()]);
         let nested_right = from_admitted(sequence_type, vec![right.clone()]);
         assert_eq!(equal(&nested_left, &nested_right), Outcome::Completed(true));
