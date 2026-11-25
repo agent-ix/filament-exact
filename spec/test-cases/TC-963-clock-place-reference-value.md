@@ -14,8 +14,10 @@ relationships:
 Verify FR-415-AC-1 through FR-415-AC-6: `ValueType::ClockReference` admits
 only clock-place references, the constructor admits exactly the canonical
 `place/v2` encoding, a value round trips through its outputs, equality is by
-place id text across universes, collection keys order by that text, and a
-value charges one occurrence and its text length.
+place id text across universes including when nested in options, sequences and
+map values, collection keys order by that text, map equality recognizes
+cross-universe keys with the same text, Rust hash identity uses text alone,
+and a value charges one occurrence and its text length.
 
 Fixture: `A` is the literal text of FSL FR-230-AC-43. `A(K=x)` is `A` with
 its second component replaced by the lowercase hex of the JCS JSON `x`, and
@@ -35,8 +37,8 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `Sequence<ClockReference>[0, 3]` and `Map<String, ClockReference>` values
    holding `c`, call `MapType::new` with key type `ClockReference`, and build a
    `Map<ClockReference, Integer>` value from the entries `A(K="c/e") -> 1`
-   and `A(K="c/d") -> 2`, in that insertion order, then read its entries and compare the keys of the
-   two.
+   and `A(K="c/d") -> 2`, in that insertion order, then read its entries and
+   compare the keys of the two.
 2. For AC-2, construct `A` and `A(T=Tq, J=[["slot","1","7"]])` under `U1`.
    Then construct each refused text AC-2 lists: `A` with its first hex
    letter uppercased; `A` with prefix `place/v1/`; `A` without its fifth
@@ -69,7 +71,10 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    operator. Build a `Set<ClockReference>` from equal-text `A` values under
    `U1` and `U2` and from different-text values in each of two insertion
    orders. Build two `Map<ClockReference, Integer>` values with the equal-text
-   key under `U1` and `U2`, respectively, and compare them.
+   key under `U1` and `U2`, respectively, and compare them. Construct two
+   `ClockPlaceReference` values directly from equal text under `U1` and `U2`;
+   compare their Rust equality and ordering, and hash each with identically
+   initialized standard hashers.
 6. For AC-6, read `occ` and `text()` of `c`, taking the text's byte length as the caller's charge, then rerun
    the existing object-reference, scalar, composite, Bytes, JsonObject, UUID
    and Timestamp admission, equality, key and accounting vectors.
@@ -88,8 +93,9 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    output equals `U1`, equality is `true` and the key is `Equal`.
 4. `A` against `A` is `true`; the equal-text pair under `U1` and `U2` is
    `true`; the different-text pair is `false`; the three other variants are
-   `false`, each with the Boolean-leaf pair count and charges. The nested
-   equal-text values are true and the nested different-text values false.
+   `false`, each with the Boolean-leaf pair count and charges. Equal-text
+   pairs nested in options, sequences and map values are true; the
+   different-text counterparts are false.
    The three mixed-kind plans return `CheckedInvariant { cause:
    ValueKindMismatch }`.
 5. `A(K="c")` is `Less` than `A(K="c/d")`; `A(K="c/d")` is `Less` than
@@ -98,6 +104,9 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    `U2` have key `Equal`; the mixed pair is `None`. No ordering operator
    exists. The set has one entry for the equal-text pair and otherwise holds
    its values in place-text key order, independent of insertion order. The
-   two maps with equal keys under different universes compare equal.
+   two maps with equal keys under different universes compare equal. Direct
+   Rust equality for the two references is true, their `Ord` comparison is
+   `Equal`, and hashing each with identically initialized hashers produces
+   the same hash.
 6. `occ` is one and `text()` is `A`, whose byte length 279 is the caller's `Charge::size`; every existing vector
    keeps its result.

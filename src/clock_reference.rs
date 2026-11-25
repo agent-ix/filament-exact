@@ -205,6 +205,8 @@ mod tests {
     use alloc::vec;
     use core::cmp::Ordering;
 
+    use ix_trace_rs::trace;
+
     use super::ClockPlaceReference;
     use crate::{
         compare_keys, form, from_admitted, from_admitted_map, plan_equality, planned_equality,
@@ -511,7 +513,7 @@ mod tests {
         }
     }
 
-    /// Trace: FR-415-AC-4, TC-963
+    #[trace("FR-415-AC-4")]
     #[test]
     fn equality_is_by_place_text_including_across_universes() {
         let boolean_plan = plan_equality(&Value::Boolean(true), &Value::Boolean(true));
@@ -541,15 +543,64 @@ mod tests {
         assert_eq!(equal(&base, &same_text_elsewhere), Outcome::Completed(true));
     }
 
-    /// Trace: FR-415-AC-4, FR-415-AC-5, FR-829-AC-8, FR-829-AC-9, TC-963
+    #[trace("FR-415-AC-4", "FR-415-AC-5")]
     #[test]
     fn cross_universe_clock_identity_is_preserved_when_nested_and_in_sets() {
         let left = val(u1(), A);
         let right = val(u2(), A);
-        let sequence_type = CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None);
+        let different = val(u2(), &a_with(r#""c/e""#));
+
+        let left_option = Value::Option(alloc::sync::Arc::new(crate::OptionValue::from_admitted(
+            ValueType::ClockReference,
+            Some(left.clone()),
+        )));
+        let right_option = Value::Option(alloc::sync::Arc::new(crate::OptionValue::from_admitted(
+            ValueType::ClockReference,
+            Some(right.clone()),
+        )));
+        let different_option = Value::Option(alloc::sync::Arc::new(
+            crate::OptionValue::from_admitted(ValueType::ClockReference, Some(different.clone())),
+        ));
+        assert_eq!(equal(&left_option, &right_option), Outcome::Completed(true));
+        assert_eq!(equal(&left_option, &different_option), Outcome::Completed(false));
+
+        let sequence_type = CollectionType::new(
+            CollectionKind::Sequence,
+            ValueType::ClockReference,
+            None,
+        );
         let nested_left = from_admitted(sequence_type.clone(), vec![left.clone()]);
         let nested_right = from_admitted(sequence_type, vec![right.clone()]);
-        assert_eq!(equal(&nested_left, &nested_right), Outcome::Completed(true));
+        let nested_different = from_admitted(
+            CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None),
+            vec![different.clone()],
+        );
+        assert_eq!(
+            equal(&nested_left, &nested_right),
+            Outcome::Completed(true)
+        );
+        assert_eq!(
+            equal(&nested_left, &nested_different),
+            Outcome::Completed(false)
+        );
+
+        let map_value_type = MapType::new(ValueType::String, ValueType::ClockReference, None)
+            .expect("clock references are map values");
+        let map_with_value = |value| {
+            from_admitted_map(
+                map_value_type.clone(),
+                vec![(Value::String(String::from("ref")), value)],
+            )
+            .unwrap()
+        };
+        assert_eq!(
+            equal(&map_with_value(left.clone()), &map_with_value(right.clone())),
+            Outcome::Completed(true)
+        );
+        assert_eq!(
+            equal(&map_with_value(left.clone()), &map_with_value(different)),
+            Outcome::Completed(false)
+        );
 
         let set_type = CollectionType::new(CollectionKind::Set, ValueType::ClockReference, None);
         let set = form(&set_type, vec![left, right], &mut Meter::new(limits()))
@@ -560,10 +611,21 @@ mod tests {
         };
         assert_eq!(set.elements().len(), 1);
 
-        let map_type = MapType::new(ValueType::ClockReference, ValueType::Integer, None)
+        let keyed_map_type = MapType::new(ValueType::ClockReference, ValueType::Integer, None)
             .expect("clock references are map keys");
+        let map_for = |key| {
+            from_admitted_map(
+                keyed_map_type.clone(),
+                vec![(key, Value::Integer(Integer::one()))],
+            )
+            .unwrap()
+        };
+        let left_map = map_for(val(u1(), A));
+        let right_map = map_for(val(u2(), A));
+        assert_eq!(equal(&left_map, &right_map), Outcome::Completed(true));
+
         let duplicate_identity = from_admitted_map(
-            map_type,
+            keyed_map_type,
             vec![
                 (val(u1(), A), Value::Integer(Integer::one())),
                 (val(u2(), A), Value::Integer(Integer::one())),
@@ -572,7 +634,7 @@ mod tests {
         assert!(duplicate_identity.is_err());
     }
 
-    /// Trace: FR-415-AC-4, TC-963
+    #[trace("FR-415-AC-4")]
     #[test]
     fn a_clock_reference_paired_with_another_kind_is_a_kind_mismatch() {
         let base = val(u1(), A);
@@ -590,7 +652,7 @@ mod tests {
         }
     }
 
-    /// Trace: FR-415-AC-5, TC-963
+    #[trace("FR-415-AC-5")]
     #[test]
     fn keys_order_by_place_text_only() {
         let key = |k: &str| val(u1(), &a_with(&format!("{k:?}")));
@@ -621,7 +683,7 @@ mod tests {
         assert_eq!(compare_keys(&object, &val(u1(), A)), None);
     }
 
-    /// Trace: FR-415-AC-5, TC-963
+    #[trace("FR-415-AC-5")]
     #[test]
     fn a_set_holds_clock_references_in_key_order_and_coalesces_cross_universe_identity() {
         let set_type = CollectionType::new(CollectionKind::Set, ValueType::ClockReference, None);
@@ -674,6 +736,24 @@ mod tests {
             compare_keys(&val(u1(), A), &val(u2(), A)),
             Some(Ordering::Equal)
         );
+    }
+
+    #[trace("FR-415-AC-5")]
+    #[test]
+    fn rust_hash_identity_uses_place_text_only() {
+        use core::hash::{Hash, Hasher};
+        use std::collections::hash_map::DefaultHasher;
+
+        let left = make(u1(), A);
+        let right = make(u2(), A);
+        assert_eq!(left, right);
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+
+        let mut left_hasher = DefaultHasher::new();
+        let mut right_hasher = DefaultHasher::new();
+        left.hash(&mut left_hasher);
+        right.hash(&mut right_hasher);
+        assert_eq!(left_hasher.finish(), right_hasher.finish());
     }
 
     /// Trace: FR-415-AC-6, TC-963
