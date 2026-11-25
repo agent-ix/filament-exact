@@ -1,28 +1,57 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Clock-place references: a `Reference<Clock>` value.
 //!
-//! A clock-place reference names one clock place by its universe and its
-//! canonical `place/v2` place id text. It is compared, ordered, hashed and
-//! sized by that pair alone; the kernel never resolves it. The constructor
+//! A clock-place reference retains its universe and canonical `place/v2`
+//! place id text. Its key identity is the text alone; the kernel never
+//! resolves it. The constructor
 //! checks the five model-free encoding rules of FR-415 Behavior 3 and nothing
 //! else: the declared model owns every other rule of FSL FR-230 "Place
 //! identity".
 
 use alloc::string::String;
+use core::cmp::Ordering;
+use core::hash::{Hash, Hasher};
 
 use crate::identity::UniverseId;
 
 /// A clock-place reference: the outer universe and the canonical `place/v2`
 /// place id text of the clock place it names.
 ///
-/// Rust equality, hashing and ordering are those of the pair (universe, text
-/// octets), and the order is the canonical key order of FR-415 Behavior 6. The
+/// Rust equality, hashing and ordering use the place-id text octets alone;
+/// the universe remains available as payload. The order is the canonical key
+/// order of FR-415 Behavior 6. The
 /// language defines no ordering operator over place ids; the order serves
 /// canonical collection order and state keys only.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug)]
 pub struct ClockPlaceReference {
     universe: UniverseId,
     text: String,
+}
+
+impl PartialEq for ClockPlaceReference {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text
+    }
+}
+
+impl Eq for ClockPlaceReference {}
+
+impl Hash for ClockPlaceReference {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.text.hash(state);
+    }
+}
+
+impl PartialOrd for ClockPlaceReference {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ClockPlaceReference {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.text.cmp(&other.text)
+    }
 }
 
 impl ClockPlaceReference {
@@ -178,10 +207,10 @@ mod tests {
 
     use super::ClockPlaceReference;
     use crate::{
-        compare_keys, form, from_admitted, from_admitted_map, plan_equality, planned_equality,
         CardinalityBound, CheckedInvariantCause, CollectionKind, CollectionType, Component,
         ConstructionCause, ConstructionRefusal, EffectiveId, Integer, JsonObject, MapType, Meter,
         ObjectId, ObjectReference, Outcome, Refusal, ScalarLimits, UniverseId, Value, ValueType,
+        compare_keys, form, from_admitted, from_admitted_map, plan_equality, planned_equality,
     };
 
     const P: &str = r#"["source","a","i","ix://i/calls"]"#;
@@ -484,7 +513,7 @@ mod tests {
 
     /// Trace: FR-415-AC-4, TC-963
     #[test]
-    fn equality_is_by_place_text_and_refuses_equal_text_across_universes() {
+    fn equality_is_by_place_text_including_across_universes() {
         let boolean_plan = plan_equality(&Value::Boolean(true), &Value::Boolean(true));
         let base = val(u1(), A);
         let other_member = A.replacen(&hex(r#"ix://i/C/x"#), &hex(r#"ix://i/C/y"#), 1);
@@ -507,15 +536,9 @@ mod tests {
         assert_eq!(equal(&base, &elsewhere), Outcome::Completed(false));
         assert_eq!(plan_equality(&base, &elsewhere), boolean_plan);
 
-        let foreign = val(u2(), A);
-        let expected = Refusal::ForeignReference {
-            required: u1(),
-            supplied: u2(),
-        };
-        assert_eq!(expected.code(), Some("foreign_reference"));
-        assert_eq!(expected.cause(), Some("foreign-universe"));
-        assert_eq!(plan_equality(&base, &foreign), Err(expected.clone()));
-        assert_eq!(equal(&base, &foreign), Outcome::Refused(expected));
+        let same_text_elsewhere = val(u2(), A);
+        assert_eq!(plan_equality(&base, &same_text_elsewhere), boolean_plan);
+        assert_eq!(equal(&base, &same_text_elsewhere), Outcome::Completed(true));
     }
 
     /// Trace: FR-415-AC-4, FR-415-AC-5, FR-829-AC-8, FR-829-AC-9, TC-963
@@ -523,7 +546,8 @@ mod tests {
     fn cross_universe_clock_identity_is_preserved_when_nested_and_in_sets() {
         let left = val(u1(), A);
         let right = val(u2(), A);
-        let sequence_type = CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None);
+        let sequence_type =
+            CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None);
         let nested_left = from_admitted(sequence_type.clone(), vec![left.clone()]);
         let nested_right = from_admitted(sequence_type, vec![right.clone()]);
         assert_eq!(equal(&nested_left, &nested_right), Outcome::Completed(true));
@@ -536,6 +560,17 @@ mod tests {
             panic!("a set value");
         };
         assert_eq!(set.elements().len(), 1);
+
+        let map_type = MapType::new(ValueType::ClockReference, ValueType::Integer, None)
+            .expect("clock references are map keys");
+        let duplicate_identity = from_admitted_map(
+            map_type,
+            vec![
+                (val(u1(), A), Value::Integer(Integer::one())),
+                (val(u2(), A), Value::Integer(Integer::one())),
+            ],
+        );
+        assert!(duplicate_identity.is_err());
     }
 
     /// Trace: FR-415-AC-4, TC-963
@@ -558,7 +593,7 @@ mod tests {
 
     /// Trace: FR-415-AC-5, TC-963
     #[test]
-    fn keys_order_by_universe_then_place_text() {
+    fn keys_order_by_place_text_only() {
         let key = |k: &str| val(u1(), &a_with(&format!("{k:?}")));
         assert_eq!(compare_keys(&key("c"), &key("c/d")), Some(Ordering::Less));
         assert_eq!(compare_keys(&key("c/d"), &key("c/e")), Some(Ordering::Less));
@@ -572,7 +607,7 @@ mod tests {
         );
         assert_eq!(
             compare_keys(&val(u1(), A), &val(u2(), A)),
-            Some(u1().cmp(&u2()))
+            Some(Ordering::Equal)
         );
         assert_eq!(
             compare_keys(&val(u1(), A), &val(u1(), A)),
@@ -589,7 +624,7 @@ mod tests {
 
     /// Trace: FR-415-AC-5, TC-963
     #[test]
-    fn a_set_holds_clock_references_in_key_order_for_any_insertion_order() {
+    fn a_set_holds_clock_references_in_key_order_and_coalesces_cross_universe_identity() {
         let set_type = CollectionType::new(CollectionKind::Set, ValueType::ClockReference, None);
         let ordered = [
             val(
@@ -624,6 +659,22 @@ mod tests {
                 .collect();
             assert_eq!(held, expected);
         }
+
+        let cross_universe = form(
+            &set_type,
+            vec![val(u1(), A), val(u2(), A)],
+            &mut Meter::new(limits()),
+        )
+        .completed()
+        .expect("equal text across universes coalesces");
+        let Value::Collection(cross_universe) = cross_universe else {
+            panic!("a set value");
+        };
+        assert_eq!(cross_universe.elements().len(), 1);
+        assert_eq!(
+            compare_keys(&val(u1(), A), &val(u2(), A)),
+            Some(Ordering::Equal)
+        );
     }
 
     /// Trace: FR-415-AC-6, TC-963

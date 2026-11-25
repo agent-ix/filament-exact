@@ -286,18 +286,7 @@ fn plan_pairs_with_relation(
                 }
                 l == r
             }
-            (Value::ClockReference(l), Value::ClockReference(r)) => {
-                if l.text() != r.text() {
-                    false
-                } else if l.universe() != r.universe() {
-                    return Err(Refusal::ForeignReference {
-                        required: l.universe().clone(),
-                        supplied: r.universe().clone(),
-                    });
-                } else {
-                    true
-                }
-            }
+            (Value::ClockReference(l), Value::ClockReference(r)) => l.text() == r.text(),
             (Value::Option(l), Value::Option(r)) => match (l.payload(), r.payload()) {
                 (Some(l), Some(r)) => {
                     pending.push(Pair::Values(l, r, relation));
@@ -467,11 +456,7 @@ fn ordered_map_entries_by<'a>(
             Ordering::Equal
         }
     });
-    if incomparable {
-        Err(())
-    } else {
-        Ok(ordered)
-    }
+    if incomparable { Err(()) } else { Ok(ordered) }
 }
 
 /// Compare map keys for ordinary equality. Float's equality collapses signed
@@ -508,8 +493,8 @@ mod tests {
     use super::*;
     use crate::accounting::{InjectedDenial, ScalarLimits};
     use crate::collection::{
-        form, from_admitted, from_admitted_map, CardinalityBound, CollectionKind, CollectionType,
-        MapType,
+        CardinalityBound, CollectionKind, CollectionType, MapType, form, from_admitted,
+        from_admitted_map,
     };
     use crate::key::compare_keys;
     use crate::value::ValueType;
@@ -573,10 +558,10 @@ mod tests {
         .unwrap();
         assert!(!plan_pairs(&first, &bounded).unwrap().equal);
         assert!(ValueType::map(map_type.clone()).admits(&first));
-        assert!(!ValueType::map(
-            MapType::new(ValueType::String, ValueType::Boolean, None).unwrap()
-        )
-        .admits(&first));
+        assert!(
+            !ValueType::map(MapType::new(ValueType::String, ValueType::Boolean, None).unwrap())
+                .admits(&first)
+        );
         let Value::Map(empty) = empty else {
             panic!("empty map constructor returns Value::Map");
         };
@@ -999,7 +984,7 @@ mod tests {
     #[test]
     fn collection_float_equality_selects_its_membership_relation() {
         use crate::collection::{
-            form_collection, CardinalityBound, CollectionKind, CollectionType,
+            CardinalityBound, CollectionKind, CollectionType, form_collection,
         };
         use crate::ieee::{FloatType, IeeeValue, IeeeWidth};
         use crate::value::ValueType;
@@ -1407,7 +1392,7 @@ mod tests {
     /// Trace: FR-369-AC-2
     #[test]
     fn incompatible_pairs_report_specific_causes_without_a_boolean() {
-        use crate::collection::{from_admitted, CollectionKind, CollectionType};
+        use crate::collection::{CollectionKind, CollectionType, from_admitted};
         use crate::identity::PopulationId;
         use crate::value::ValueType;
 
