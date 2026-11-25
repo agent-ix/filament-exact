@@ -14,9 +14,8 @@ relationships:
 Verify FR-415-AC-1 through FR-415-AC-6: `ValueType::ClockReference` admits
 only clock-place references, the constructor admits exactly the canonical
 `place/v2` encoding, a value round trips through its outputs, equality is by
-place within one universe and refuses across universes, the key orders by
-universe and then by place id octets, and a value charges one occurrence and
-its text length.
+place id text across universes, collection keys order by that text, and a
+value charges one occurrence and its text length.
 
 Fixture: `A` is the literal text of FSL FR-230-AC-43. `A(K=x)` is `A` with
 its second component replaced by the lowercase hex of the JCS JSON `x`, and
@@ -56,17 +55,21 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    then between `A` and each of `A(K="c/e")`, `A` with the `field` member
    URI `ix://i/C/y`, and `A(P=["source","a","i","ix://i/other"])`, recording
    the planned pair count and charges. Plan equality between `A` under `U1`
-   and `A` under `U2`. Plan equality between `c` and the object reference of
-   step 1, a Text holding `A` and a String holding `A`. Plan equality between
-   `A` under `U1` and `A(K="c/e")` under `U2`, recording the pair count and
-   charges.
-5. For AC-5, under `U1` compare keys of `A(K="c")` and `A(K="c/d")`, of
-   `A(K="c/d")` and `A(K="c/e")`, of `A(P=["source","a","i","ix://i/b"], K="c/e")`
-   and `A(K="c/d")`, of `A` under `U1` and `A` under `U2`, of `A` and `A`,
-   and of `c` and the object reference of step 1. Inspect the public API of
-   `ClockPlaceReference` and `Value` for an ordering operator. Build a
-   `Set<ClockReference>` from the first three values in each of two
-   insertion orders.
+   and the identical text under `U2`; also compare `A` under `U1` with
+   `A(K="c/e")` under `U2`. Repeat the equal-text and different-text pairs
+   inside `Option<ClockReference>`, `Sequence<ClockReference>` and a
+   `Map<String, ClockReference>` value. Plan equality between
+   `c` and the object reference of step 1, a Text holding `A` and a String
+   holding `A`.
+5. For AC-5, compare keys of `A(K="c")` and `A(K="c/d")`, of `A(K="c/d")`
+   and `A(K="c/e")`, of `A(P=["source","a","i","ix://i/b"], K="c/e")`
+   and `A(K="c/d")`, of `A` under `U1` and the identical text under `U2`,
+   of `A` and `A`, and of `c` and the object reference of step 1. Inspect
+   the public API of `ClockPlaceReference` and `Value` for an ordering
+   operator. Build a `Set<ClockReference>` from equal-text `A` values under
+   `U1` and `U2` and from different-text values in each of two insertion
+   orders. Build two `Map<ClockReference, Integer>` values with the equal-text
+   key under `U1` and `U2`, respectively, and compare them.
 6. For AC-6, read `occ` and `text()` of `c`, taking the text's byte length as the caller's charge, then rerun
    the existing object-reference, scalar, composite, Bytes, JsonObject, UUID
    and Timestamp admission, equality, key and accounting vectors.
@@ -83,16 +86,18 @@ components. `U1` and `U2` are two distinct `UniverseId` fixtures.
    PlaceIdNoncanonical }` with no value and no `CheckedInvariant` fault.
 3. The text output equals the supplied text byte for byte, the universe
    output equals `U1`, equality is `true` and the key is `Equal`.
-4. `A` against `A` is `true`, the three variants are `false`, and `A` under
-   `U1` against `A(K="c/e")` under `U2` is `false`, each with the Boolean-leaf
-   pair count and charges. `A` under `U1` against `A` under `U2` returns
-   `Refusal::ForeignReference` whose `code()` is `foreign_reference` and
-   `cause()` is `foreign-universe`, with no completed Boolean. The three
-   mixed-kind plans return `CheckedInvariant { cause: ValueKindMismatch }`.
+4. `A` against `A` is `true`; the equal-text pair under `U1` and `U2` is
+   `true`; the different-text pair is `false`; the three other variants are
+   `false`, each with the Boolean-leaf pair count and charges. The nested
+   equal-text values are true and the nested different-text values false.
+   The three mixed-kind plans return `CheckedInvariant { cause:
+   ValueKindMismatch }`.
 5. `A(K="c")` is `Less` than `A(K="c/d")`; `A(K="c/d")` is `Less` than
    `A(K="c/e")`; the value with `P` ending `ix://i/b` is `Less` than
-   `A(K="c/d")` although its `K` is greater; `U1` against `U2` follows the
-   `UniverseId` order; `A` against `A` is `Equal`; the mixed pair is `None`.
-   No ordering operator exists. Both sets hold the three values in key order.
+   `A(K="c/d")` although its `K` is greater; equal `A` texts under `U1` and
+   `U2` have key `Equal`; the mixed pair is `None`. No ordering operator
+   exists. The set has one entry for the equal-text pair and otherwise holds
+   its values in place-text key order, independent of insertion order. The
+   two maps with equal keys under different universes compare equal.
 6. `occ` is one and `text()` is `A`, whose byte length 279 is the caller's `Charge::size`; every existing vector
    keeps its result.
