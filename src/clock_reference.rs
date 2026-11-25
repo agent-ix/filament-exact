@@ -518,6 +518,26 @@ mod tests {
         assert_eq!(equal(&base, &foreign), Outcome::Refused(expected));
     }
 
+    /// Trace: FR-415-AC-4, FR-415-AC-5, FR-829-AC-8, FR-829-AC-9, TC-963
+    #[test]
+    fn cross_universe_clock_identity_is_preserved_when_nested_and_in_sets() {
+        let left = val(u1(), A);
+        let right = val(u2(), A);
+        let sequence_type = CollectionType::new(CollectionKind::Sequence, ValueType::ClockReference, None);
+        let nested_left = from_admitted(sequence_type.clone(), vec![left.clone()]);
+        let nested_right = from_admitted(sequence_type, vec![right.clone()]);
+        assert_eq!(equal(&nested_left, &nested_right), Outcome::Completed(true));
+
+        let set_type = CollectionType::new(CollectionKind::Set, ValueType::ClockReference, None);
+        let set = form(&set_type, vec![left, right], &mut Meter::new(limits()))
+            .completed()
+            .expect("cross-universe equal references coalesce in a set");
+        let Value::Collection(set) = set else {
+            panic!("a set value");
+        };
+        assert_eq!(set.elements().len(), 1);
+    }
+
     /// Trace: FR-415-AC-4, TC-963
     #[test]
     fn a_clock_reference_paired_with_another_kind_is_a_kind_mismatch() {
