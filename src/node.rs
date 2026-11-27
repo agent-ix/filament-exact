@@ -727,6 +727,7 @@ fn chain_order(package: &str, path: &[FlatSegment]) -> Option<ChainOrder> {
     })
 }
 
+#[cfg(test)]
 fn compare_structural(self_key: &NodeKey, other: &NodeKey) -> Ordering {
     compare_structural_with_cache(self_key, other, false)
 }
