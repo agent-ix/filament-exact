@@ -216,6 +216,7 @@ fn node_arc_bytes() -> Result<usize, ()> {
 
 static NEXT_NODE_ID: AtomicUsize = AtomicUsize::new(1);
 
+#[implements("FR-389-AC-13", "FR-389-AC-14")]
 fn next_node_id(counter: &AtomicUsize) -> usize {
     counter
         .fetch_update(
@@ -226,10 +227,12 @@ fn next_node_id(counter: &AtomicUsize) -> usize {
         .unwrap_or(0)
 }
 
+#[implements("FR-389-AC-13", "FR-389-AC-14")]
 fn allocate_node_id() -> usize {
     next_node_id(&NEXT_NODE_ID)
 }
 
+#[implements("FR-389-AC-13", "FR-389-AC-14")]
 fn cache_peer_matches(identity_id: usize, peer_id: usize, other_id: usize) -> bool {
     identity_id != 0 && peer_id != 0 && other_id != 0 && peer_id == other_id
 }
@@ -266,6 +269,7 @@ struct NodeData {
 }
 
 impl NodeData {
+    #[implements("FR-389-AC-13", "FR-389-AC-14")]
     fn is_cached_equal(&self, other: &Self) -> bool {
         let self_peer = self
             .equal_peer_id
@@ -277,6 +281,7 @@ impl NodeData {
             || cache_peer_matches(other.identity_id, other_peer, self.identity_id)
     }
 
+    #[implements("FR-389-AC-13", "FR-389-AC-14")]
     fn remember_equal(&self, other: &Self) {
         if self.identity_id == 0 || other.identity_id == 0 {
             return;
@@ -726,10 +731,12 @@ fn compare_structural(self_key: &NodeKey, other: &NodeKey) -> Ordering {
     compare_structural_with_cache(self_key, other, false)
 }
 
+#[implements("FR-389-AC-13", "FR-389-AC-14")]
 fn compare_structural_cached(self_key: &NodeKey, other: &NodeKey) -> Ordering {
     compare_structural_with_cache(self_key, other, true)
 }
 
+#[implements("FR-389-AC-13", "FR-389-AC-14")]
 fn compare_structural_with_cache(
     self_key: &NodeKey,
     other: &NodeKey,
