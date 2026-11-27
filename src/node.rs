@@ -1225,6 +1225,8 @@ impl fmt::Debug for NodeKey {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use ix_trace_rs::trace;
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -1747,7 +1749,7 @@ mod tests {
     fn equal_peer_cache_replacement_is_safe_in_both_directions() {
         fn chain() -> NodeKey {
             let mut node = key("P", vec![PathSegment::Text("leaf".into())], 0);
-            for depth in 0..256 {
+            for depth in 0_usize..256 {
                 let sibling = key("P", vec![PathSegment::Text(depth.to_string())], 0);
                 node = key(
                     "P",
