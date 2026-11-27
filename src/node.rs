@@ -219,7 +219,7 @@ static NEXT_NODE_ID: AtomicUsize = AtomicUsize::new(1);
 #[implements("FR-389-AC-13", "FR-389-AC-14")]
 fn next_node_id(counter: &AtomicUsize) -> usize {
     counter
-        .fetch_update(
+        .try_update(
             core::sync::atomic::Ordering::Relaxed,
             core::sync::atomic::Ordering::Relaxed,
             |current| current.checked_add(1),
