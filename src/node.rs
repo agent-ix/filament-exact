@@ -17,6 +17,7 @@ use core::{
 
 use allocator_api2::boxed::Box;
 use arrayvec::ArrayVec;
+use ix_trace_rs::implements;
 use spin::Mutex;
 use triomphe::Arc;
 
@@ -213,6 +214,26 @@ fn node_arc_bytes() -> Result<usize, ()> {
         .map_err(|_| ())
 }
 
+static NEXT_NODE_ID: AtomicUsize = AtomicUsize::new(1);
+
+fn next_node_id(counter: &AtomicUsize) -> usize {
+    counter
+        .fetch_update(
+            core::sync::atomic::Ordering::Relaxed,
+            core::sync::atomic::Ordering::Relaxed,
+            |current| current.checked_add(1),
+        )
+        .unwrap_or(0)
+}
+
+fn allocate_node_id() -> usize {
+    next_node_id(&NEXT_NODE_ID)
+}
+
+fn cache_peer_matches(identity_id: usize, peer_id: usize, other_id: usize) -> bool {
+    identity_id != 0 && peer_id != 0 && other_id != 0 && peer_id == other_id
+}
+
 /// A structural node identity from an admitted checked package.
 ///
 /// filament:canonical
@@ -231,6 +252,10 @@ impl Clone for NodeKey {
 }
 
 struct NodeData {
+    /// Process-unique while nonzero; zero disables the equality cache after exhaustion.
+    identity_id: usize,
+    /// One exact peer whose structural equality was already established.
+    equal_peer_id: AtomicUsize,
     package: String,
     path: Vec<FlatSegment>,
     ordinal: u64,
@@ -238,6 +263,30 @@ struct NodeData {
     token_count: usize,
     chain_order: Option<ChainOrder>,
     drop_frame: Option<Box<DropFrame>>,
+}
+
+impl NodeData {
+    fn is_cached_equal(&self, other: &Self) -> bool {
+        let self_peer = self
+            .equal_peer_id
+            .load(core::sync::atomic::Ordering::Relaxed);
+        let other_peer = other
+            .equal_peer_id
+            .load(core::sync::atomic::Ordering::Relaxed);
+        cache_peer_matches(self.identity_id, self_peer, other.identity_id)
+            || cache_peer_matches(other.identity_id, other_peer, self.identity_id)
+    }
+
+    fn remember_equal(&self, other: &Self) {
+        if self.identity_id == 0 || other.identity_id == 0 {
+            return;
+        }
+        self.equal_peer_id
+            .store(other.identity_id, core::sync::atomic::Ordering::Relaxed);
+        other
+            .equal_peer_id
+            .store(self.identity_id, core::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 struct CopyFrame<'a> {
@@ -674,6 +723,18 @@ fn chain_order(package: &str, path: &[FlatSegment]) -> Option<ChainOrder> {
 }
 
 fn compare_structural(self_key: &NodeKey, other: &NodeKey) -> Ordering {
+    compare_structural_with_cache(self_key, other, false)
+}
+
+fn compare_structural_cached(self_key: &NodeKey, other: &NodeKey) -> Ordering {
+    compare_structural_with_cache(self_key, other, true)
+}
+
+fn compare_structural_with_cache(
+    self_key: &NodeKey,
+    other: &NodeKey,
+    use_equal_cache: bool,
+) -> Ordering {
     if Arc::ptr_eq(&self_key.inner, &other.inner) {
         return Ordering::Equal;
     }
@@ -683,7 +744,13 @@ fn compare_structural(self_key: &NodeKey, other: &NodeKey) -> Ordering {
     let mut left = self_key;
     let mut right = other;
     let mut deferred_order = Ordering::Equal;
-    while let Some((index, left_child, right_child)) = largest_matching_child(left, right) {
+    loop {
+        if use_equal_cache && left.inner.is_cached_equal(&right.inner) {
+            return deferred_order;
+        }
+        let Some((index, left_child, right_child)) = largest_matching_child(left, right) else {
+            break;
+        };
         let package_order = left.inner.package.cmp(&right.inner.package);
         if !package_order.is_eq() {
             return package_order;
@@ -723,7 +790,14 @@ fn compare_structural(self_key: &NodeKey, other: &NodeKey) -> Ordering {
 }
 
 impl Ord for NodeKey {
+    #[implements("FR-389-AC-13", "FR-389-AC-14")]
     fn cmp(&self, other: &Self) -> Ordering {
+        if Arc::ptr_eq(&self.inner, &other.inner) {
+            return Ordering::Equal;
+        }
+        if self.inner.is_cached_equal(&other.inner) {
+            return Ordering::Equal;
+        }
         if self.inner.package == other.inner.package {
             if let (Some(left), Some(right)) = (&self.inner.chain_order, &other.inner.chain_order) {
                 let left_wrapper = left.first_wrapper.as_deref().unwrap_or(&self.inner);
@@ -739,11 +813,16 @@ impl Ord for NodeKey {
                 }
             }
         }
-        compare_structural(self, other)
+        let order = compare_structural_cached(self, other);
+        if order.is_eq() {
+            self.inner.remember_equal(&other.inner);
+        }
+        order
     }
 }
 
 impl PartialEq for NodeKey {
+    #[implements("FR-389-AC-13", "FR-389-AC-14")]
     fn eq(&self, other: &Self) -> bool {
         self.inner.structural_hash == other.inner.structural_hash && self.cmp(other).is_eq()
     }
@@ -903,6 +982,8 @@ impl NodeKey {
         let structural_hash = structural_hash(&package, &direct, ordinal);
         let chain_order = chain_order(&package, &direct);
         let inner = Arc::try_new(NodeData {
+            identity_id: allocate_node_id(),
+            equal_peer_id: AtomicUsize::new(0),
             package,
             path: direct,
             ordinal,
@@ -1056,6 +1137,8 @@ impl NodeKey {
             }
             let chain_order = chain_order(&frame.package, &frame.path);
             let inner = Arc::try_new(NodeData {
+                identity_id: allocate_node_id(),
+                equal_peer_id: AtomicUsize::new(0),
                 package: frame.package,
                 path: frame.path,
                 ordinal: frame.source.inner.ordinal,
@@ -1553,6 +1636,181 @@ mod tests {
                 assert_eq!(left.cmp(right), compare_structural(left, right));
             }
         }
+    }
+
+    /// Trace: FR-389-AC-14, TC-938.
+    #[trace("FR-389-AC-14", "TC-938")]
+    #[test]
+    fn independent_sum_key_prefixes_use_exact_cached_child_pairs() {
+        fn base() -> NodeKey {
+            key(
+                "P",
+                vec![
+                    PathSegment::Text("expression".into()),
+                    PathSegment::Text("literal".into()),
+                    PathSegment::Text("0".into()),
+                ],
+                0,
+            )
+        }
+
+        fn wrapped(previous: NodeKey, term: usize, result_type: NodeKey) -> NodeKey {
+            let literal = key(
+                "P",
+                vec![
+                    PathSegment::Text("expression".into()),
+                    PathSegment::Text("literal".into()),
+                    PathSegment::Text(term.to_string()),
+                ],
+                0,
+            );
+            key(
+                "P",
+                vec![
+                    PathSegment::Text("expression".into()),
+                    PathSegment::Text("binary".into()),
+                    PathSegment::Text("add".into()),
+                    PathSegment::Node(previous),
+                    PathSegment::Text("right".into()),
+                    PathSegment::Node(literal),
+                    PathSegment::Text("type".into()),
+                    PathSegment::Node(result_type),
+                ],
+                0,
+            )
+        }
+
+        const KEY_COUNT: usize = 8_192;
+        let mut left = base();
+        let mut right = base();
+        let left_type = key("P", vec![PathSegment::Text("integer".into())], 0);
+        let right_type = key("P", vec![PathSegment::Text("integer".into())], 0);
+        let mut left_keys = Vec::with_capacity(KEY_COUNT + 1);
+        let mut right_keys = Vec::with_capacity(KEY_COUNT + 1);
+        left_keys.push(left.clone());
+        right_keys.push(right.clone());
+        for term in 1..=KEY_COUNT {
+            left = wrapped(left, term, left_type.clone());
+            right = wrapped(right, term, right_type.clone());
+            left_keys.push(left.clone());
+            right_keys.push(right.clone());
+        }
+
+        construction_probe::reset();
+        for (index, (left, right)) in left_keys.iter().zip(&right_keys).enumerate() {
+            assert!(left == right, "independent key prefix {index} differs");
+        }
+        let visits = construction_probe::snapshot().compare_visits;
+        assert!(
+            visits <= (KEY_COUNT + 1) * 2,
+            "{KEY_COUNT} equal sum-shaped key prefixes needed {visits} structural visits"
+        );
+
+        let left = left_keys.last().expect("the deepest key is retained");
+        let right = right_keys.last().expect("the deepest key is retained");
+        assert_eq!(left.cmp(right), Ordering::Equal);
+        assert_eq!(right.cmp(left), Ordering::Equal);
+        assert_eq!(left.partial_cmp(right), Some(Ordering::Equal));
+        let mut left_hash = DefaultHasher::new();
+        let mut right_hash = DefaultHasher::new();
+        left.hash(&mut left_hash);
+        right.hash(&mut right_hash);
+        assert_eq!(left_hash.finish(), right_hash.finish());
+
+        let mut unequal = base();
+        for term in 1..=KEY_COUNT {
+            unequal = wrapped(unequal, term, left_type.clone());
+        }
+        let mut different = base();
+        for term in 1..KEY_COUNT {
+            different = wrapped(different, term, right_type.clone());
+        }
+        different = wrapped(
+            different,
+            KEY_COUNT,
+            key("P", vec![PathSegment::Text("other-type".into())], 0),
+        );
+        assert_ne!(unequal, different);
+        assert_eq!(
+            unequal.cmp(&different),
+            compare_structural(&unequal, &different)
+        );
+        assert_eq!(
+            different.cmp(&unequal),
+            compare_structural(&different, &unequal)
+        );
+    }
+
+    /// Trace: FR-389-AC-14, TC-938.
+    #[trace("FR-389-AC-14", "TC-938")]
+    #[test]
+    fn equal_peer_cache_replacement_is_safe_in_both_directions() {
+        fn chain() -> NodeKey {
+            let mut node = key("P", vec![PathSegment::Text("leaf".into())], 0);
+            for depth in 0..256 {
+                let sibling = key("P", vec![PathSegment::Text(depth.to_string())], 0);
+                node = key(
+                    "P",
+                    vec![
+                        PathSegment::Text("expression".into()),
+                        PathSegment::Node(node),
+                        PathSegment::Node(sibling),
+                    ],
+                    0,
+                );
+            }
+            node
+        }
+
+        let left = chain();
+        let first_peer = chain();
+        let second_peer = chain();
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                for _ in 0..64 {
+                    assert_eq!(left.cmp(&first_peer), Ordering::Equal);
+                    assert!(left == first_peer);
+                }
+            });
+            scope.spawn(|| {
+                for _ in 0..64 {
+                    assert_eq!(second_peer.cmp(&left), Ordering::Equal);
+                    assert!(second_peer == left);
+                }
+            });
+        });
+        assert_eq!(left.cmp(&first_peer), Ordering::Equal);
+        assert_eq!(first_peer.cmp(&left), Ordering::Equal);
+        assert_eq!(left.cmp(&second_peer), Ordering::Equal);
+        assert_eq!(second_peer.cmp(&left), Ordering::Equal);
+        assert_eq!(left, first_peer);
+        assert_eq!(left, second_peer);
+    }
+
+    /// Trace: FR-389-AC-14, TC-938.
+    #[trace("FR-389-AC-14", "TC-938")]
+    #[test]
+    fn exhausted_node_ids_disable_equal_peer_cache_without_wrapping() {
+        let counter = AtomicUsize::new(usize::MAX - 1);
+        assert_eq!(next_node_id(&counter), usize::MAX - 1);
+        assert_eq!(next_node_id(&counter), 0);
+        assert_eq!(next_node_id(&counter), 0);
+
+        let mut disabled = key("P", vec![PathSegment::Text("same".into())], 0);
+        let peer = key("P", vec![PathSegment::Text("same".into())], 0);
+        let disabled_data = Arc::get_mut(&mut disabled.inner).expect("the key has one owner");
+        disabled_data.identity_id = 0;
+        disabled_data.equal_peer_id.store(
+            peer.inner.identity_id,
+            core::sync::atomic::Ordering::Relaxed,
+        );
+        assert!(!disabled.inner.is_cached_equal(&peer.inner));
+
+        let mut second_disabled = key("P", vec![PathSegment::Text("same".into())], 0);
+        Arc::get_mut(&mut second_disabled.inner)
+            .expect("the second key has one owner")
+            .identity_id = 0;
+        assert!(!disabled.inner.is_cached_equal(&second_disabled.inner));
     }
 
     /// Trace: FR-389-AC-13, TC-938.
