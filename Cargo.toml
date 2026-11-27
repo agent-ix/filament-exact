@@ -26,6 +26,7 @@ json-object = ["json", "dep:serde", "dep:ryu-js"]
 # Inline comparison frames are initialized only as the cursor visits them.
 arrayvec = { version = "0.7.6", default-features = false }
 allocator-api2 = { version = "0.2.21", default-features = false, features = ["alloc"] }
+ix-trace-rs = { git = "https://github.com/agent-ix/ix-trace-rs", branch = "main" }
 num-bigint = { version = "0.4.8", default-features = false }
 num-integer = { version = "0.1.47", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
@@ -43,7 +44,6 @@ ryu-js = { version = "1.0.3", default-features = false, optional = true }
 [dev-dependencies]
 allocation-counter = "0.8.1"
 forge-alloc = { version = "0.3.7", default-features = false }
-ix-trace-rs = { git = "https://github.com/agent-ix/ix-trace-rs", branch = "main" }
 
 [profile.release]
 lto = "thin"
